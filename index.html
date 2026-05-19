@@ -2198,30 +2198,35 @@
     editProfileModal.addEventListener('click', e => { if (e.target === editProfileModal) editProfileModal.classList.add('hidden'); });
     profileEditBtn.addEventListener('click', openEditProfileModal);
 
-    // 清空全部数据
-    const clearAllDataBtn = $('#clearAllDataBtn');
-    if (clearAllDataBtn) {
-        clearAllDataBtn.addEventListener('click', () => {
-            confirmMessage.textContent = '⚠️ 此操作将永久删除所有数据并恢复初始状态，不可恢复！确定继续吗？';
-            confirmCallback = async () => {
-                try {
-                    await new Promise((resolve, reject) => {
-                        const delReq = indexedDB.deleteDatabase(DB_NAME);
-                        delReq.onsuccess = () => resolve();
-                        delReq.onerror = () => reject(new Error('无法删除数据库'));
-                        delReq.onblocked = () => reject(new Error('有其它标签页占用数据库，请关闭后重试'));
-                    });
-                } catch (e) {
-                    showToast('清空失败：' + e.message);
-                    return;
-                }
-                try { localStorage.removeItem('codevault_active_v3'); } catch (e) {}
-                showToast('数据已清空');
-                setTimeout(() => location.reload(), 300);
-            };
-            confirmModal.classList.remove('hidden');
-        });
-    }
+// 清空全部数据
+const clearAllDataBtn = $('#clearAllDataBtn');
+if (clearAllDataBtn) {
+    clearAllDataBtn.addEventListener('click', () => {
+        confirmMessage.textContent = '⚠️ 此操作将永久删除所有数据并恢复初始状态，不可恢复！确定继续吗？';
+        confirmCallback = async () => {
+            // ★ 阻止 beforeunload 自动保存
+            appData = null;
+
+            // 删除数据库
+            try {
+                await new Promise((resolve, reject) => {
+                    const delReq = indexedDB.deleteDatabase(DB_NAME);
+                    delReq.onsuccess = () => resolve();
+                    delReq.onerror = () => reject(new Error('无法删除数据库'));
+                    delReq.onblocked = () => reject(new Error('有其它标签页占用数据库，请关闭后重试'));
+                });
+            } catch (e) {
+                showToast('清空失败：' + e.message);
+                return;
+            }
+
+            try { localStorage.removeItem('codevault_active_v3'); } catch (e) {}
+            showToast('数据已清空');
+            setTimeout(() => location.reload(), 300);
+        };
+        confirmModal.classList.remove('hidden');
+    });
+}
 
     // 导入数据
     importDataBtn.addEventListener('click', () => importFileInput.click());
@@ -2314,3 +2319,4 @@
 </script>
 </body>
 </html>
+
