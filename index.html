@@ -1028,7 +1028,8 @@
         <div class="overlay-topbar" id="previewTopBar">
             <button class="back-btn" id="backBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 4 7 12 16 20"/></svg></button>
         </div>
-        <iframe class="preview-iframe" id="previewIframe" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"></iframe>
+        <!-- ✅ 安全修复：移除了 allow-same-origin，保留脚本执行但隔离父页面数据 -->
+        <iframe class="preview-iframe" id="previewIframe" sandbox="allow-scripts allow-forms allow-popups allow-modals"></iframe>
     </div>
 
     <!-- ==================== 管理分组覆盖层 ==================== -->
@@ -1119,1192 +1120,1197 @@
     <!-- Toast -->
     <div class="toast" id="toast"></div>
 
+<!-- 这里是 </body> 之前，script 标签将从此处开始 -->
 <script>
-    (function() {
-        // ==================== IndexedDB 增强封装 ====================
-        const DB_NAME = 'CodeVaultDB';
-        const DB_VERSION = 1;
-        const STORE_NAME = 'appData';
-        const DATA_KEY = 'globalData';
+(function() {
+    "use strict";
 
-        function openDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, DB_VERSION);
-                request.onupgradeneeded = (e) => {
-                    const db = e.target.result;
-                    if (!db.objectStoreNames.contains(STORE_NAME)) {
-                        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-                    }
-                };
-                request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
-                // 阻塞防止数据库被意外关闭
-                request.onblocked = () => console.warn('数据库升级被阻塞，请关闭其他标签页');
-            });
-        }
+    // ==================== IndexedDB 增强封装 ====================
+    const DB_NAME = 'CodeVaultDB';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'appData';
+    const DATA_KEY = 'globalData';
 
-        // 带重试的数据加载
-        async function loadData(retries = 3) {
-            for (let i = 0; i < retries; i++) {
-                try {
-                    const db = await openDB();
-                    return new Promise((resolve, reject) => {
-                        const tx = db.transaction(STORE_NAME, 'readonly');
-                        const store = tx.objectStore(STORE_NAME);
-                        const getReq = store.get(DATA_KEY);
-                        getReq.onsuccess = () => {
-                            const result = getReq.result;
-                            resolve(result ? result.data : null);
-                        };
-                        getReq.onerror = () => reject(getReq.error);
-                    });
-                } catch (e) {
-                    if (i === retries - 1) throw e;
-                    await new Promise(r => setTimeout(r, 200));
+    function openDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(STORE_NAME)) {
+                    db.createObjectStore(STORE_NAME, { keyPath: 'id' });
                 }
-            }
-        }
-
-        // 带重试和事务持久化的数据保存
-        async function saveData(data, retries = 3) {
-            for (let i = 0; i < retries; i++) {
-                try {
-                    const db = await openDB();
-                    return new Promise((resolve, reject) => {
-                        const tx = db.transaction(STORE_NAME, 'readwrite');
-                        const store = tx.objectStore(STORE_NAME);
-                        store.put({ id: DATA_KEY, data: data });
-                        tx.oncomplete = () => resolve();
-                        tx.onerror = () => reject(tx.error);
-                        tx.onabort = () => reject(new Error('事务中止'));
-                    });
-                } catch (e) {
-                    if (i === retries - 1) throw e;
-                    await new Promise(r => setTimeout(r, 200));
-                }
-            }
-        }
-
-        // 自动保存防抖（每 2 秒检查一次变化）
-        let autoSaveTimer = null;
-        let lastSavedData = null;
-        function scheduleAutoSave() {
-            if (autoSaveTimer) clearTimeout(autoSaveTimer);
-            autoSaveTimer = setTimeout(async () => {
-                if (appData && JSON.stringify(appData) !== lastSavedData) {
-                    await saveData(appData);
-                    lastSavedData = JSON.stringify(appData);
-                }
-            }, 2000);
-        }
-
-        // ==================== 安全校验工具 ====================
-        function escapeHTML(str) {
-            const d = document.createElement('div');
-            d.textContent = str;
-            return d.innerHTML;
-        }
-
-        function isValidImageURL(url) {
-            return /^data:image\/|^https:\/\//i.test(url);
-        }
-
-        // 获取分组头像样式（单引号避免 HTML 属性冲突）
-        function getGroupAvatarStyle(g) {
-            if (g.avatarType === 'image' && g.avatarImage && isValidImageURL(g.avatarImage)) {
-                return { bg: `url('${g.avatarImage}')`, isImage: true };
-            }
-            return { bg: g.avatarColor || '#5b8def', isImage: false };
-        }
-
-        // ==================== 默认数据结构 ====================
-        function getDefaultData() {
-            return {
-                profile: {
-                    name: '用户',
-                    bio: '尚未设置简介',
-                    avatarColor: '#5b8def',
-                    avatarImage: ''
-                },
-                groups: [
-                    {
-                        id: 'preset_html_repo',
-                        avatarColor: '#5b8def',
-                        avatarType: 'color',
-                        avatarImage: '',
-                        name: 'HTML仓库',
-                        englishPhrase: 'HTML Repository',
-                        tags: ['HTML', '代码'],
-                        contentType: 'html',
-                        isPreset: true,
-                        items: [],
-                        pinned: false
-                    },
-                    {
-                        id: 'preset_link_repo',
-                        avatarColor: '#4db6ac',
-                        avatarType: 'color',
-                        avatarImage: '',
-                        name: '链接',
-                        englishPhrase: 'Link Collection',
-                        tags: ['链接', '收藏'],
-                        contentType: 'link',
-                        isPreset: true,
-                        items: [],
-                        pinned: false
-                    }
-                ]
             };
-        }
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+            request.onblocked = () => console.warn('数据库升级被阻塞，请关闭其他标签页');
+        });
+    }
 
-        let appData = null;
-        let activeGroupId = '__home__';
-        let currentSearchKeyword = '';
-
-        const $ = (sel) => document.querySelector(sel);
-
-        // DOM 元素
-        const homeBtn = $('#homeBtn'), sidebarGroups = $('#sidebarGroups'), addGroupBtn = $('#addGroupBtn');
-        const contentBody = $('#contentBody'), groupTitle = $('#groupTitle'), groupSubtitle = $('#groupSubtitle');
-        const fabAddItem = $('#fabAddItem'), addGroupModal = $('#addGroupModal'), addItemModal = $('#addItemModal');
-        const previewOverlay = $('#previewOverlay'), previewIframe = $('#previewIframe'), backBtn = $('#backBtn');
-        const toast = $('#toast'), fileInput = $('#fileInput'), uploadFileBtn = $('#uploadFileBtn');
-        const manageOverlay = $('#manageOverlay'), closeManageBtn = $('#closeManageBtn'), manageList = $('#manageList');
-        const confirmModal = $('#confirmModal'), confirmMessage = $('#confirmMessage');
-        const cancelConfirmBtn = $('#cancelConfirmBtn'), confirmDeleteBtn = $('#confirmDeleteBtn');
-        const groupTypeSelect = $('#groupTypeSelect'), groupColorPicker = $('#groupColorPicker');
-        const groupNameInput = $('#groupNameInput'), groupPhraseInput = $('#groupPhraseInput'), groupTagsInput = $('#groupTagsInput');
-        const confirmGroupBtn = $('#confirmGroupBtn'), cancelGroupBtn = $('#cancelGroupBtn');
-        const addGroupTitle = $('#addGroupTitle'), avatarPreview = $('#avatarPreview');
-        const avatarUrlInput = $('#avatarUrlInput'), avatarUploadBtn = $('#avatarUploadBtn');
-        const avatarFileInput = $('#avatarFileInput'), clearAvatarBtn = $('#clearAvatarBtn');
-
-        const itemNameInput = $('#itemNameInput'), itemDescInput = $('#itemDescInput'), itemUrlInput = $('#itemUrlInput');
-        const itemTagsInput = $('#itemTagsInput'), itemCodeInput = $('#itemCodeInput'), itemTextInput = $('#itemTextInput');
-        const confirmItemBtn = $('#confirmItemBtn'), cancelItemBtn = $('#cancelItemBtn'), addItemTitle = $('#addItemTitle');
-        const itemDescGroup = $('#itemDescGroup'), itemUrlGroup = $('#itemUrlGroup'), itemHtmlGroup = $('#itemHtmlGroup'), itemTextGroup = $('#itemTextGroup');
-        const memoImageUploadBtn = $('#memoImageUploadBtn'), memoImageFileInput = $('#memoImageFileInput');
-        const clearMemoImageBtn = $('#clearMemoImageBtn'), memoImagePreview = $('#memoImagePreview'), memoImagePreviewImg = $('#memoImagePreviewImg');
-        const descCharCount = $('#descCharCount');
-
-        const profileOverlay = $('#profileOverlay'), profileBackBtn = $('#profileBackBtn');
-        const profileAvatar = $('#profileAvatar'), profileName = $('#profileName'), profileBio = $('#profileBio');
-        const statGroups = $('#statGroups'), statItems = $('#statItems'), exportDataBtn = $('#exportDataBtn');
-        const importDataBtn = $('#importDataBtn'), importFileInput = $('#importFileInput');
-        const storageInfo = $('#storageInfo');
-
-        const profileEditBtn = $('#profileEditBtn'), editProfileModal = $('#editProfileModal');
-        const profileAvatarPreviewEl = $('#profileAvatarPreview');
-        const profileAvatarUrl = $('#profileAvatarUrl'), profileNameInput = $('#profileNameInput'), profileBioInput = $('#profileBioInput');
-        const profileAvatarUploadBtn = $('#profileAvatarUploadBtn'), profileAvatarFileInput = $('#profileAvatarFileInput');
-        const clearProfileAvatarBtn = $('#clearProfileAvatarBtn');
-        const cancelProfileBtn = $('#cancelProfileBtn'), saveProfileBtn = $('#saveProfileBtn');
-
-        // 新增元素
-        const searchBar = $('#searchBar'), searchInput = $('#searchInput'), searchClearBtn = $('#searchClearBtn');
-        const expandSidebarBtn = $('#expandSidebarBtn');
-        const sidebar = document.querySelector('.sidebar');
-
-        let selectedGroupColor = '#5b8def', tempAvatarImage = '';
-        let editingGroupId = null, editingItemId = null, editingItemGroupId = null;
-        let tempMemoImage = '';
-        let tempProfileAvatar = '';
-        let toastTimer = null, confirmCallback = null;
-        let previewHideTimer = null;
-
-        function showToast(msg) {
-            if (toastTimer) clearTimeout(toastTimer);
-            toast.textContent = msg; toast.classList.add('show');
-            toastTimer = setTimeout(() => { toast.classList.remove('show'); toastTimer = null; }, 2200);
-        }
-
-        function sortItems(items) {
-            if (!items) return [];
-            const pinned = items.filter(i => i.pinned);
-            const rest = items.filter(i => !i.pinned);
-            return [...pinned, ...rest];
-        }
-
-        // 图片压缩（保留 PNG 透明）
-        function compressImage(file, maxWidth = 1200, quality = 0.75) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        let w = img.width, h = img.height;
-                        if (w > maxWidth) { h = h * (maxWidth / w); w = maxWidth; }
-                        const canvas = document.createElement('canvas');
-                        canvas.width = w; canvas.height = h;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, w, h);
-                        const isPNG = file.type === 'image/png';
-                        const dataURL = canvas.toDataURL(isPNG ? 'image/png' : 'image/jpeg', isPNG ? 1.0 : quality);
-                        resolve(dataURL);
-                    };
-                    img.onerror = reject;
-                    img.src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            });
-        }
-
-        // ==================== 搜索过滤 ====================
-        function filterItems(items, keyword) {
-            if (!keyword || !keyword.trim()) return items;
-            const kw = keyword.trim().toLowerCase();
-            return items.filter(item => {
-                const matchName = item.name && item.name.toLowerCase().includes(kw);
-                const matchTags = item.tags && item.tags.some(t => t.toLowerCase().includes(kw));
-                return matchName || matchTags;
-            });
-        }
-
-        // ==================== 初始化 ====================
-        async function init() {
-            let stored = await loadData().catch(() => null);
-            if (!stored) {
-                stored = getDefaultData();
-                await saveData(stored);
-            }
-            let changed = false;
-            if (!stored.groups.find(g => g.id === 'preset_html_repo')) {
-                stored.groups.unshift({ ...getDefaultData().groups[0] });
-                changed = true;
-            }
-            if (!stored.groups.find(g => g.id === 'preset_link_repo')) {
-                const linkGroup = { ...getDefaultData().groups[1] };
-                const idx = stored.groups.findIndex(g => g.id === 'preset_html_repo');
-                if (idx >= 0) stored.groups.splice(idx+1, 0, linkGroup);
-                else stored.groups.unshift(linkGroup);
-                changed = true;
-            }
-            stored.groups.forEach(g => { if (g.pinned === undefined) g.pinned = false; });
-            if (changed) await saveData(stored);
-            appData = stored;
-            lastSavedData = JSON.stringify(appData);
-            const activeId = localStorage.getItem('codevault_active_v3');
-            activeGroupId = activeId && appData.groups.some(g => g.id === activeId) ? activeId : '__home__';
-            renderAll();
-            updateProfileUI();
-        }
-
-        function updateProfileUI() {
-            const p = appData.profile;
-            profileName.textContent = p.name || '用户';
-            profileBio.textContent = p.bio || '尚未设置简介';
-            if (p.avatarImage && isValidImageURL(p.avatarImage)) {
-                profileAvatar.style.backgroundImage = `url('${p.avatarImage}')`;
-                profileAvatar.style.backgroundSize = 'cover';
-                profileAvatar.textContent = '';
-            } else {
-                profileAvatar.style.backgroundImage = '';
-                profileAvatar.style.backgroundColor = p.avatarColor || '#5b8def';
-                profileAvatar.textContent = (p.name || 'U').charAt(0).toUpperCase();
-            }
-            const totalGroups = appData.groups.length;
-            const totalItems = appData.groups.reduce((s, g) => s + (g.items?.length || 0), 0);
-            statGroups.textContent = totalGroups;
-            statItems.textContent = totalItems;
-        }
-
-        async function updateStorageInfo() {
-            const el = storageInfo;
-            if (!el) return;
+    // 带重试的数据加载（使用后自动关闭数据库连接）
+    async function loadData(retries = 3) {
+        for (let i = 0; i < retries; i++) {
             try {
-                if ('storage' in navigator && 'estimate' in navigator.storage) {
-                    const estimate = await navigator.storage.estimate();
-                    const used = estimate.usage || 0;
-                    const quota = estimate.quota || 0;
-                    const usedStr = used < 1024*1024 ? (used/1024).toFixed(1) + ' KB' : (used/(1024*1024)).toFixed(1) + ' MB';
-                    const quotaStr = quota < 1024*1024 ? (quota/1024).toFixed(1) + ' KB' : (quota/(1024*1024)).toFixed(1) + ' MB';
-                    el.textContent = `存储空间：${usedStr} / ${quotaStr}`;
-                } else {
-                    el.textContent = '存储空间：浏览器不支持估算';
-                }
-            } catch(e) {
-                el.textContent = '存储空间：无法获取';
+                const db = await openDB();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(STORE_NAME, 'readonly');
+                    const store = tx.objectStore(STORE_NAME);
+                    const getReq = store.get(DATA_KEY);
+                    getReq.onsuccess = () => {
+                        const result = getReq.result;
+                        resolve(result ? result.data : null);
+                    };
+                    getReq.onerror = () => reject(getReq.error);
+                    tx.oncomplete = () => { db.close(); };
+                });
+            } catch (e) {
+                if (i === retries - 1) throw e;
+                await new Promise(r => setTimeout(r, 200));
             }
         }
+    }
 
-        function renderAll() {
-            renderGroupButtons();
-            renderContent();
-            scheduleAutoSave();
+    // 带重试和事务持久化的数据保存（使用后自动关闭数据库连接）
+    async function saveData(data, retries = 3) {
+        for (let i = 0; i < retries; i++) {
+            try {
+                const db = await openDB();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(STORE_NAME, 'readwrite');
+                    const store = tx.objectStore(STORE_NAME);
+                    store.put({ id: DATA_KEY, data: data });
+                    tx.oncomplete = () => { db.close(); resolve(); };
+                    tx.onerror = () => reject(tx.error);
+                    tx.onabort = () => reject(new Error('事务中止'));
+                });
+            } catch (e) {
+                if (i === retries - 1) throw e;
+                await new Promise(r => setTimeout(r, 200));
+            }
         }
+    }
 
-        // ==================== 分组按钮（含展开文字） ====================
-        function renderGroupButtons() {
-            sidebarGroups.innerHTML = '';
-            const sorted = [...appData.groups].sort((a, b) => {
-                if (a.pinned && !b.pinned) return -1;
-                if (!a.pinned && b.pinned) return 1;
-                return 0;
-            });
-            sorted.forEach(g => {
-                const btn = document.createElement('button');
-                btn.className = 'circle-btn group-btn';
-                btn.dataset.groupId = g.id;
-                btn.title = g.name;
-                const av = getGroupAvatarStyle(g);
-                if (av.isImage) {
-                    btn.style.backgroundImage = av.bg;
-                    btn.style.backgroundColor = 'transparent';
-                    btn.classList.add('has-image');
-                } else {
-                    btn.style.backgroundColor = av.bg;
-                    btn.style.backgroundImage = 'none';
-                    btn.classList.remove('has-image');
-                    // 用 span 包裹首字母，方便展开时隐藏
-                    const initialSpan = document.createElement('span');
-                    initialSpan.className = 'btn-initial';
-                    initialSpan.textContent = g.name.charAt(0).toUpperCase();
-                    btn.appendChild(initialSpan);
+    // 自动保存防抖（每 2 秒检查一次变化）
+    let autoSaveTimer = null;
+    let lastSavedData = null;
+    function scheduleAutoSave() {
+        if (autoSaveTimer) clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(async () => {
+            if (appData && JSON.stringify(appData) !== lastSavedData) {
+                await saveData(appData);
+                lastSavedData = JSON.stringify(appData);
+            }
+        }, 2000);
+    }
+
+    // ==================== 安全校验工具 ====================
+    function escapeHTML(str) {
+        const d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+    }
+
+    function isValidImageURL(url) {
+        // 只允许 HTTPS 和 data URI（仅限常用图片格式，避免 SVG 等意外执行）
+        return /^data:image\/(png|jpeg|gif|webp);base64,|^https:\/\//i.test(url);
+    }
+
+    // 获取分组头像样式（单引号避免 HTML 属性冲突）
+    function getGroupAvatarStyle(g) {
+        if (g.avatarType === 'image' && g.avatarImage && isValidImageURL(g.avatarImage)) {
+            return { bg: `url('${g.avatarImage}')`, isImage: true };
+        }
+        return { bg: g.avatarColor || '#5b8def', isImage: false };
+    }
+
+    // ==================== 默认数据结构 ====================
+    function getDefaultData() {
+        return {
+            profile: {
+                name: '用户',
+                bio: '尚未设置简介',
+                avatarColor: '#5b8def',
+                avatarImage: ''
+            },
+            groups: [
+                {
+                    id: 'preset_html_repo',
+                    avatarColor: '#5b8def',
+                    avatarType: 'color',
+                    avatarImage: '',
+                    name: 'HTML仓库',
+                    englishPhrase: 'HTML Repository',
+                    tags: ['HTML', '代码'],
+                    contentType: 'html',
+                    isPreset: true,
+                    items: [],
+                    pinned: false
+                },
+                {
+                    id: 'preset_link_repo',
+                    avatarColor: '#4db6ac',
+                    avatarType: 'color',
+                    avatarImage: '',
+                    name: '链接',
+                    englishPhrase: 'Link Collection',
+                    tags: ['链接', '收藏'],
+                    contentType: 'link',
+                    isPreset: true,
+                    items: [],
+                    pinned: false
                 }
-                if (g.id === activeGroupId) btn.classList.add('active');
+            ]
+        };
+    }
 
-                // 展开时显示的文字容器
-                const textContainer = document.createElement('span');
-                textContainer.className = 'group-text';
-                const nameSpan = document.createElement('span');
-                nameSpan.className = 'group-name-inline';
-                nameSpan.textContent = g.name;
-                const tagsSpan = document.createElement('span');
-                tagsSpan.className = 'group-tags-inline';
-                tagsSpan.textContent = (g.tags || []).map(t => '#' + t).join(' ');
-                textContainer.appendChild(nameSpan);
-                textContainer.appendChild(tagsSpan);
-                btn.appendChild(textContainer);
+    let appData = null;
+    let activeGroupId = '__home__';
+    let currentSearchKeyword = '';
 
-                btn.addEventListener('click', () => selectGroup(g.id));
-                sidebarGroups.appendChild(btn);
-            });
-            homeBtn.classList.toggle('active', activeGroupId === '__home__');
-            // 根据当前展开状态显示/隐藏文字
+    const $ = (sel) => document.querySelector(sel);
+
+    // DOM 元素
+    const homeBtn = $('#homeBtn'), sidebarGroups = $('#sidebarGroups'), addGroupBtn = $('#addGroupBtn');
+    const contentBody = $('#contentBody'), groupTitle = $('#groupTitle'), groupSubtitle = $('#groupSubtitle');
+    const fabAddItem = $('#fabAddItem'), addGroupModal = $('#addGroupModal'), addItemModal = $('#addItemModal');
+    const previewOverlay = $('#previewOverlay'), previewIframe = $('#previewIframe'), backBtn = $('#backBtn');
+    const toast = $('#toast'), fileInput = $('#fileInput'), uploadFileBtn = $('#uploadFileBtn');
+    const manageOverlay = $('#manageOverlay'), closeManageBtn = $('#closeManageBtn'), manageList = $('#manageList');
+    const confirmModal = $('#confirmModal'), confirmMessage = $('#confirmMessage');
+    const cancelConfirmBtn = $('#cancelConfirmBtn'), confirmDeleteBtn = $('#confirmDeleteBtn');
+    const groupTypeSelect = $('#groupTypeSelect'), groupColorPicker = $('#groupColorPicker');
+    const groupNameInput = $('#groupNameInput'), groupPhraseInput = $('#groupPhraseInput'), groupTagsInput = $('#groupTagsInput');
+    const confirmGroupBtn = $('#confirmGroupBtn'), cancelGroupBtn = $('#cancelGroupBtn');
+    const addGroupTitle = $('#addGroupTitle'), avatarPreview = $('#avatarPreview');
+    const avatarUrlInput = $('#avatarUrlInput'), avatarUploadBtn = $('#avatarUploadBtn');
+    const avatarFileInput = $('#avatarFileInput'), clearAvatarBtn = $('#clearAvatarBtn');
+
+    const itemNameInput = $('#itemNameInput'), itemDescInput = $('#itemDescInput'), itemUrlInput = $('#itemUrlInput');
+    const itemTagsInput = $('#itemTagsInput'), itemCodeInput = $('#itemCodeInput'), itemTextInput = $('#itemTextInput');
+    const confirmItemBtn = $('#confirmItemBtn'), cancelItemBtn = $('#cancelItemBtn'), addItemTitle = $('#addItemTitle');
+    const itemDescGroup = $('#itemDescGroup'), itemUrlGroup = $('#itemUrlGroup'), itemHtmlGroup = $('#itemHtmlGroup'), itemTextGroup = $('#itemTextGroup');
+    const memoImageUploadBtn = $('#memoImageUploadBtn'), memoImageFileInput = $('#memoImageFileInput');
+    const clearMemoImageBtn = $('#clearMemoImageBtn'), memoImagePreview = $('#memoImagePreview'), memoImagePreviewImg = $('#memoImagePreviewImg');
+    const descCharCount = $('#descCharCount');
+
+    const profileOverlay = $('#profileOverlay'), profileBackBtn = $('#profileBackBtn');
+    const profileAvatar = $('#profileAvatar'), profileName = $('#profileName'), profileBio = $('#profileBio');
+    const statGroups = $('#statGroups'), statItems = $('#statItems'), exportDataBtn = $('#exportDataBtn');
+    const importDataBtn = $('#importDataBtn'), importFileInput = $('#importFileInput');
+    const storageInfo = $('#storageInfo');
+
+    const profileEditBtn = $('#profileEditBtn'), editProfileModal = $('#editProfileModal');
+    const profileAvatarPreviewEl = $('#profileAvatarPreview');
+    const profileAvatarUrl = $('#profileAvatarUrl'), profileNameInput = $('#profileNameInput'), profileBioInput = $('#profileBioInput');
+    const profileAvatarUploadBtn = $('#profileAvatarUploadBtn'), profileAvatarFileInput = $('#profileAvatarFileInput');
+    const clearProfileAvatarBtn = $('#clearProfileAvatarBtn');
+    const cancelProfileBtn = $('#cancelProfileBtn'), saveProfileBtn = $('#saveProfileBtn');
+
+    // 新增元素
+    const searchBar = $('#searchBar'), searchInput = $('#searchInput'), searchClearBtn = $('#searchClearBtn');
+    const expandSidebarBtn = $('#expandSidebarBtn');
+    const sidebar = document.querySelector('.sidebar');
+
+    let selectedGroupColor = '#5b8def', tempAvatarImage = '';
+    let editingGroupId = null, editingItemId = null, editingItemGroupId = null;
+    let tempMemoImage = '';
+    let tempProfileAvatar = '';
+    let toastTimer = null, confirmCallback = null;
+    let previewHideTimer = null;
+
+    function showToast(msg) {
+        if (toastTimer) clearTimeout(toastTimer);
+        toast.textContent = msg; toast.classList.add('show');
+        toastTimer = setTimeout(() => { toast.classList.remove('show'); toastTimer = null; }, 2200);
+    }
+
+    function sortItems(items) {
+        if (!items) return [];
+        const pinned = items.filter(i => i.pinned);
+        const rest = items.filter(i => !i.pinned);
+        return [...pinned, ...rest];
+    }
+
+    // 图片压缩（保留 PNG 透明）
+    function compressImage(file, maxWidth = 1200, quality = 0.75) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    let w = img.width, h = img.height;
+                    if (w > maxWidth) { h = h * (maxWidth / w); w = maxWidth; }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w; canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    const isPNG = file.type === 'image/png';
+                    const dataURL = canvas.toDataURL(isPNG ? 'image/png' : 'image/jpeg', isPNG ? 1.0 : quality);
+                    resolve(dataURL);
+                };
+                img.onerror = reject;
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // ==================== 搜索过滤 ====================
+    function filterItems(items, keyword) {
+        if (!keyword || !keyword.trim()) return items;
+        const kw = keyword.trim().toLowerCase();
+        return items.filter(item => {
+            const matchName = item.name && item.name.toLowerCase().includes(kw);
+            const matchTags = item.tags && item.tags.some(t => t.toLowerCase().includes(kw));
+            return matchName || matchTags;
+        });
+    }
+
+    // ==================== 初始化 ====================
+    async function init() {
+        let stored = await loadData().catch(() => null);
+        if (!stored) {
+            stored = getDefaultData();
+            await saveData(stored);
+        }
+        let changed = false;
+        if (!stored.groups.find(g => g.id === 'preset_html_repo')) {
+            stored.groups.unshift({ ...getDefaultData().groups[0] });
+            changed = true;
+        }
+        if (!stored.groups.find(g => g.id === 'preset_link_repo')) {
+            const linkGroup = { ...getDefaultData().groups[1] };
+            const idx = stored.groups.findIndex(g => g.id === 'preset_html_repo');
+            if (idx >= 0) stored.groups.splice(idx+1, 0, linkGroup);
+            else stored.groups.unshift(linkGroup);
+            changed = true;
+        }
+        // 补全 pinned 字段并标记变更
+        stored.groups.forEach(g => {
+            if (g.pinned === undefined) {
+                g.pinned = false;
+                changed = true;
+            }
+        });
+        if (changed) await saveData(stored);
+        appData = stored;
+        lastSavedData = JSON.stringify(appData);
+        const activeId = localStorage.getItem('codevault_active_v3');
+        activeGroupId = activeId && appData.groups.some(g => g.id === activeId) ? activeId : '__home__';
+        renderAll();
+        updateProfileUI();
+    }
+
+    function updateProfileUI() {
+        const p = appData.profile;
+        profileName.textContent = p.name || '用户';
+        profileBio.textContent = p.bio || '尚未设置简介';
+        if (p.avatarImage && isValidImageURL(p.avatarImage)) {
+            profileAvatar.style.backgroundImage = `url('${p.avatarImage}')`;
+            profileAvatar.style.backgroundSize = 'cover';
+            profileAvatar.textContent = '';
+        } else {
+            profileAvatar.style.backgroundImage = '';
+            profileAvatar.style.backgroundColor = p.avatarColor || '#5b8def';
+            profileAvatar.textContent = (p.name || 'U').charAt(0).toUpperCase();
+        }
+        const totalGroups = appData.groups.length;
+        const totalItems = appData.groups.reduce((s, g) => s + (g.items?.length || 0), 0);
+        statGroups.textContent = totalGroups;
+        statItems.textContent = totalItems;
+    }
+
+    async function updateStorageInfo() {
+        const el = storageInfo;
+        if (!el) return;
+        try {
+            if ('storage' in navigator && 'estimate' in navigator.storage) {
+                const estimate = await navigator.storage.estimate();
+                const used = estimate.usage || 0;
+                const quota = estimate.quota || 0;
+                const usedStr = used < 1024*1024 ? (used/1024).toFixed(1) + ' KB' : (used/(1024*1024)).toFixed(1) + ' MB';
+                const quotaStr = quota < 1024*1024 ? (quota/1024).toFixed(1) + ' KB' : (quota/(1024*1024)).toFixed(1) + ' MB';
+                el.textContent = `存储空间：${usedStr} / ${quotaStr}`;
+            } else {
+                el.textContent = '存储空间：浏览器不支持估算';
+            }
+        } catch(e) {
+            el.textContent = '存储空间：无法获取';
+        }
+    }
+
+    function renderAll() {
+        renderGroupButtons();
+        renderContent();
+        scheduleAutoSave();
+    }
+
+    // ==================== 分组按钮（含展开文字） ====================
+    function renderGroupButtons() {
+        sidebarGroups.innerHTML = '';
+        const sorted = [...appData.groups].sort((a, b) => {
+            if (a.pinned && !b.pinned) return -1;
+            if (!a.pinned && b.pinned) return 1;
+            return 0;
+        });
+        sorted.forEach(g => {
+            const btn = document.createElement('button');
+            btn.className = 'circle-btn group-btn';
+            btn.dataset.groupId = g.id;
+            btn.title = g.name;
+            const av = getGroupAvatarStyle(g);
+            if (av.isImage) {
+                btn.style.backgroundImage = av.bg;
+                btn.style.backgroundColor = 'transparent';
+                btn.classList.add('has-image');
+                // 图片头像不显示文字首字母（避免展开时叠加文字）
+            } else {
+                btn.style.backgroundColor = av.bg;
+                btn.style.backgroundImage = 'none';
+                btn.classList.remove('has-image');
+                const initialSpan = document.createElement('span');
+                initialSpan.className = 'btn-initial';
+                initialSpan.textContent = g.name.charAt(0).toUpperCase();
+                btn.appendChild(initialSpan);
+            }
+            if (g.id === activeGroupId) btn.classList.add('active');
+
+            // 展开时显示的文字容器
+            const textContainer = document.createElement('span');
+            textContainer.className = 'group-text';
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'group-name-inline';
+            nameSpan.textContent = g.name;
+            const tagsSpan = document.createElement('span');
+            tagsSpan.className = 'group-tags-inline';
+            tagsSpan.textContent = (g.tags || []).map(t => '#' + t).join(' ');
+            textContainer.appendChild(nameSpan);
+            textContainer.appendChild(tagsSpan);
+            btn.appendChild(textContainer);
+
+            btn.addEventListener('click', () => selectGroup(g.id));
+            sidebarGroups.appendChild(btn);
+        });
+        homeBtn.classList.toggle('active', activeGroupId === '__home__');
+        updateSidebarTextVisibility();
+    }
+
+    function updateSidebarTextVisibility() {
+        const texts = document.querySelectorAll('.group-text');
+        texts.forEach(el => {
+            el.style.display = sidebar.classList.contains('expanded') ? 'flex' : 'none';
+        });
+    }
+
+    function selectGroup(id) {
+        activeGroupId = id;
+        localStorage.setItem('codevault_active_v3', id);
+        currentSearchKeyword = '';
+        searchInput.value = '';
+        searchClearBtn.style.display = 'none';
+        renderAll();
+        if (sidebar.classList.contains('expanded')) {
+            sidebar.classList.remove('expanded');
+            expandSidebarBtn.textContent = '展开';
             updateSidebarTextVisibility();
         }
+    }
 
-        function updateSidebarTextVisibility() {
-            const texts = document.querySelectorAll('.group-text');
-            texts.forEach(el => {
-                el.style.display = sidebar.classList.contains('expanded') ? 'flex' : 'none';
-            });
-        }
-
-        function selectGroup(id) {
-            activeGroupId = id;
-            localStorage.setItem('codevault_active_v3', id);
-            currentSearchKeyword = '';
-            if (searchInput) searchInput.value = '';
-            if (searchClearBtn) searchClearBtn.style.display = 'none';
-            renderAll();
-            // 自动收回侧边栏
-            if (sidebar.classList.contains('expanded')) {
-                sidebar.classList.remove('expanded');
-                expandSidebarBtn.textContent = '展开';
-                updateSidebarTextVisibility();
-            }
-        }
-
-        // ==================== 主内容渲染 ====================
-        function renderContent() {
-            // 搜索框显示控制
-            if (activeGroupId === '__home__') {
-                searchBar.style.display = 'none';
-                groupTitle.textContent = '欢迎使用 CodeVault';
-                groupSubtitle.textContent = 'Manage your HTML snippets with ease';
-                fabAddItem.classList.add('hidden');
-                const totalItems = appData.groups.reduce((s,g) => s + (g.items?.length||0), 0);
-                contentBody.innerHTML = `
-                    <div class="empty-state">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
-                            <rect x="2" y="3" width="20" height="14" rx="2"/>
-                            <line x1="8" y1="21" x2="16" y2="21"/>
-                            <line x1="12" y1="17" x2="12" y2="21"/>
-                        </svg>
-                        <div class="empty-title">欢迎回来</div>
-                        <div class="empty-desc">已创建 ${appData.groups.length} 个分组，共 ${totalItems} 个条目</div>
-                        <button class="welcome-manage-btn" id="welcomeManageBtn">管理分组</button>
-                    </div>`;
-                const welcomeBtn = document.getElementById('welcomeManageBtn');
-                if (welcomeBtn) welcomeBtn.addEventListener('click', openManageOverlay);
-            } else {
-                const group = appData.groups.find(g => g.id === activeGroupId);
-                if (!group) {
-                    activeGroupId = '__home__';
-                    localStorage.setItem('codevault_active_v3', '__home__');
-                    renderAll();
-                    return;
-                }
-                searchBar.style.display = 'flex';
-                groupTitle.textContent = group.name;
-                groupSubtitle.textContent = group.englishPhrase || '';
-                fabAddItem.classList.remove('hidden');
-
-                // 根据搜索关键词过滤条目
-                const rawItems = group.items || [];
-                const filteredItems = filterItems(rawItems, currentSearchKeyword);
-                const sortedItems = sortItems(filteredItems);
-
-                if (group.contentType === 'text') {
-                    renderMemoGroup(group, sortedItems);
-                } else {
-                    renderDefaultGroup(group, sortedItems);
-                }
-            }
-        }
-
-        function renderDefaultGroup(group, items) {
-            if (items.length === 0) {
-                const typeMap = { html:'HTML 代码片段', link:'链接' };
-                contentBody.style.display = 'grid';
-                contentBody.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="2" y="2" width="20" height="20" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg><div class="empty-title">暂无${typeMap[group.contentType]||'内容'}</div><div class="empty-desc">${currentSearchKeyword ? '未找到匹配条目' : '点击右下角 + 添加'}</div></div>`;
+    // ==================== 主内容渲染 ====================
+    function renderContent() {
+        if (activeGroupId === '__home__') {
+            searchBar.style.display = 'none';
+            groupTitle.textContent = '欢迎使用 CodeVault';
+            groupSubtitle.textContent = 'Manage your HTML snippets with ease';
+            fabAddItem.classList.add('hidden');
+            const totalItems = appData.groups.reduce((s,g) => s + (g.items?.length||0), 0);
+            contentBody.innerHTML = `
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                        <rect x="2" y="3" width="20" height="14" rx="2"/>
+                        <line x1="8" y1="21" x2="16" y2="21"/>
+                        <line x1="12" y1="17" x2="12" y2="21"/>
+                    </svg>
+                    <div class="empty-title">欢迎回来</div>
+                    <div class="empty-desc">已创建 ${appData.groups.length} 个分组，共 ${totalItems} 个条目</div>
+                    <button class="welcome-manage-btn" id="welcomeManageBtn">管理分组</button>
+                </div>`;
+            const welcomeBtn = document.getElementById('welcomeManageBtn');
+            if (welcomeBtn) welcomeBtn.addEventListener('click', openManageOverlay);
+        } else {
+            const group = appData.groups.find(g => g.id === activeGroupId);
+            if (!group) {
+                activeGroupId = '__home__';
+                localStorage.setItem('codevault_active_v3', '__home__');
+                renderAll();
                 return;
             }
+            searchBar.style.display = 'flex';
+            groupTitle.textContent = group.name;
+            groupSubtitle.textContent = group.englishPhrase || '';
+            fabAddItem.classList.remove('hidden');
+
+            const rawItems = group.items || [];
+            const filteredItems = filterItems(rawItems, currentSearchKeyword);
+            const sortedItems = sortItems(filteredItems);
+
+            if (group.contentType === 'text') {
+                renderMemoGroup(group, sortedItems);
+            } else {
+                renderDefaultGroup(group, sortedItems);
+            }
+        }
+    }
+
+    function renderDefaultGroup(group, items) {
+        if (items.length === 0) {
+            const typeMap = { html:'HTML 代码片段', link:'链接' };
             contentBody.style.display = 'grid';
-            contentBody.classList.remove('memo-grid');
-            let html = '';
-            items.forEach(item => {
-                const tagsHTML = (item.tags||[]).map(t => `<span class="item-tag">${escapeHTML(t)}</span>`).join('');
-                const desc = item.description || '';
-                html += `<div class="item-card" data-item-id="${item.id}">
-                    <div class="item-name" data-action="preview">${escapeHTML(item.name)}</div>
-                    <div class="item-desc" title="${escapeHTML(desc)}">${escapeHTML(desc || '暂无简介')}</div>
-                    <div class="item-footer">
+            contentBody.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="2" y="2" width="20" height="20" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg><div class="empty-title">暂无${typeMap[group.contentType]||'内容'}</div><div class="empty-desc">${currentSearchKeyword ? '未找到匹配条目' : '点击右下角 + 添加'}</div></div>`;
+            return;
+        }
+        contentBody.style.display = 'grid';
+        contentBody.classList.remove('memo-grid');
+        let html = '';
+        items.forEach(item => {
+            const tagsHTML = (item.tags||[]).map(t => `<span class="item-tag">${escapeHTML(t)}</span>`).join('');
+            const desc = item.description || '';
+            html += `<div class="item-card" data-item-id="${item.id}">
+                <div class="item-name" data-action="preview">${escapeHTML(item.name)}</div>
+                <div class="item-desc" title="${escapeHTML(desc)}">${escapeHTML(desc || '暂无简介')}</div>
+                <div class="item-footer">
+                    <div class="item-tags">${tagsHTML || '<span class="item-tag" style="opacity:0.5;">无标签</span>'}</div>
+                    <div class="item-actions">
+                        <button class="action-btn pin-btn ${item.pinned?'pinned':''}" data-action="pin">${item.pinned?'已置顶':'置顶'}</button>
+                        <button class="action-btn edit-btn" data-action="edit">编辑</button>
+                        <button class="action-btn delete-btn" data-action="delete">删除</button>
+                    </div>
+                </div>
+            </div>`;
+        });
+        contentBody.innerHTML = html;
+        bindDefaultEvents(group);
+    }
+
+    function renderMemoGroup(group, items) {
+        if (items.length === 0) {
+            contentBody.style.display = 'grid';
+            contentBody.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="2" y="2" width="20" height="20" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg><div class="empty-title">暂无纯文字内容</div><div class="empty-desc">${currentSearchKeyword ? '未找到匹配条目' : '点击右下角 + 添加'}</div></div>`;
+            return;
+        }
+        contentBody.style.display = 'block';
+        contentBody.classList.add('memo-grid');
+        const itemsMap = new Map();
+        items.forEach(item => itemsMap.set(item.id, item));
+
+        let html = '';
+        items.forEach(item => {
+            const createdAt = item.createdAt || '';
+            const tagsHTML = (item.tags||[]).map(t => `<span class="item-tag">${escapeHTML(t)}</span>`).join('');
+            const imageHTML = item.imageData ? `<img class="memo-image" src="${escapeHTML(item.imageData)}" alt="图片">` : '';
+            const profile = appData.profile;
+            const avatarContent = (profile.avatarImage && isValidImageURL(profile.avatarImage))
+                ? `<img src="${escapeHTML(profile.avatarImage)}" alt="头像">`
+                : escapeHTML((profile.name||'U').charAt(0).toUpperCase());
+            html += `<div class="memo-card" data-item-id="${item.id}">
+                <div class="memo-card-header">
+                    <div class="memo-avatar">${avatarContent}</div>
+                    <div class="memo-user-info">
+                        <div class="memo-user-name">${escapeHTML(profile.name||'用户')}</div>
+                        <div class="memo-user-meta">${escapeHTML(createdAt)} · CodeVault</div>
+                    </div>
+                </div>
+                <div class="memo-card-body">
+                    <div class="memo-title">${escapeHTML(item.name)}</div>
+                    <div class="memo-divider"></div>
+                    <div class="memo-content"></div>
+                    ${imageHTML}
+                    <div class="memo-footer">
                         <div class="item-tags">${tagsHTML || '<span class="item-tag" style="opacity:0.5;">无标签</span>'}</div>
-                        <div class="item-actions">
-                            <button class="action-btn pin-btn ${item.pinned?'pinned':''}" data-action="pin">${item.pinned?'已置顶':'置顶'}</button>
-                            <button class="action-btn edit-btn" data-action="edit">编辑</button>
-                            <button class="action-btn delete-btn" data-action="delete">删除</button>
-                        </div>
+                        <button class="action-btn pin-btn ${item.pinned?'pinned':''}" data-action="pin">${item.pinned?'已置顶':'置顶'}</button>
+                        <button class="action-btn edit-btn" data-action="edit">编辑</button>
+                        <button class="action-btn delete-btn" data-action="delete">删除</button>
                     </div>
-                </div>`;
-            });
-            contentBody.innerHTML = html;
-            bindDefaultEvents(group);
-        }
+                </div>
+            </div>`;
+        });
+        contentBody.innerHTML = html;
 
-        function renderMemoGroup(group, items) {
-            if (items.length === 0) {
-                contentBody.style.display = 'grid';
-                contentBody.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="2" y="2" width="20" height="20" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg><div class="empty-title">暂无纯文字内容</div><div class="empty-desc">${currentSearchKeyword ? '未找到匹配条目' : '点击右下角 + 添加'}</div></div>`;
-                return;
-            }
-            contentBody.style.display = 'block';
-            contentBody.classList.add('memo-grid');
-            const itemsMap = new Map();
-            items.forEach(item => itemsMap.set(item.id, item));
-
-            let html = '';
-            items.forEach(item => {
-                const createdAt = item.createdAt || '';
-                const tagsHTML = (item.tags||[]).map(t => `<span class="item-tag">${escapeHTML(t)}</span>`).join('');
-                const imageHTML = item.imageData ? `<img class="memo-image" src="${escapeHTML(item.imageData)}" alt="图片">` : '';
-                const profile = appData.profile;
-                const avatarContent = (profile.avatarImage && isValidImageURL(profile.avatarImage))
-                    ? `<img src="${escapeHTML(profile.avatarImage)}" alt="头像">`
-                    : escapeHTML((profile.name||'U').charAt(0).toUpperCase());
-                html += `<div class="memo-card" data-item-id="${item.id}">
-                    <div class="memo-card-header">
-                        <div class="memo-avatar">${avatarContent}</div>
-                        <div class="memo-user-info">
-                            <div class="memo-user-name">${escapeHTML(profile.name||'用户')}</div>
-                            <div class="memo-user-meta">${escapeHTML(createdAt)} · CodeVault</div>
-                        </div>
-                    </div>
-                    <div class="memo-card-body">
-                        <div class="memo-title">${escapeHTML(item.name)}</div>
-                        <div class="memo-divider"></div>
-                        <div class="memo-content"></div>
-                        ${imageHTML}
-                        <div class="memo-footer">
-                            <div class="item-tags">${tagsHTML || '<span class="item-tag" style="opacity:0.5;">无标签</span>'}</div>
-                            <button class="action-btn pin-btn ${item.pinned?'pinned':''}" data-action="pin">${item.pinned?'已置顶':'置顶'}</button>
-                            <button class="action-btn edit-btn" data-action="edit">编辑</button>
-                            <button class="action-btn delete-btn" data-action="delete">删除</button>
-                        </div>
-                    </div>
-                </div>`;
-            });
-            contentBody.innerHTML = html;
-
-            contentBody.querySelectorAll('.memo-content').forEach(el => {
-                const card = el.closest('.memo-card');
-                const itemId = card.dataset.itemId;
-                const item = itemsMap.get(itemId);
-                const fullText = item ? (item.htmlCode || '') : '';
-                el.textContent = fullText;
-                requestAnimationFrame(() => {
-                    if (!fullText.trim()) return;
-                    const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 20;
-                    const maxHeight = lineHeight * 3;
-                    if (el.scrollHeight > maxHeight + 2) {
-                        el.classList.add('collapsed');
-                        const btn = document.createElement('button');
-                        btn.className = 'memo-expand-btn';
-                        btn.textContent = '展开';
-                        btn.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            if (el.classList.contains('collapsed')) {
-                                el.classList.remove('collapsed');
-                                btn.textContent = '收起';
-                            } else {
-                                el.classList.add('collapsed');
-                                btn.textContent = '展开';
-                            }
-                        });
-                        el.parentNode.insertBefore(btn, el.nextSibling);
-                    }
-                });
-            });
-            bindMemoEvents(group);
-        }
-
-        function bindDefaultEvents(group) {
-            contentBody.querySelectorAll('.item-card').forEach(card => {
-                const itemId = card.dataset.itemId;
-                card.querySelector('[data-action="preview"]').addEventListener('click', () => openPreview(group, itemId));
-                card.querySelector('[data-action="pin"]').addEventListener('click', () => togglePin(group, itemId));
-                card.querySelector('[data-action="edit"]').addEventListener('click', () => openEditItemModal(group, itemId));
-                card.querySelector('[data-action="delete"]').addEventListener('click', () => deleteItem(group, itemId));
-            });
-        }
-        function bindMemoEvents(group) {
-            contentBody.querySelectorAll('.memo-card').forEach(card => {
-                const itemId = card.dataset.itemId;
-                card.querySelector('[data-action="pin"]').addEventListener('click', () => togglePin(group, itemId));
-                card.querySelector('[data-action="edit"]').addEventListener('click', () => openEditItemModal(group, itemId));
-                card.querySelector('[data-action="delete"]').addEventListener('click', () => deleteItem(group, itemId));
-            });
-        }
-
-        async function togglePin(group, itemId) {
-            const item = (group.items||[]).find(i => i.id === itemId);
-            if (!item) return;
-            const wasPinned = item.pinned;
-            group.items.forEach(i => i.pinned = false);
-            if (!wasPinned) item.pinned = true;
-            await saveData(appData);
-            lastSavedData = JSON.stringify(appData);
-            renderContent();
-            showToast(wasPinned ? '已取消置顶' : '已置顶');
-        }
-
-        function openPreview(group, itemId) {
-            const item = (group.items||[]).find(i => i.id === itemId);
-            if (!item) return;
-            if (group.contentType === 'link') {
-                const url = item.htmlCode?.trim();
-                if (url) {
-                    if (/^(https?:)\/\//i.test(url)) {
-                        window.open(url, '_blank', 'noopener,noreferrer');
-                    } else {
-                        showToast('链接协议不安全，仅支持 http/https');
-                    }
-                } else {
-                    showToast('链接为空');
+        contentBody.querySelectorAll('.memo-content').forEach(el => {
+            const card = el.closest('.memo-card');
+            const itemId = card.dataset.itemId;
+            const item = itemsMap.get(itemId);
+            const fullText = item ? (item.htmlCode || '') : '';
+            el.textContent = fullText;
+            requestAnimationFrame(() => {
+                if (!fullText.trim()) return;
+                const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 20;
+                const maxHeight = lineHeight * 3;
+                if (el.scrollHeight > maxHeight + 2) {
+                    el.classList.add('collapsed');
+                    const btn = document.createElement('button');
+                    btn.className = 'memo-expand-btn';
+                    btn.textContent = '展开';
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (el.classList.contains('collapsed')) {
+                            el.classList.remove('collapsed');
+                            btn.textContent = '收起';
+                        } else {
+                            el.classList.add('collapsed');
+                            btn.textContent = '展开';
+                        }
+                    });
+                    el.parentNode.insertBefore(btn, el.nextSibling);
                 }
-                return;
-            }
-            if (group.contentType === 'html') {
-                if (!item.htmlCode) { showToast('没有HTML代码'); return; }
-                previewIframe.srcdoc = item.htmlCode;
+            });
+        });
+        bindMemoEvents(group);
+    }
+
+    function bindDefaultEvents(group) {
+        contentBody.querySelectorAll('.item-card').forEach(card => {
+            const itemId = card.dataset.itemId;
+            card.querySelector('[data-action="preview"]').addEventListener('click', () => openPreview(group, itemId));
+            card.querySelector('[data-action="pin"]').addEventListener('click', () => togglePin(group, itemId));
+            card.querySelector('[data-action="edit"]').addEventListener('click', () => openEditItemModal(group, itemId));
+            card.querySelector('[data-action="delete"]').addEventListener('click', () => deleteItem(group, itemId));
+        });
+    }
+    function bindMemoEvents(group) {
+        contentBody.querySelectorAll('.memo-card').forEach(card => {
+            const itemId = card.dataset.itemId;
+            card.querySelector('[data-action="pin"]').addEventListener('click', () => togglePin(group, itemId));
+            card.querySelector('[data-action="edit"]').addEventListener('click', () => openEditItemModal(group, itemId));
+            card.querySelector('[data-action="delete"]').addEventListener('click', () => deleteItem(group, itemId));
+        });
+    }
+
+    async function togglePin(group, itemId) {
+        const item = (group.items||[]).find(i => i.id === itemId);
+        if (!item) return;
+        const wasPinned = item.pinned;
+        group.items.forEach(i => i.pinned = false);
+        if (!wasPinned) item.pinned = true;
+        await saveData(appData);
+        lastSavedData = JSON.stringify(appData);
+        renderContent();
+        showToast(wasPinned ? '已取消置顶' : '已置顶');
+    }
+
+    function openPreview(group, itemId) {
+        const item = (group.items||[]).find(i => i.id === itemId);
+        if (!item) return;
+        if (group.contentType === 'link') {
+            const url = item.htmlCode?.trim();
+            if (url) {
+                if (/^(https?:)\/\//i.test(url)) {
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                } else {
+                    showToast('链接协议不安全，仅支持 http/https');
+                }
             } else {
-                const text = item.htmlCode || '';
-                previewIframe.srcdoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:-apple-system,sans-serif;padding:24px;color:#1a1a1f;background:#fff;line-height:1.7;white-space:pre-wrap;word-wrap:break-word;font-size:15px;}</style></head><body>${escapeHTML(text)}</body></html>`;
+                showToast('链接为空');
             }
-            previewOverlay.classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-            resetPreviewAutoHide();
+            return;
         }
-        function closePreview() {
-            previewOverlay.classList.add('hidden');
-            previewIframe.srcdoc = ''; previewIframe.src = 'about:blank';
-            document.body.style.overflow = '';
-            if (previewHideTimer) clearTimeout(previewHideTimer);
-            $('#previewTopBar').classList.remove('hidden-control');
+        if (group.contentType === 'html') {
+            if (!item.htmlCode) { showToast('没有HTML代码'); return; }
+            previewIframe.srcdoc = item.htmlCode;
+        } else {
+            const text = item.htmlCode || '';
+            previewIframe.srcdoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:-apple-system,sans-serif;padding:24px;color:#1a1a1f;background:#fff;line-height:1.7;white-space:pre-wrap;word-wrap:break-word;font-size:15px;}</style></head><body>${escapeHTML(text)}</body></html>`;
         }
-        function resetPreviewAutoHide() {
-            const topBar = $('#previewTopBar');
+        previewOverlay.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        resetPreviewAutoHide();
+    }
+    function closePreview() {
+        previewOverlay.classList.add('hidden');
+        previewIframe.srcdoc = ''; previewIframe.src = 'about:blank';
+        document.body.style.overflow = '';
+        if (previewHideTimer) clearTimeout(previewHideTimer);
+        $('#previewTopBar').classList.remove('hidden-control');
+    }
+    function resetPreviewAutoHide() {
+        const topBar = $('#previewTopBar');
+        topBar.classList.remove('hidden-control');
+        if (previewHideTimer) clearTimeout(previewHideTimer);
+        previewHideTimer = setTimeout(() => topBar.classList.add('hidden-control'), 3000);
+    }
+    backBtn.addEventListener('click', closePreview);
+    previewOverlay.addEventListener('mousemove', (e) => {
+        const topBar = $('#previewTopBar');
+        if (e.clientX < 80 && e.clientY < 80) {
             topBar.classList.remove('hidden-control');
             if (previewHideTimer) clearTimeout(previewHideTimer);
             previewHideTimer = setTimeout(() => topBar.classList.add('hidden-control'), 3000);
         }
-        backBtn.addEventListener('click', closePreview);
-        previewOverlay.addEventListener('mousemove', (e) => {
+    });
+    previewOverlay.addEventListener('click', (e) => {
+        if (e.target === previewOverlay) closePreview();
+        else if (e.target !== backBtn && !backBtn.contains(e.target)) {
             const topBar = $('#previewTopBar');
-            if (e.clientX < 80 && e.clientY < 80) {
+            if (topBar.classList.contains('hidden-control')) {
                 topBar.classList.remove('hidden-control');
                 if (previewHideTimer) clearTimeout(previewHideTimer);
                 previewHideTimer = setTimeout(() => topBar.classList.add('hidden-control'), 3000);
             }
-        });
-        previewOverlay.addEventListener('click', (e) => {
-            if (e.target === previewOverlay) closePreview();
-            else if (e.target !== backBtn && !backBtn.contains(e.target)) {
-                const topBar = $('#previewTopBar');
-                if (topBar.classList.contains('hidden-control')) {
-                    topBar.classList.remove('hidden-control');
-                    if (previewHideTimer) clearTimeout(previewHideTimer);
-                    previewHideTimer = setTimeout(() => topBar.classList.add('hidden-control'), 3000);
-                }
-            }
-        });
-        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !previewOverlay.classList.contains('hidden')) closePreview(); });
+        }
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !previewOverlay.classList.contains('hidden')) closePreview(); });
 
-        // ==================== 搜索事件 ====================
-        searchInput.addEventListener('input', () => {
-            currentSearchKeyword = searchInput.value;
-            searchClearBtn.style.display = currentSearchKeyword.trim() ? 'block' : 'none';
-            renderContent();
-        });
-        searchClearBtn.addEventListener('click', () => {
-            searchInput.value = '';
-            currentSearchKeyword = '';
-            searchClearBtn.style.display = 'none';
-            renderContent();
-            searchInput.focus();
-        });
+    // ==================== 搜索事件 ====================
+    searchInput.addEventListener('input', () => {
+        currentSearchKeyword = searchInput.value;
+        searchClearBtn.style.display = currentSearchKeyword.trim() ? 'block' : 'none';
+        renderContent();
+    });
+    searchClearBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        currentSearchKeyword = '';
+        searchClearBtn.style.display = 'none';
+        renderContent();
+        searchInput.focus();
+    });
 
-        // ==================== 分组弹窗 ====================
-        function resetGroupForm() {
-            selectedGroupColor = '#5b8def'; tempAvatarImage = '';
-            avatarUrlInput.value = ''; avatarPreview.style.backgroundImage = 'none'; avatarPreview.style.backgroundColor = '#5b8def';
-            document.querySelectorAll('#groupColorPicker .color-option').forEach(o => o.classList.toggle('selected', o.dataset.color === selectedGroupColor));
-            groupNameInput.value = ''; groupPhraseInput.value = ''; groupTagsInput.value = '';
-            groupTypeSelect.value = 'text'; groupTypeSelect.disabled = false;
-            delete avatarFileInput.dataset.uploaded;
+    // ==================== 分组弹窗 ====================
+    function resetGroupForm() {
+        selectedGroupColor = '#5b8def'; tempAvatarImage = '';
+        avatarUrlInput.value = ''; avatarPreview.style.backgroundImage = 'none'; avatarPreview.style.backgroundColor = '#5b8def';
+        document.querySelectorAll('#groupColorPicker .color-option').forEach(o => o.classList.toggle('selected', o.dataset.color === selectedGroupColor));
+        groupNameInput.value = ''; groupPhraseInput.value = ''; groupTagsInput.value = '';
+        groupTypeSelect.value = 'text'; groupTypeSelect.disabled = false;
+        delete avatarFileInput.dataset.uploaded;
+    }
+    function openAddGroupModal() {
+        editingGroupId = null; addGroupTitle.textContent = '创建新分组'; confirmGroupBtn.textContent = '创建分组';
+        resetGroupForm(); addGroupModal.classList.remove('hidden'); setTimeout(() => groupNameInput.focus(), 150);
+    }
+    function openEditGroupModal(group) {
+        editingGroupId = group.id; addGroupTitle.textContent = '编辑分组'; confirmGroupBtn.textContent = '保存修改';
+        selectedGroupColor = group.avatarColor; tempAvatarImage = group.avatarImage || '';
+        avatarUrlInput.value = group.avatarType==='image' ? group.avatarImage : '';
+        if (group.avatarType==='image' && group.avatarImage && isValidImageURL(group.avatarImage)) {
+            avatarPreview.style.backgroundImage = `url('${group.avatarImage}')`;
+            avatarPreview.style.backgroundColor = 'transparent';
+        } else {
+            avatarPreview.style.backgroundImage = 'none';
+            avatarPreview.style.backgroundColor = group.avatarColor;
         }
-        function openAddGroupModal() {
-            editingGroupId = null; addGroupTitle.textContent = '创建新分组'; confirmGroupBtn.textContent = '创建分组';
-            resetGroupForm(); addGroupModal.classList.remove('hidden'); setTimeout(() => groupNameInput.focus(), 150);
+        document.querySelectorAll('#groupColorPicker .color-option').forEach(o => o.classList.toggle('selected', o.dataset.color === selectedGroupColor));
+        groupNameInput.value = group.name; groupPhraseInput.value = group.englishPhrase || ''; groupTagsInput.value = (group.tags||[]).join(', ');
+        groupTypeSelect.value = group.contentType; groupTypeSelect.disabled = true;
+        addGroupModal.classList.remove('hidden'); setTimeout(() => groupNameInput.focus(), 150);
+    }
+    function closeGroupModal() { addGroupModal.classList.add('hidden'); editingGroupId = null; tempAvatarImage = ''; }
+    function updateAvatarPreview() {
+        if (tempAvatarImage && isValidImageURL(tempAvatarImage)) {
+            avatarPreview.style.backgroundImage = `url('${tempAvatarImage}')`;
+            avatarPreview.style.backgroundColor = 'transparent';
+        } else {
+            avatarPreview.style.backgroundImage = 'none';
+            avatarPreview.style.backgroundColor = selectedGroupColor;
         }
-        function openEditGroupModal(group) {
-            editingGroupId = group.id; addGroupTitle.textContent = '编辑分组'; confirmGroupBtn.textContent = '保存修改';
-            selectedGroupColor = group.avatarColor; tempAvatarImage = group.avatarImage || '';
-            avatarUrlInput.value = group.avatarType==='image' ? group.avatarImage : '';
-            if (group.avatarType==='image' && group.avatarImage && isValidImageURL(group.avatarImage)) {
-                avatarPreview.style.backgroundImage = `url('${group.avatarImage}')`;
-                avatarPreview.style.backgroundColor = 'transparent';
-            } else {
-                avatarPreview.style.backgroundImage = 'none';
-                avatarPreview.style.backgroundColor = group.avatarColor;
-            }
-            document.querySelectorAll('#groupColorPicker .color-option').forEach(o => o.classList.toggle('selected', o.dataset.color === selectedGroupColor));
-            groupNameInput.value = group.name; groupPhraseInput.value = group.englishPhrase || ''; groupTagsInput.value = (group.tags||[]).join(', ');
-            groupTypeSelect.value = group.contentType; groupTypeSelect.disabled = true;
-            addGroupModal.classList.remove('hidden'); setTimeout(() => groupNameInput.focus(), 150);
-        }
-        function closeGroupModal() { addGroupModal.classList.add('hidden'); editingGroupId = null; tempAvatarImage = ''; }
-        function updateAvatarPreview() {
-            if (tempAvatarImage && isValidImageURL(tempAvatarImage)) {
-                avatarPreview.style.backgroundImage = `url('${tempAvatarImage}')`;
-                avatarPreview.style.backgroundColor = 'transparent';
-            } else {
-                avatarPreview.style.backgroundImage = 'none';
-                avatarPreview.style.backgroundColor = selectedGroupColor;
-            }
-        }
-        avatarUrlInput.addEventListener('input', function() {
-            if (this.value.trim() && isValidImageURL(this.value.trim())) {
-                tempAvatarImage = this.value.trim();
-                updateAvatarPreview();
-            } else if (!avatarFileInput.dataset.uploaded) {
-                tempAvatarImage = '';
-                updateAvatarPreview();
-            }
-        });
-        avatarUploadBtn.addEventListener('click', () => avatarFileInput.click());
-        avatarFileInput.addEventListener('change', function() {
-            const file = this.files[0]; if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                tempAvatarImage = e.target.result;
-                avatarFileInput.dataset.uploaded = '1';
-                avatarUrlInput.value = '';
-                updateAvatarPreview();
-            };
-            reader.readAsDataURL(file);
-            this.value = '';
-        });
-        clearAvatarBtn.addEventListener('click', () => {
-            tempAvatarImage = '';
-            avatarUrlInput.value = '';
-            delete avatarFileInput.dataset.uploaded;
+    }
+    avatarUrlInput.addEventListener('input', function() {
+        if (this.value.trim() && isValidImageURL(this.value.trim())) {
+            tempAvatarImage = this.value.trim();
             updateAvatarPreview();
-        });
-        groupColorPicker.addEventListener('click', (e) => {
-            const opt = e.target.closest('.color-option'); if (!opt) return;
-            selectedGroupColor = opt.dataset.color;
-            if (!tempAvatarImage) updateAvatarPreview();
-            document.querySelectorAll('#groupColorPicker .color-option').forEach(o => o.classList.toggle('selected', o.dataset.color === selectedGroupColor));
-        });
+        } else if (!avatarFileInput.dataset.uploaded) {
+            tempAvatarImage = '';
+            updateAvatarPreview();
+        }
+    });
+    avatarUploadBtn.addEventListener('click', () => avatarFileInput.click());
+    avatarFileInput.addEventListener('change', async function() {
+        const file = this.files[0]; if (!file) return;
+        try {
+            const compressed = await compressImage(file);
+            tempAvatarImage = compressed;
+            avatarFileInput.dataset.uploaded = '1';
+            avatarUrlInput.value = '';
+            updateAvatarPreview();
+        } catch(e) { showToast('图片处理失败'); }
+        this.value = '';
+    });
+    clearAvatarBtn.addEventListener('click', () => {
+        tempAvatarImage = '';
+        avatarUrlInput.value = '';
+        delete avatarFileInput.dataset.uploaded;
+        updateAvatarPreview();
+    });
+    groupColorPicker.addEventListener('click', (e) => {
+        const opt = e.target.closest('.color-option'); if (!opt) return;
+        selectedGroupColor = opt.dataset.color;
+        if (!tempAvatarImage) updateAvatarPreview();
+        document.querySelectorAll('#groupColorPicker .color-option').forEach(o => o.classList.toggle('selected', o.dataset.color === selectedGroupColor));
+    });
 
-        async function saveGroup() {
-            const name = groupNameInput.value.trim();
-            if (!name) { showToast('请输入分组名称'); groupNameInput.focus(); return; }
-            const phrase = groupPhraseInput.value.trim(), tagsRaw = groupTagsInput.value.trim();
-            // 支持中英文逗号分割
-            const tags = tagsRaw ? tagsRaw.split(/[,，]+/).map(t => t.trim()).filter(t => t) : [];
-            const avatarImage = tempAvatarImage || '', avatarType = avatarImage ? 'image' : 'color';
+    async function saveGroup() {
+        const name = groupNameInput.value.trim();
+        if (!name) { showToast('请输入分组名称'); groupNameInput.focus(); return; }
+        const phrase = groupPhraseInput.value.trim(), tagsRaw = groupTagsInput.value.trim();
+        const tags = tagsRaw ? tagsRaw.split(/[,，]+/).map(t => t.trim()).filter(t => t) : [];
+        const avatarImage = tempAvatarImage || '', avatarType = avatarImage ? 'image' : 'color';
 
-            if (editingGroupId) {
-                const g = appData.groups.find(g => g.id === editingGroupId);
-                if (g) {
-                    Object.assign(g, {
-                        avatarColor: selectedGroupColor,
-                        avatarType,
-                        avatarImage,
-                        name,
-                        englishPhrase: phrase,
-                        tags
-                    });
-                }
-            } else {
-                const contentType = groupTypeSelect.value;
-                const newG = {
-                    id: generateId(),
+        if (editingGroupId) {
+            const g = appData.groups.find(g => g.id === editingGroupId);
+            if (g) {
+                Object.assign(g, {
                     avatarColor: selectedGroupColor,
                     avatarType,
                     avatarImage,
                     name,
                     englishPhrase: phrase,
-                    tags,
-                    contentType,
-                    isPreset: false,
-                    items: [],
-                    pinned: false
-                };
-                appData.groups.push(newG);
+                    tags
+                });
             }
-
-            await saveData(appData);
-            lastSavedData = JSON.stringify(appData);
-            closeGroupModal();
-            renderAll();
-            if (!manageOverlay.classList.contains('hidden')) renderManageList();
-            updateProfileUI();
-            showToast(editingGroupId ? '分组已更新' : '分组已创建');
+        } else {
+            const contentType = groupTypeSelect.value;
+            const newG = {
+                id: generateId(),
+                avatarColor: selectedGroupColor,
+                avatarType,
+                avatarImage,
+                name,
+                englishPhrase: phrase,
+                tags,
+                contentType,
+                isPreset: false,
+                items: [],
+                pinned: false
+            };
+            appData.groups.push(newG);
         }
 
-        // ==================== 条目弹窗 ====================
-        function setupItemForm(ct) {
-            itemDescGroup.style.display = (ct==='link'||ct==='html')?'':'none';
-            itemUrlGroup.style.display = ct==='link'?'':'none';
-            itemHtmlGroup.style.display = ct==='html'?'':'none';
-            itemTextGroup.style.display = ct==='text'?'':'none';
-            itemCodeInput.value = ''; itemTextInput.value = ''; itemUrlInput.value = ''; itemDescInput.value = '';
-            tempMemoImage = '';
-            memoImagePreview.style.display = 'none';
-            memoImagePreviewImg.src = '';
+        await saveData(appData);
+        lastSavedData = JSON.stringify(appData);
+        closeGroupModal();
+        renderAll();
+        if (!manageOverlay.classList.contains('hidden')) renderManageList();
+        updateProfileUI();
+        showToast(editingGroupId ? '分组已更新' : '分组已创建');
+    }
+
+    // ==================== 条目弹窗 ====================
+    function setupItemForm(ct) {
+        itemDescGroup.style.display = (ct==='link'||ct==='html')?'':'none';
+        itemUrlGroup.style.display = ct==='link'?'':'none';
+        itemHtmlGroup.style.display = ct==='html'?'':'none';
+        itemTextGroup.style.display = ct==='text'?'':'none';
+        itemCodeInput.value = ''; itemTextInput.value = ''; itemUrlInput.value = ''; itemDescInput.value = '';
+        tempMemoImage = '';
+        memoImagePreview.style.display = 'none';
+        memoImagePreviewImg.src = '';
+        if (descCharCount) {
+            descCharCount.textContent = '0/150';
+            descCharCount.style.color = 'var(--text-muted)';
+        }
+    }
+    function openAddItemModal() {
+        const group = appData.groups.find(g=>g.id===activeGroupId); if (!group) return;
+        editingItemId = null; editingItemGroupId = null; addItemTitle.textContent = '添加条目'; confirmItemBtn.textContent = '添加条目';
+        itemNameInput.value = ''; itemTagsInput.value = ''; setupItemForm(group.contentType);
+        addItemModal.classList.remove('hidden'); setTimeout(()=>itemNameInput.focus(),150);
+    }
+    function openEditItemModal(group, itemId) {
+        const item = (group.items||[]).find(i=>i.id===itemId); if (!item) return;
+        editingItemId = itemId; editingItemGroupId = group.id; addItemTitle.textContent = '编辑条目'; confirmItemBtn.textContent = '保存修改';
+        itemNameInput.value = item.name; itemTagsInput.value = (item.tags||[]).join(', '); setupItemForm(group.contentType);
+        if (group.contentType==='html') {
+            itemDescInput.value = item.description||'';
+            itemCodeInput.value = item.htmlCode||'';
             if (descCharCount) {
-                descCharCount.textContent = '0/150';
-                descCharCount.style.color = 'var(--text-muted)';
+                descCharCount.textContent = `${itemDescInput.value.length}/150`;
+                descCharCount.style.color = itemDescInput.value.length >= 150 ? '#e57373' : 'var(--text-muted)';
             }
-        }
-        function openAddItemModal() {
-            const group = appData.groups.find(g=>g.id===activeGroupId); if (!group) return;
-            editingItemId = null; editingItemGroupId = null; addItemTitle.textContent = '添加条目'; confirmItemBtn.textContent = '添加条目';
-            itemNameInput.value = ''; itemTagsInput.value = ''; setupItemForm(group.contentType);
-            addItemModal.classList.remove('hidden'); setTimeout(()=>itemNameInput.focus(),150);
-        }
-        function openEditItemModal(group, itemId) {
-            const item = (group.items||[]).find(i=>i.id===itemId); if (!item) return;
-            editingItemId = itemId; editingItemGroupId = group.id; addItemTitle.textContent = '编辑条目'; confirmItemBtn.textContent = '保存修改';
-            itemNameInput.value = item.name; itemTagsInput.value = (item.tags||[]).join(', '); setupItemForm(group.contentType);
-            if (group.contentType==='html') {
-                itemDescInput.value = item.description||'';
-                itemCodeInput.value = item.htmlCode||'';
-                if (descCharCount) {
-                    descCharCount.textContent = `${itemDescInput.value.length}/150`;
-                    descCharCount.style.color = itemDescInput.value.length >= 150 ? '#e57373' : 'var(--text-muted)';
-                }
-            } else if (group.contentType==='link') {
-                itemDescInput.value = item.description||'';
-                itemUrlInput.value = item.htmlCode||'';
-                if (descCharCount) {
-                    descCharCount.textContent = `${itemDescInput.value.length}/150`;
-                    descCharCount.style.color = itemDescInput.value.length >= 150 ? '#e57373' : 'var(--text-muted)';
-                }
-            } else {
-                itemTextInput.value = item.htmlCode||'';
-                if (item.imageData) {
-                    tempMemoImage = item.imageData;
-                    memoImagePreviewImg.src = tempMemoImage;
-                    memoImagePreview.style.display = 'block';
-                }
-            }
-            addItemModal.classList.remove('hidden'); setTimeout(()=>itemNameInput.focus(),150);
-        }
-        function closeItemModal() { addItemModal.classList.add('hidden'); editingItemId = null; editingItemGroupId = null; tempMemoImage = ''; }
-
-        itemDescInput.addEventListener('input', function() {
+        } else if (group.contentType==='link') {
+            itemDescInput.value = item.description||'';
+            itemUrlInput.value = item.htmlCode||'';
             if (descCharCount) {
-                const len = this.value.length;
-                descCharCount.textContent = `${len}/150`;
-                descCharCount.style.color = len >= 150 ? '#e57373' : 'var(--text-muted)';
+                descCharCount.textContent = `${itemDescInput.value.length}/150`;
+                descCharCount.style.color = itemDescInput.value.length >= 150 ? '#e57373' : 'var(--text-muted)';
             }
-        });
-
-        memoImageUploadBtn.addEventListener('click', () => memoImageFileInput.click());
-        memoImageFileInput.addEventListener('change', async function() {
-            const file = this.files[0]; if (!file) return;
-            try {
-                const compressed = await compressImage(file);
-                tempMemoImage = compressed;
-                memoImagePreviewImg.src = compressed;
+        } else {
+            itemTextInput.value = item.htmlCode||'';
+            if (item.imageData) {
+                tempMemoImage = item.imageData;
+                memoImagePreviewImg.src = tempMemoImage;
                 memoImagePreview.style.display = 'block';
-            } catch(e) { showToast('图片处理失败'); }
-            this.value = '';
-        });
-        clearMemoImageBtn.addEventListener('click', () => {
-            tempMemoImage = '';
-            memoImagePreview.style.display = 'none';
-            memoImagePreviewImg.src = '';
-        });
+            }
+        }
+        addItemModal.classList.remove('hidden'); setTimeout(()=>itemNameInput.focus(),150);
+    }
+    function closeItemModal() { addItemModal.classList.add('hidden'); editingItemId = null; editingItemGroupId = null; tempMemoImage = ''; }
 
-        async function saveItem() {
-            const name = itemNameInput.value.trim(); if (!name) { showToast('请输入名称'); itemNameInput.focus(); return; }
-            const tagsRaw = itemTagsInput.value.trim();
-            // 支持中英文逗号
-            const tags = tagsRaw ? tagsRaw.split(/[,，]+/).map(t=>t.trim()).filter(t=>t) : [];
-            const group = editingItemGroupId ? appData.groups.find(g=>g.id===editingItemGroupId) : appData.groups.find(g=>g.id===activeGroupId);
-            if (!group) return;
-            let htmlCode = '', description = '', imageData = null;
-            if (group.contentType==='html') {
-                htmlCode = itemCodeInput.value.trim(); if (!htmlCode) { showToast('请输入HTML代码'); itemCodeInput.focus(); return; }
-                description = itemDescInput.value.trim();
-            } else if (group.contentType==='link') {
-                htmlCode = itemUrlInput.value.trim(); if (!htmlCode) { showToast('请输入链接'); itemUrlInput.focus(); return; }
-                description = itemDescInput.value.trim();
-            } else {
-                htmlCode = itemTextInput.value.trim();
-                imageData = tempMemoImage;
+    itemDescInput.addEventListener('input', function() {
+        if (descCharCount) {
+            const len = this.value.length;
+            descCharCount.textContent = `${len}/150`;
+            descCharCount.style.color = len >= 150 ? '#e57373' : 'var(--text-muted)';
+        }
+    });
+
+    memoImageUploadBtn.addEventListener('click', () => memoImageFileInput.click());
+    memoImageFileInput.addEventListener('change', async function() {
+        const file = this.files[0]; if (!file) return;
+        try {
+            const compressed = await compressImage(file);
+            tempMemoImage = compressed;
+            memoImagePreviewImg.src = compressed;
+            memoImagePreview.style.display = 'block';
+        } catch(e) { showToast('图片处理失败'); }
+        this.value = '';
+    });
+    clearMemoImageBtn.addEventListener('click', () => {
+        tempMemoImage = '';
+        memoImagePreview.style.display = 'none';
+        memoImagePreviewImg.src = '';
+    });
+
+    async function saveItem() {
+        const name = itemNameInput.value.trim(); if (!name) { showToast('请输入名称'); itemNameInput.focus(); return; }
+        const tagsRaw = itemTagsInput.value.trim();
+        const tags = tagsRaw ? tagsRaw.split(/[,，]+/).map(t=>t.trim()).filter(t=>t) : [];
+        const group = editingItemGroupId ? appData.groups.find(g=>g.id===editingItemGroupId) : appData.groups.find(g=>g.id===activeGroupId);
+        if (!group) return;
+        let htmlCode = '', description = '', imageData = null;
+        if (group.contentType==='html') {
+            htmlCode = itemCodeInput.value.trim(); if (!htmlCode) { showToast('请输入HTML代码'); itemCodeInput.focus(); return; }
+            description = itemDescInput.value.trim();
+        } else if (group.contentType==='link') {
+            htmlCode = itemUrlInput.value.trim(); if (!htmlCode) { showToast('请输入链接'); itemUrlInput.focus(); return; }
+            description = itemDescInput.value.trim();
+        } else {
+            htmlCode = itemTextInput.value.trim();
+            imageData = tempMemoImage;
+        }
+        if (editingItemId) {
+            const item = (group.items||[]).find(i=>i.id===editingItemId);
+            if (item) {
+                Object.assign(item, { name, description, tags, htmlCode });
+                if (group.contentType === 'text') item.imageData = imageData;
             }
-            if (editingItemId) {
-                const item = (group.items||[]).find(i=>i.id===editingItemId);
-                if (item) {
-                    Object.assign(item, { name, description, tags, htmlCode });
-                    if (group.contentType === 'text') item.imageData = imageData;
-                }
-            } else {
-                const newItem = { id: generateId(), name, description, tags, htmlCode, pinned: false };
-                if (group.contentType === 'text') {
-                    newItem.createdAt = new Date().toLocaleString('zh-CN', { hour12: false });
-                    newItem.imageData = imageData;
-                }
-                if (!group.items) group.items = [];
-                group.items.push(newItem);
+        } else {
+            const newItem = { id: generateId(), name, description, tags, htmlCode, pinned: false };
+            if (group.contentType === 'text') {
+                newItem.createdAt = new Date().toLocaleString('zh-CN', { hour12: false });
+                newItem.imageData = imageData;
             }
+            if (!group.items) group.items = [];
+            group.items.push(newItem);
+        }
+        await saveData(appData);
+        lastSavedData = JSON.stringify(appData);
+        closeItemModal();
+        renderContent();
+        updateProfileUI();
+        showToast(editingItemId ? '条目已更新' : '条目已添加');
+    }
+
+    async function deleteItem(group, itemId) {
+        confirmMessage.textContent = '确定删除这个条目吗？';
+        confirmCallback = async () => {
+            group.items = group.items.filter(i=>i.id!==itemId);
             await saveData(appData);
             lastSavedData = JSON.stringify(appData);
-            closeItemModal();
             renderContent();
             updateProfileUI();
-            showToast(editingItemId ? '条目已更新' : '条目已添加');
-        }
-
-        async function deleteItem(group, itemId) {
-            confirmMessage.textContent = '确定删除这个条目吗？';
-            confirmCallback = async () => {
-                group.items = group.items.filter(i=>i.id!==itemId);
-                await saveData(appData);
-                lastSavedData = JSON.stringify(appData);
-                renderContent();
-                updateProfileUI();
-                showToast('已删除');
-            };
-            confirmModal.classList.remove('hidden');
-        }
-        async function deleteGroup(groupId) {
-            const group = appData.groups.find(g=>g.id===groupId); if (!group) return;
-            if (group.isPreset) { showToast('预设分组不可删除'); return; }
-            confirmMessage.textContent = `确定删除分组"${group.name}"及其所有条目？`;
-            confirmCallback = async () => {
-                appData.groups = appData.groups.filter(g=>g.id!==groupId);
-                if (activeGroupId === groupId) {
-                    activeGroupId = '__home__';
-                    localStorage.setItem('codevault_active_v3', '__home__');
-                }
-                await saveData(appData);
-                lastSavedData = JSON.stringify(appData);
-                renderAll();
-                updateProfileUI();
-                if (!manageOverlay.classList.contains('hidden')) renderManageList();
-                showToast('分组已删除');
-            };
-            confirmModal.classList.remove('hidden');
-        }
-        cancelConfirmBtn.addEventListener('click', () => { confirmModal.classList.add('hidden'); confirmCallback = null; });
-        confirmDeleteBtn.addEventListener('click', async () => { if (confirmCallback) await confirmCallback(); confirmModal.classList.add('hidden'); confirmCallback = null; });
-        confirmModal.addEventListener('click', (e) => { if (e.target === confirmModal) { confirmModal.classList.add('hidden'); confirmCallback = null; } });
-
-        uploadFileBtn.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', function() {
-            const file = this.files[0]; if (!file) return;
-            const reader = new FileReader();
-            reader.onload = e => { itemCodeInput.value = e.target.result; showToast('文件已加载'); };
-            reader.readAsText(file, 'UTF-8');
-            this.value = '';
-        });
-
-        // ==================== 管理分组 ====================
-        function openManageOverlay() { renderManageList(); manageOverlay.classList.remove('hidden'); document.body.style.overflow='hidden'; }
-        function closeManageOverlay() { manageOverlay.classList.add('hidden'); document.body.style.overflow=''; }
-        function renderManageList() {
-            if (!appData.groups.length) { manageList.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:40px;">暂无分组</p>'; return; }
-            let html = '';
-            const typeNames = { html:'HTML', link:'链接', text:'文字' };
-            appData.groups.forEach(g => {
-                const av = getGroupAvatarStyle(g);
-                const avatarHTML = av.isImage
-                    ? `<div class="manage-avatar" style="background-image:${av.bg};background-color:transparent;"></div>`
-                    : `<div class="manage-avatar" style="background-color:${av.bg};">${escapeHTML(g.name.charAt(0).toUpperCase())}</div>`;
-                const typeLabel = `<span class="manage-group-type">${typeNames[g.contentType] || g.contentType}</span>`;
-                const deleteBtn = g.isPreset ? '' : `<button class="action-btn delete-btn" data-action="delete-group" data-group-id="${g.id}">删除</button>`;
-                const pinBtn = `<button class="action-btn pin-btn ${g.pinned ? 'pinned' : ''}" data-action="pin-group" data-group-id="${g.id}">${g.pinned ? '已置顶' : '置顶'}</button>`;
-                html += `<div class="manage-group-item">${avatarHTML}<div class="manage-group-info"><div class="manage-group-name">${escapeHTML(g.name)} ${typeLabel}</div><div class="manage-group-tags">${(g.tags||[]).map(t=>`<span class="item-tag">${escapeHTML(t)}</span>`).join('')}</div></div><div class="manage-actions">${pinBtn}<button class="action-btn edit-btn" data-action="edit-group" data-group-id="${g.id}">编辑</button>${deleteBtn}</div></div>`;
-            });
-            manageList.innerHTML = html;
-            manageList.querySelectorAll('[data-action="edit-group"]').forEach(b => b.addEventListener('click', () => {
-                const g = appData.groups.find(g=>g.id===b.dataset.groupId); if(g) openEditGroupModal(g);
-            }));
-            manageList.querySelectorAll('[data-action="delete-group"]').forEach(b => b.addEventListener('click', () => deleteGroup(b.dataset.groupId)));
-            manageList.querySelectorAll('[data-action="pin-group"]').forEach(b => {
-                b.addEventListener('click', async () => {
-                    const gId = b.dataset.groupId;
-                    const group = appData.groups.find(g => g.id === gId);
-                    if (!group) return;
-                    const wasPinned = group.pinned;
-                    appData.groups.forEach(g => g.pinned = false);
-                    if (!wasPinned) group.pinned = true;
-                    await saveData(appData);
-                    lastSavedData = JSON.stringify(appData);
-                    renderGroupButtons();
-                    renderManageList();
-                    showToast(group.pinned ? '已置顶分组' : '已取消置顶');
-                });
-            });
-        }
-        closeManageBtn.addEventListener('click', closeManageOverlay);
-        manageOverlay.addEventListener('click', e => { if (e.target === manageOverlay) closeManageOverlay(); });
-
-        // ==================== 侧边栏展开/折叠 ====================
-        expandSidebarBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('expanded');
-            expandSidebarBtn.textContent = sidebar.classList.contains('expanded') ? '折叠' : '展开';
-            updateSidebarTextVisibility();
-        });
-        // 点击侧边栏空白区域收回
-        sidebar.addEventListener('click', (e) => {
-            if (sidebar.classList.contains('expanded') && !e.target.closest('button')) {
-                sidebar.classList.remove('expanded');
-                expandSidebarBtn.textContent = '展开';
-                updateSidebarTextVisibility();
+            showToast('已删除');
+        };
+        confirmModal.classList.remove('hidden');
+    }
+    async function deleteGroup(groupId) {
+        const group = appData.groups.find(g=>g.id===groupId); if (!group) return;
+        if (group.isPreset) { showToast('预设分组不可删除'); return; }
+        confirmMessage.textContent = `确定删除分组"${group.name}"及其所有条目？`;
+        confirmCallback = async () => {
+            appData.groups = appData.groups.filter(g=>g.id!==groupId);
+            if (activeGroupId === groupId) {
+                activeGroupId = '__home__';
+                localStorage.setItem('codevault_active_v3', '__home__');
             }
-        });
-
-        // ==================== 用户主页 & 编辑资料 ====================
-        function openProfileOverlay() {
+            await saveData(appData);
+            lastSavedData = JSON.stringify(appData);
+            renderAll();
             updateProfileUI();
-            updateStorageInfo();
-            profileOverlay.classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-        }
-        function closeProfileOverlay() {
-            profileOverlay.classList.add('hidden');
-            document.body.style.overflow = '';
-        }
-        profileBackBtn.addEventListener('click', closeProfileOverlay);
-        profileOverlay.addEventListener('click', (e) => { if (e.target === profileOverlay) closeProfileOverlay(); });
+            if (!manageOverlay.classList.contains('hidden')) renderManageList();
+            showToast('分组已删除');
+        };
+        confirmModal.classList.remove('hidden');
+    }
+    cancelConfirmBtn.addEventListener('click', () => { confirmModal.classList.add('hidden'); confirmCallback = null; });
+    confirmDeleteBtn.addEventListener('click', async () => { if (confirmCallback) await confirmCallback(); confirmModal.classList.add('hidden'); confirmCallback = null; });
+    confirmModal.addEventListener('click', (e) => { if (e.target === confirmModal) { confirmModal.classList.add('hidden'); confirmCallback = null; } });
 
-        function openEditProfileModal() {
-            const p = appData.profile;
-            tempProfileAvatar = p.avatarImage || '';
-            if (tempProfileAvatar && isValidImageURL(tempProfileAvatar)) {
-                profileAvatarPreviewEl.style.backgroundImage = `url('${tempProfileAvatar}')`;
-                profileAvatarPreviewEl.style.backgroundColor = 'transparent';
-                profileAvatarPreviewEl.textContent = '';
-            } else {
-                profileAvatarPreviewEl.style.backgroundImage = 'none';
-                profileAvatarPreviewEl.style.backgroundColor = p.avatarColor || '#5b8def';
-                profileAvatarPreviewEl.textContent = (p.name || 'U').charAt(0).toUpperCase();
-            }
-            profileAvatarUrl.value = tempProfileAvatar;
-            profileNameInput.value = p.name || '';
-            profileBioInput.value = p.bio || '';
-            editProfileModal.classList.remove('hidden');
-        }
+    uploadFileBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', function() {
+        const file = this.files[0]; if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => { itemCodeInput.value = e.target.result; showToast('文件已加载'); };
+        reader.readAsText(file, 'UTF-8');
+        this.value = '';
+    });
 
-        profileAvatarUrl.addEventListener('input', function() {
-            const url = this.value.trim();
-            if (url && isValidImageURL(url)) {
-                tempProfileAvatar = url;
-                profileAvatarPreviewEl.style.backgroundImage = `url('${url}')`;
-                profileAvatarPreviewEl.style.backgroundColor = 'transparent';
-                profileAvatarPreviewEl.textContent = '';
-            } else if (!profileAvatarFileInput.dataset.uploaded) {
-                tempProfileAvatar = '';
-                profileAvatarPreviewEl.style.backgroundImage = 'none';
-                profileAvatarPreviewEl.style.backgroundColor = appData.profile.avatarColor || '#5b8def';
-                profileAvatarPreviewEl.textContent = (profileNameInput.value || 'U').charAt(0).toUpperCase();
-            }
+    // ==================== 管理分组 ====================
+    function openManageOverlay() { renderManageList(); manageOverlay.classList.remove('hidden'); document.body.style.overflow='hidden'; }
+    function closeManageOverlay() { manageOverlay.classList.add('hidden'); document.body.style.overflow=''; }
+    function renderManageList() {
+        if (!appData.groups.length) { manageList.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:40px;">暂无分组</p>'; return; }
+        let html = '';
+        const typeNames = { html:'HTML', link:'链接', text:'文字' };
+        appData.groups.forEach(g => {
+            const av = getGroupAvatarStyle(g);
+            const avatarHTML = av.isImage
+                ? `<div class="manage-avatar" style="background-image:${av.bg};background-color:transparent;"></div>`
+                : `<div class="manage-avatar" style="background-color:${av.bg};">${escapeHTML(g.name.charAt(0).toUpperCase())}</div>`;
+            const typeLabel = `<span class="manage-group-type">${typeNames[g.contentType] || g.contentType}</span>`;
+            const deleteBtn = g.isPreset ? '' : `<button class="action-btn delete-btn" data-action="delete-group" data-group-id="${g.id}">删除</button>`;
+            const pinBtn = `<button class="action-btn pin-btn ${g.pinned ? 'pinned' : ''}" data-action="pin-group" data-group-id="${g.id}">${g.pinned ? '已置顶' : '置顶'}</button>`;
+            html += `<div class="manage-group-item">${avatarHTML}<div class="manage-group-info"><div class="manage-group-name">${escapeHTML(g.name)} ${typeLabel}</div><div class="manage-group-tags">${(g.tags||[]).map(t=>`<span class="item-tag">${escapeHTML(t)}</span>`).join('')}</div></div><div class="manage-actions">${pinBtn}<button class="action-btn edit-btn" data-action="edit-group" data-group-id="${g.id}">编辑</button>${deleteBtn}</div></div>`;
         });
-
-        profileAvatarUploadBtn.addEventListener('click', () => profileAvatarFileInput.click());
-        profileAvatarFileInput.addEventListener('change', async function() {
-            const file = this.files[0];
-            if (!file) return;
-            try {
-                const compressed = await compressImage(file, 300, 0.8);
-                tempProfileAvatar = compressed;
-                profileAvatarPreviewEl.style.backgroundImage = `url('${compressed}')`;
-                profileAvatarPreviewEl.style.backgroundColor = 'transparent';
-                profileAvatarPreviewEl.textContent = '';
-                profileAvatarUrl.value = '';
-                profileAvatarFileInput.dataset.uploaded = '1';
-            } catch(e) {
-                showToast('图片处理失败');
-            }
-            this.value = '';
+        manageList.innerHTML = html;
+        manageList.querySelectorAll('[data-action="edit-group"]').forEach(b => b.addEventListener('click', () => {
+            const g = appData.groups.find(g=>g.id===b.dataset.groupId); if(g) openEditGroupModal(g);
+        }));
+        manageList.querySelectorAll('[data-action="delete-group"]').forEach(b => b.addEventListener('click', () => deleteGroup(b.dataset.groupId)));
+        manageList.querySelectorAll('[data-action="pin-group"]').forEach(b => {
+            b.addEventListener('click', async () => {
+                const gId = b.dataset.groupId;
+                const group = appData.groups.find(g => g.id === gId);
+                if (!group) return;
+                const wasPinned = group.pinned;
+                appData.groups.forEach(g => g.pinned = false);
+                if (!wasPinned) group.pinned = true;
+                await saveData(appData);
+                lastSavedData = JSON.stringify(appData);
+                renderGroupButtons();
+                renderManageList();
+                showToast(group.pinned ? '已置顶分组' : '已取消置顶');
+            });
         });
+    }
+    closeManageBtn.addEventListener('click', closeManageOverlay);
+    manageOverlay.addEventListener('click', e => { if (e.target === manageOverlay) closeManageOverlay(); });
 
-        clearProfileAvatarBtn.addEventListener('click', () => {
+    // ==================== 侧边栏展开/折叠 ====================
+    expandSidebarBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('expanded');
+        expandSidebarBtn.textContent = sidebar.classList.contains('expanded') ? '折叠' : '展开';
+        updateSidebarTextVisibility();
+    });
+    sidebar.addEventListener('click', (e) => {
+        if (sidebar.classList.contains('expanded') && !e.target.closest('button')) {
+            sidebar.classList.remove('expanded');
+            expandSidebarBtn.textContent = '展开';
+            updateSidebarTextVisibility();
+        }
+    });
+
+    // ==================== 用户主页 & 编辑资料 ====================
+    function openProfileOverlay() {
+        updateProfileUI();
+        updateStorageInfo();
+        profileOverlay.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeProfileOverlay() {
+        profileOverlay.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+    profileBackBtn.addEventListener('click', closeProfileOverlay);
+    profileOverlay.addEventListener('click', (e) => { if (e.target === profileOverlay) closeProfileOverlay(); });
+
+    function openEditProfileModal() {
+        const p = appData.profile;
+        tempProfileAvatar = p.avatarImage || '';
+        if (tempProfileAvatar && isValidImageURL(tempProfileAvatar)) {
+            profileAvatarPreviewEl.style.backgroundImage = `url('${tempProfileAvatar}')`;
+            profileAvatarPreviewEl.style.backgroundColor = 'transparent';
+            profileAvatarPreviewEl.textContent = '';
+        } else {
+            profileAvatarPreviewEl.style.backgroundImage = 'none';
+            profileAvatarPreviewEl.style.backgroundColor = p.avatarColor || '#5b8def';
+            profileAvatarPreviewEl.textContent = (p.name || 'U').charAt(0).toUpperCase();
+        }
+        profileAvatarUrl.value = tempProfileAvatar;
+        profileNameInput.value = p.name || '';
+        profileBioInput.value = p.bio || '';
+        editProfileModal.classList.remove('hidden');
+    }
+
+    profileAvatarUrl.addEventListener('input', function() {
+        const url = this.value.trim();
+        if (url && isValidImageURL(url)) {
+            tempProfileAvatar = url;
+            profileAvatarPreviewEl.style.backgroundImage = `url('${url}')`;
+            profileAvatarPreviewEl.style.backgroundColor = 'transparent';
+            profileAvatarPreviewEl.textContent = '';
+        } else if (!profileAvatarFileInput.dataset.uploaded) {
             tempProfileAvatar = '';
-            profileAvatarUrl.value = '';
-            delete profileAvatarFileInput.dataset.uploaded;
             profileAvatarPreviewEl.style.backgroundImage = 'none';
             profileAvatarPreviewEl.style.backgroundColor = appData.profile.avatarColor || '#5b8def';
             profileAvatarPreviewEl.textContent = (profileNameInput.value || 'U').charAt(0).toUpperCase();
-        });
+        }
+    });
 
-        saveProfileBtn.addEventListener('click', async () => {
-            const name = profileNameInput.value.trim();
-            if (!name) { showToast('请输入昵称'); return; }
-            appData.profile.name = name;
-            appData.profile.bio = profileBioInput.value.trim();
-            appData.profile.avatarImage = tempProfileAvatar;
+    profileAvatarUploadBtn.addEventListener('click', () => profileAvatarFileInput.click());
+    profileAvatarFileInput.addEventListener('change', async function() {
+        const file = this.files[0];
+        if (!file) return;
+        try {
+            const compressed = await compressImage(file, 300, 0.8);
+            tempProfileAvatar = compressed;
+            profileAvatarPreviewEl.style.backgroundImage = `url('${compressed}')`;
+            profileAvatarPreviewEl.style.backgroundColor = 'transparent';
+            profileAvatarPreviewEl.textContent = '';
+            profileAvatarUrl.value = '';
+            profileAvatarFileInput.dataset.uploaded = '1';
+        } catch(e) {
+            showToast('图片处理失败');
+        }
+        this.value = '';
+    });
+
+    clearProfileAvatarBtn.addEventListener('click', () => {
+        tempProfileAvatar = '';
+        profileAvatarUrl.value = '';
+        delete profileAvatarFileInput.dataset.uploaded;
+        profileAvatarPreviewEl.style.backgroundImage = 'none';
+        profileAvatarPreviewEl.style.backgroundColor = appData.profile.avatarColor || '#5b8def';
+        profileAvatarPreviewEl.textContent = (profileNameInput.value || 'U').charAt(0).toUpperCase();
+    });
+
+    saveProfileBtn.addEventListener('click', async () => {
+        const name = profileNameInput.value.trim();
+        if (!name) { showToast('请输入昵称'); return; }
+        appData.profile.name = name;
+        appData.profile.bio = profileBioInput.value.trim();
+        appData.profile.avatarImage = tempProfileAvatar;
+        await saveData(appData);
+        lastSavedData = JSON.stringify(appData);
+        updateProfileUI();
+        editProfileModal.classList.add('hidden');
+        showToast('资料已更新');
+    });
+
+    cancelProfileBtn.addEventListener('click', () => editProfileModal.classList.add('hidden'));
+    editProfileModal.addEventListener('click', e => { if (e.target === editProfileModal) editProfileModal.classList.add('hidden'); });
+    profileEditBtn.addEventListener('click', openEditProfileModal);
+
+    // 清空全部数据
+    const clearAllDataBtn = $('#clearAllDataBtn');
+    if (clearAllDataBtn) {
+        clearAllDataBtn.addEventListener('click', () => {
+            confirmMessage.textContent = '⚠️ 此操作将永久删除所有数据并恢复初始状态，不可恢复！确定继续吗？';
+            confirmCallback = async () => {
+                try {
+                    await new Promise((resolve, reject) => {
+                        const delReq = indexedDB.deleteDatabase(DB_NAME);
+                        delReq.onsuccess = () => resolve();
+                        delReq.onerror = () => reject(new Error('无法删除数据库'));
+                        delReq.onblocked = () => reject(new Error('有其它标签页占用数据库，请关闭后重试'));
+                    });
+                } catch (e) {
+                    showToast('清空失败：' + e.message);
+                    return;
+                }
+                try { localStorage.removeItem('codevault_active_v3'); } catch (e) {}
+                showToast('数据已清空');
+                setTimeout(() => location.reload(), 300);
+            };
+            confirmModal.classList.remove('hidden');
+        });
+    }
+
+    // 导入数据
+    importDataBtn.addEventListener('click', () => importFileInput.click());
+    importFileInput.addEventListener('change', async function() {
+        const file = this.files[0];
+        if (!file) return;
+        try {
+            const text = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = reject;
+                reader.readAsText(file);
+            });
+            const imported = JSON.parse(text);
+            if (!imported.groups || !Array.isArray(imported.groups)) {
+                throw new Error('数据格式无效');
+            }
+            if (!confirm('导入将覆盖当前全部数据，确定继续吗？')) return;
+            appData = imported;
+            if (!appData.profile) appData.profile = { name:'用户', bio:'', avatarColor:'#5b8def', avatarImage:'' };
+            appData.groups.forEach((g, idx) => {
+                if (!g.id) g.id = 'imported_' + idx + '_' + Date.now();
+                if (!g.items) g.items = [];
+                if (!g.contentType) g.contentType = 'html';
+                if (g.pinned === undefined) g.pinned = false;
+            });
+            activeGroupId = '__home__';
+            localStorage.removeItem('codevault_active_v3');
             await saveData(appData);
             lastSavedData = JSON.stringify(appData);
+            renderAll();
             updateProfileUI();
-            editProfileModal.classList.add('hidden');
-            showToast('资料已更新');
-        });
-
-        cancelProfileBtn.addEventListener('click', () => editProfileModal.classList.add('hidden'));
-        editProfileModal.addEventListener('click', e => { if (e.target === editProfileModal) editProfileModal.classList.add('hidden'); });
-        profileEditBtn.addEventListener('click', openEditProfileModal);
-
-
-// 清空全部数据
-const clearAllDataBtn = $('#clearAllDataBtn');
-if (clearAllDataBtn) {
-    clearAllDataBtn.addEventListener('click', () => {
-        confirmMessage.textContent = '⚠️ 此操作将永久删除所有分组、条目和个人资料，且无法恢复！确定继续吗？';
-        confirmCallback = async () => {
-            const db = await openDB();
-            const tx = db.transaction(STORE_NAME, 'readwrite');
-            const store = tx.objectStore(STORE_NAME);
-            store.delete(DATA_KEY);
-            tx.oncomplete = () => {
-                localStorage.removeItem('codevault_active_v3');
-                location.reload();
-            };
-        };
-        confirmModal.classList.remove('hidden');
+            showToast('数据导入成功');
+        } catch(e) {
+            showToast('导入失败：' + e.message);
+        }
+        this.value = '';
     });
-}
 
-        // 导入数据
-        importDataBtn.addEventListener('click', () => importFileInput.click());
-        importFileInput.addEventListener('change', async function() {
-            const file = this.files[0];
-            if (!file) return;
-            try {
-                const text = await new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = e => resolve(e.target.result);
-                    reader.onerror = reject;
-                    reader.readAsText(file);
-                });
-                const imported = JSON.parse(text);
-                if (!imported.groups || !Array.isArray(imported.groups)) {
-                    throw new Error('数据格式无效');
-                }
-                if (!confirm('导入将覆盖当前全部数据，确定继续吗？')) return;
-                appData = imported;
-                if (!appData.profile) appData.profile = { name:'用户', bio:'', avatarColor:'#5b8def', avatarImage:'' };
-                appData.groups.forEach((g, idx) => {
-                    if (!g.id) g.id = 'imported_' + idx + '_' + Date.now();
-                    if (!g.items) g.items = [];
-                    if (!g.contentType) g.contentType = 'html';
-                    if (g.pinned === undefined) g.pinned = false;
-                });
-                activeGroupId = '__home__';
-                localStorage.removeItem('codevault_active_v3');
-                await saveData(appData);
-                lastSavedData = JSON.stringify(appData);
-                renderAll();
-                updateProfileUI();
-                showToast('数据导入成功');
-            } catch(e) {
-                showToast('导入失败：' + e.message);
-            }
-            this.value = '';
-        });
+    // 导出数据
+    exportDataBtn.addEventListener('click', async () => {
+        const dataStr = JSON.stringify(appData, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `codevault_backup_${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('导出成功');
+    });
 
-        // 导出数据
-        exportDataBtn.addEventListener('click', async () => {
-            const dataStr = JSON.stringify(appData, null, 2);
-            const blob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `codevault_backup_${new Date().toISOString().slice(0,10)}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            showToast('导出成功');
-        });
+    function generateId() { return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2,8); }
 
-        function generateId() { return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2,8); }
+    // ==================== 全局事件 ====================
+    homeBtn.addEventListener('click', (e) => {
+        if (activeGroupId === '__home__') openProfileOverlay();
+        else selectGroup('__home__');
+    });
+    addGroupBtn.addEventListener('click', openAddGroupModal);
+    fabAddItem.addEventListener('click', () => {
+        if (activeGroupId !== '__home__' && appData.groups.find(g=>g.id===activeGroupId)) openAddItemModal();
+        else showToast('请先选择一个分组');
+    });
+    $('#manageGroupsBtn').addEventListener('click', openManageOverlay);
+    confirmGroupBtn.addEventListener('click', saveGroup);
+    cancelGroupBtn.addEventListener('click', closeGroupModal);
+    confirmItemBtn.addEventListener('click', saveItem);
+    cancelItemBtn.addEventListener('click', closeItemModal);
+    addGroupModal.addEventListener('click', e => { if (e.target === addGroupModal) closeGroupModal(); });
+    addItemModal.addEventListener('click', e => { if (e.target === addItemModal) closeItemModal(); });
+    groupNameInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveGroup(); } });
+    itemNameInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveItem(); } });
 
-        // ==================== 全局事件 ====================
-        homeBtn.addEventListener('click', (e) => {
-            if (activeGroupId === '__home__') openProfileOverlay();
-            else selectGroup('__home__');
-        });
-        addGroupBtn.addEventListener('click', openAddGroupModal);
-        fabAddItem.addEventListener('click', () => {
-            if (activeGroupId !== '__home__' && appData.groups.find(g=>g.id===activeGroupId)) openAddItemModal();
-            else showToast('请先选择一个分组');
-        });
-        $('#manageGroupsBtn').addEventListener('click', openManageOverlay);
-        confirmGroupBtn.addEventListener('click', saveGroup);
-        cancelGroupBtn.addEventListener('click', closeGroupModal);
-        confirmItemBtn.addEventListener('click', saveItem);
-        cancelItemBtn.addEventListener('click', closeItemModal);
-        addGroupModal.addEventListener('click', e => { if (e.target === addGroupModal) closeGroupModal(); });
-        addItemModal.addEventListener('click', e => { if (e.target === addItemModal) closeItemModal(); });
-        groupNameInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveGroup(); } });
-        itemNameInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveItem(); } });
+    // 页面关闭前强制保存
+    window.addEventListener('beforeunload', () => {
+        if (appData) {
+            saveData(appData);
+        }
+    });
 
-        // 页面关闭前强制保存
-        window.addEventListener('beforeunload', () => {
-            if (appData) {
-                saveData(appData); // 异步但尽力执行
-            }
-        });
-
-        init().then(() => {
-            console.log('CodeVault 已启动');
-            // 启动后延迟更新存储信息
-            setTimeout(updateStorageInfo, 1000);
-        }).catch(err => {
-            console.error('初始化失败', err);
-            showToast('数据加载失败，请检查浏览器存储权限');
-        });
-    })();
+    init().then(() => {
+        console.log('CodeVault 已启动');
+        setTimeout(updateStorageInfo, 1000);
+    }).catch(err => {
+        console.error('初始化失败', err);
+        showToast('数据加载失败，请检查浏览器存储权限');
+    });
+})();
 </script>
 </body>
 </html>
-
