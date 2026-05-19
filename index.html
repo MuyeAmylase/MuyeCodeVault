@@ -477,7 +477,7 @@
         }
 
         .content-body {
-            flex: 1; overflow-y: auto; overflow-x: hidden; padding: 16px 28px 100px;
+            flex: 1; overflow-y: auto; overflow-x: hidden; padding: 8px 28px 100px;
             display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;
             align-content: start; scroll-behavior: smooth;
             min-height: 0;
@@ -838,6 +838,34 @@
         }
         .toast.show { transform: translateX(-50%) translateY(0); }
 
+        .search-and-sort-row {
+            display: block;
+            margin: 0 28px 8px;
+            flex-shrink: 0;
+        }
+        /* 统计与排序行 */
+        .sort-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: auto;                /* 自动高度 */
+            padding: 0 2px;
+        }
+
+        .item-count {
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .search-and-sort-row .search-bar {
+            display: flex;
+            width: 100%;
+            margin: 0 0 8px 0;
+        }
+        /* 排序按钮样式沿用之前的，无需修改，只需确保不换行 */
+        .search-bar { flex-wrap: nowrap; }
+
         /* ============ 响应式 ============ */
         @media (max-width: 768px) {
             :root { --sidebar-width: 56px; --sidebar-expanded-width: 180px; }
@@ -851,7 +879,7 @@
             .content-header .group-title { font-size: 20px; }
             .content-header .group-subtitle { font-size: 11px; }
             .search-bar { margin: 0 16px 12px; }
-            .content-body { padding: 10px 12px 120px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+            .content-body { padding: 8px 12px 120px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
             .item-card { padding: 14px 14px 10px; min-height: 110px; }
             .fab-add-item { right: 18px; bottom: calc(22px + var(--safe-bottom)); width: 44px; height: 44px; }
             .fab-add-item svg { width: 18px; height: 18px; }
@@ -876,7 +904,25 @@
             }
             .profile-edit-btn { width: 38px; height: 38px; top: 10px; right: 10px; }
             .profile-edit-btn svg { width: 17px; height: 17px; }
+            .search-and-sort-row {
+                margin: 0 16px 8px;
+                gap: 6px;
+            }
+            .sort-btn {
+                font-size: 11px;
+                height: auto;
+                padding: 0 4px;
+            }
+            .sort-menu { min-width: 160px; }
+            .sort-option { font-size: 12px; padding: 7px 14px; }
+            .sort-row {
+                height: auto;
+            }
+            .item-count {
+                font-size: 11px;
+             }
         }
+
         @media (max-width: 400px) {
             :root { --sidebar-width: 48px; --sidebar-expanded-width: 160px; }
             .circle-btn { width: 30px; height: 30px; }
@@ -887,6 +933,90 @@
             .content-body { grid-template-columns: 1fr; padding: 8px 8px 120px; }
             .memo-content.collapsed { max-height: 4.5em; }
         }
+
+/* ============ 排序按钮与下拉菜单 ============ */
+.sort-wrapper {
+        position: relative;
+        margin-left: 8px;
+        flex-shrink: 0;
+}
+
+.sort-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: auto;                /* 与统计行高度协调 */
+    background: transparent;     /* 无背景 */
+    border: none;                /* 无边框 */
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 0 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s ease;
+    font-family: inherit;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+}
+.sort-btn:hover {
+    opacity: 0.7;               /* 悬停只变透明度，不出现背景 */
+}
+.sort-btn:active {
+    opacity: 0.5;
+}
+/* 倒三角保持 */
+.sort-btn::after {
+    content: '';
+    display: inline-block;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid var(--text-primary);
+    margin-left: 2px;
+    transition: transform 0.15s ease;
+}
+
+.sort-menu {
+        position: absolute;
+        top: 110%;
+        right: 0;
+        min-width: 180px;
+        background: var(--glass-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius-sm);
+        padding: 6px 0;
+        box-shadow: var(--shadow-lg);
+        z-index: 50;
+        animation: fadeIn 0.15s ease;
+}
+.sort-menu.hidden {
+        display: none;
+}
+
+.sort-option {
+        padding: 8px 16px;
+        font-size: 13px;
+        color: var(--text-primary);
+        cursor: pointer;
+        transition: background var(--transition-fast);
+        white-space: nowrap;
+}
+.sort-option:hover {
+        background: var(--bg-card-hover);
+}
+.sort-option:active {
+        background: var(--bg-card);
+    }
+
+/* 搜索栏强制不换行 */
+    .search-bar {
+        flex-wrap: nowrap;
+    }
     </style>
 </head>
 
@@ -924,17 +1054,35 @@
             <div class="group-subtitle" id="groupSubtitle">Manage your HTML snippets with ease</div>
         </div>
 
-        <!-- 搜索框（默认隐藏，进入分组后显示） -->
-        <div class="search-bar" id="searchBar" style="display:none;">
-            <span class="search-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="11" cy="11" r="8"/>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </svg>
-            </span>
-            <input type="text" id="searchInput" placeholder="搜索..." autocomplete="off">
-            <button class="search-clear" id="searchClearBtn">×</button>
+<!-- 搜索与排序区域 -->
+<div class="search-and-sort-row" id="searchAndSortRow" style="display:none;">
+    <!-- 搜索框 -->
+    <div class="search-bar" id="searchBar">
+        <span class="search-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+        </span>
+        <input type="text" id="searchInput" placeholder="搜索..." autocomplete="off">
+        <button class="search-clear" id="searchClearBtn">×</button>
+    </div>
+
+    <!-- 统计与排序行 -->
+    <div class="sort-row" id="sortRow">
+        <span class="item-count" id="itemCount">共0项</span>
+        <div class="sort-wrapper" id="sortWrapper">
+            <button class="sort-btn" id="sortBtn">默认</button>
+            <div class="sort-menu hidden" id="sortMenu">
+                <div class="sort-option" data-sort="default">按从旧到新排序</div>
+                <div class="sort-option" data-sort="time-desc">按从新到旧排序</div>
+                <div class="sort-option" data-sort="name-asc">按从A到Z排序</div>
+                <div class="sort-option" data-sort="name-desc">按从Z到A排序</div>
+            </div>
         </div>
+    </div>
+</div>
+
 
         <div class="content-body" id="contentBody">
             <div class="empty-state">
@@ -1338,6 +1486,37 @@
         return [...pinned, ...rest];
     }
 
+// 按所选排序方式排列（始终保持置顶优先）
+function sortItemsBy(items, sortType) {
+    if (!items || !items.length) return items;
+    const sorted = [...items];
+
+    switch (sortType) {
+        case 'name-asc':
+            sorted.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'zh'));
+            break;
+        case 'name-desc':
+            sorted.sort((a, b) => (b.name || '').localeCompare(a.name || '', 'zh'));
+            break;
+        case 'time-desc':
+            sorted.sort((a, b) => {
+                const timeA = a.createdAt || '';
+                const timeB = b.createdAt || '';
+                return timeB.localeCompare(timeA); // 新在前
+            });
+            break;
+        default: // 'default'
+            // 保持原始添加顺序（从旧到新），置顶已在下面处理
+            // 不做排序，由数组原始顺序决定
+            break;
+    }
+
+    // 始终置顶优先
+    const pinned = sorted.filter(i => i.pinned);
+    const unpinned = sorted.filter(i => !i.pinned);
+    return [...pinned, ...unpinned];
+}
+
     // 图片压缩（保留 PNG 透明）
     function compressImage(file, maxWidth = 1200, quality = 0.75) {
         return new Promise((resolve, reject) => {
@@ -1398,6 +1577,10 @@
                 g.pinned = false;
                 changed = true;
             }
+            if (g.sortOrder === undefined) {
+                g.sortOrder = 'default';
+                changed = true;
+            }
         });
         if (changed) await saveData(stored);
         appData = stored;
@@ -1406,6 +1589,7 @@
         activeGroupId = activeId && appData.groups.some(g => g.id === activeId) ? activeId : '__home__';
         renderAll();
         updateProfileUI();
+        updateSortBtnText();
     }
 
     function updateProfileUI() {
@@ -1526,7 +1710,7 @@
     // ==================== 主内容渲染 ====================
     function renderContent() {
         if (activeGroupId === '__home__') {
-            searchBar.style.display = 'none';
+            $('#searchAndSortRow').style.display = 'none';
             groupTitle.textContent = '欢迎使用 CodeVault';
             groupSubtitle.textContent = 'Manage your HTML snippets with ease';
             fabAddItem.classList.add('hidden');
@@ -1552,22 +1736,27 @@
                 renderAll();
                 return;
             }
-            searchBar.style.display = 'flex';
+            $('#searchAndSortRow').style.display = 'block';
             groupTitle.textContent = group.name;
             groupSubtitle.textContent = group.englishPhrase || '';
             fabAddItem.classList.remove('hidden');
+            // 更新条目统计
+            const totalInGroup = group.items ? group.items.length : 0;
+            $('#itemCount').textContent = '共' + totalInGroup + '项';
 
             const rawItems = group.items || [];
             const filteredItems = filterItems(rawItems, currentSearchKeyword);
-            const sortedItems = sortItems(filteredItems);
+            const groupSort = (group && group.sortOrder) ? group.sortOrder : 'default';
+            const sortedItems = sortItemsBy(filteredItems, groupSort);
 
-            if (group.contentType === 'text') {
-                renderMemoGroup(group, sortedItems);
-            } else {
-                renderDefaultGroup(group, sortedItems);
-            }
+        if (group.contentType === 'text') {
+            renderMemoGroup(group, sortedItems);
+        } else {
+            renderDefaultGroup(group, sortedItems);
         }
+        updateSortBtnText();  // ← 新增这一行，确保切换分组后按钮文字正确
     }
+}
 
     function renderDefaultGroup(group, items) {
         if (items.length === 0) {
@@ -2001,6 +2190,9 @@
             }
         } else {
             const newItem = { id: generateId(), name, description, tags, htmlCode, pinned: false };
+            if (!newItem.createdAt) {
+                newItem.createdAt = new Date().toLocaleString('zh-CN', { hour12: false });
+            }
             if (group.contentType === 'text') {
                 newItem.createdAt = new Date().toLocaleString('zh-CN', { hour12: false });
                 newItem.imageData = imageData;
@@ -2288,6 +2480,60 @@ if (clearAllDataBtn) {
     });
 
     function generateId() { return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2,8); }
+
+// ==================== 排序菜单 ====================
+const sortWrapper = $('#sortWrapper');
+const sortBtn = $('#sortBtn');
+const sortMenu = $('#sortMenu');
+
+function updateSortBtnText() {
+    const group = appData.groups.find(g => g.id === activeGroupId);
+    const currentGroupSort = (group && group.sortOrder) ? group.sortOrder : 'default';
+    const map = {
+        'default': '默认',
+        'time-desc': '时间',
+        'name-asc': '名称正序',
+        'name-desc': '名称倒序'
+    };
+    sortBtn.textContent = map[currentGroupSort] || '默认';
+    // 高亮当前选中项
+    document.querySelectorAll('.sort-option').forEach(opt => {
+        opt.classList.toggle('selected', opt.dataset.sort === currentGroupSort);
+    });
+}
+
+sortBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    sortMenu.classList.toggle('hidden');
+});
+
+sortMenu.addEventListener('click', (e) => {
+    const option = e.target.closest('.sort-option');
+    if (!option) return;
+    const sortType = option.dataset.sort;
+    // 获取当前分组
+    const group = appData.groups.find(g => g.id === activeGroupId);
+    if (!group) return;
+    const currentGroupSort = group.sortOrder || 'default';
+    if (sortType === currentGroupSort) {
+        sortMenu.classList.add('hidden');
+        return;
+    }
+    group.sortOrder = sortType;
+    // 保存数据
+    saveData(appData).then(() => {
+        lastSavedData = JSON.stringify(appData);
+    });
+    updateSortBtnText();
+    sortMenu.classList.add('hidden');
+    renderContent();
+});
+
+document.addEventListener('click', (e) => {
+    if (!sortWrapper.contains(e.target)) {
+        sortMenu.classList.add('hidden');
+    }
+});
 
     // ==================== 全局事件 ====================
     homeBtn.addEventListener('click', (e) => {
