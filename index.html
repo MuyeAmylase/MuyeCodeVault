@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -656,6 +656,40 @@
         }
         .welcome-manage-btn:active { transform: scale(0.96); }
 
+        /* 清空数据按钮（红底白字，文字居中） */
+        .clear-data-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: #d32f2f;
+            border: none;
+            border-radius: var(--radius-sm);
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            letter-spacing: 0.3px;
+            box-shadow: var(--shadow-sm);
+            margin-top: 0;
+        }
+        .clear-data-btn:hover {
+            background: #b71c1c;
+            box-shadow: var(--shadow-md);
+        }
+        .clear-data-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* 统一数据管理按钮间距 */
+        .profile-body .export-btn,
+        .profile-body .clear-data-btn {
+            margin-top: 8px;
+        }
+
         .empty-state {
             grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center;
             padding: 60px 20px; text-align: center; color: var(--text-muted); gap: 12px;
@@ -1036,9 +1070,13 @@
                 导入数据
             </button>
             <input type="file" id="importFileInput" accept=".json" style="display:none;">
-            <button class="export-btn" id="exportDataBtn" style="margin-top:8px;">
+            <button class="export-btn" id="exportDataBtn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 导出全部数据
+            </button>
+            <button class="clear-data-btn" id="clearAllDataBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                清空全部数据
             </button>
             <p class="hint" style="margin-top:8px;">数据保存于浏览器 IndexedDB 中，导出为 JSON 文件备份。</p>
             <div class="storage-info" id="storageInfo">存储空间：计算中...</div>
@@ -2157,6 +2195,26 @@
         editProfileModal.addEventListener('click', e => { if (e.target === editProfileModal) editProfileModal.classList.add('hidden'); });
         profileEditBtn.addEventListener('click', openEditProfileModal);
 
+
+// 清空全部数据
+const clearAllDataBtn = $('#clearAllDataBtn');
+if (clearAllDataBtn) {
+    clearAllDataBtn.addEventListener('click', () => {
+        confirmMessage.textContent = '⚠️ 此操作将永久删除所有分组、条目和个人资料，且无法恢复！确定继续吗？';
+        confirmCallback = async () => {
+            const db = await openDB();
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+            store.delete(DATA_KEY);
+            tx.oncomplete = () => {
+                localStorage.removeItem('codevault_active_v3');
+                location.reload();
+            };
+        };
+        confirmModal.classList.remove('hidden');
+    });
+}
+
         // 导入数据
         importDataBtn.addEventListener('click', () => importFileInput.click());
         importFileInput.addEventListener('change', async function() {
@@ -2249,5 +2307,4 @@
 </script>
 </body>
 </html>
-
 
