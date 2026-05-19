@@ -1028,8 +1028,8 @@
         <div class="overlay-topbar" id="previewTopBar">
             <button class="back-btn" id="backBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 4 7 12 16 20"/></svg></button>
         </div>
-        <!-- ✅ 安全修复：移除了 allow-same-origin，保留脚本执行但隔离父页面数据 -->
-        <iframe class="preview-iframe" id="previewIframe" sandbox="allow-scripts allow-forms allow-popups allow-modals"></iframe>
+        <iframe class="preview-iframe" id="previewIframe" 
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"></iframe>
     </div>
 
     <!-- ==================== 管理分组覆盖层 ==================== -->
