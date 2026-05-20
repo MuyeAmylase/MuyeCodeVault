@@ -646,16 +646,38 @@
             margin-top: auto; letter-spacing: 0.3px;
         }
 
-        .welcome-manage-btn {
-            margin-top: 20px; padding: 10px 28px; border-radius: 8px; font-size: 14px; font-weight: 600;
-            letter-spacing: 0.3px; cursor: pointer; border: none;
-            background: var(--welcome-btn-bg); color: var(--text-primary);
-            box-shadow: var(--shadow-sm); transition: all 0.2s ease; outline: none;
-        }
-        .welcome-manage-btn:hover {
-            background: var(--welcome-btn-hover-bg); box-shadow: var(--shadow-md); transform: translateY(-1px);
-        }
-        .welcome-manage-btn:active { transform: scale(0.96); }
+.welcome-manage-btn {
+    display: block;
+    width: 220px;                /* 统一宽度 */
+    margin: 0 auto;              /* 水平居中 */
+    padding: 10px 28px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    border: none;
+    background: var(--welcome-btn-bg);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+    outline: none;
+    text-align: center;
+}
+.welcome-manage-btn:first-child {
+    margin-top: 40px;            /* 第一个按钮保持原有上边距 */
+}
+.welcome-manage-btn + .welcome-manage-btn {
+    margin-top: 2px;             /* 第二个按钮紧贴第一个 */
+}
+.welcome-manage-btn:hover {
+    background: var(--welcome-btn-hover-bg);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+.welcome-manage-btn:active {
+    transform: scale(0.96);
+}
 
         /* 清空数据按钮（红底白字，文字居中） */
         .clear-data-btn {
@@ -945,10 +967,14 @@
                 min-width: 0;
                 max-width: 100%;
                 width: calc(100% - 24px);
-                height: 140px;                /* 手机端稍矮一点 */
+                height: 90px;                /* 手机端稍矮一点 */
+                padding: 0;     
              }
              .widget-iframe {
                 height: 100%;
+             }
+             .welcome-manage-btn {
+                width: 180px;
              }
         }
 
@@ -1175,24 +1201,33 @@
 
 /* 自定义小组件 */
 .widget-container {
-    margin-top: 8px;
+    margin-top: 16px;
     background: var(--bg-card);
     border: 1px solid var(--border-card);
     border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-sm);
     overflow: hidden;
     min-width: 280px;
     max-width: 520px;
     width: calc(100% - 56px);
-    height: 160px;                /* 固定高度，与条目卡片视觉一致 */
+    height: 110px;                /* 固定高度，可根据需要调整 */
+    padding: 0;                   /* 关键：去掉内边距 */
     margin-left: auto;
     margin-right: auto;
+    transition: all var(--transition-normal);
+}
+.widget-container:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--text-muted);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
 }
 .widget-container.hidden { display: none; }
 .widget-iframe {
     width: 100%;
-    height: 100%;                 /* 填满容器高度 */
+    height: 100%;                 /* 填满容器的固定高度 */
     border: none;
-    background: #fff;
+    background: transparent;
 }
 #widgetCodeTextarea {
     width: 100%;
