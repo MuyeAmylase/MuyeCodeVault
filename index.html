@@ -931,12 +931,24 @@
                 font-size: 11px;
              }
              .ad-bar {
+                min-width: 0;              /* 手机端不设最小宽度 */
                 max-width: 100%;
+                width: calc(100% - 24px);  /* 手机端两侧留小间距 */
                 padding: 5px 8px;
                 font-size: 11px;
+                gap: 6px;
              }
              .ad-scroll-text {
                 font-size: 11px;
+             }
+             .widget-container {
+                min-width: 0;
+                max-width: 100%;
+                width: calc(100% - 24px);
+                height: 140px;                /* 手机端稍矮一点 */
+             }
+             .widget-iframe {
+                height: 100%;
              }
         }
 
@@ -1116,7 +1128,10 @@
     border: 1px solid var(--border-card);
     border-radius: var(--radius-sm);
     font-size: 12px;
-    max-width: 480px;
+    color: var(--text-secondary);
+    min-width: 280px;          /* 手机端最小宽度 */
+    max-width: 520px;          /* 电脑端最大宽度 */
+    width: calc(100% - 56px);  /* 自适应，留出两侧间距 */
     margin-left: auto;
     margin-right: auto;
 }
@@ -1157,6 +1172,60 @@
     transition: opacity 0.15s;
 }
 .ad-close-btn:hover { opacity: 0.7; }
+
+/* 自定义小组件 */
+.widget-container {
+    margin-top: 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    min-width: 280px;
+    max-width: 520px;
+    width: calc(100% - 56px);
+    height: 160px;                /* 固定高度，与条目卡片视觉一致 */
+    margin-left: auto;
+    margin-right: auto;
+}
+.widget-container.hidden { display: none; }
+.widget-iframe {
+    width: 100%;
+    height: 100%;                 /* 填满容器高度 */
+    border: none;
+    background: #fff;
+}
+#widgetCodeTextarea {
+    width: 100%;
+    background: var(--modal-input-bg);
+    border: 1px solid var(--modal-input-border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    padding: 12px;
+    resize: vertical;
+}
+#widgetCodeTextarea:focus {
+    border-color: var(--modal-input-focus-border);
+    box-shadow: 0 0 0 3px var(--modal-input-focus-shadow);
+    outline: none;
+}
+/* 小组件编辑弹窗 textarea 样式 */
+#widgetCodeTextarea {
+    width: 100%;
+    background: var(--modal-input-bg);
+    border: 1px solid var(--modal-input-border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    padding: 12px;
+    resize: vertical;
+}
+#widgetCodeTextarea:focus {
+    border-color: var(--modal-input-focus-border);
+    box-shadow: 0 0 0 3px var(--modal-input-focus-shadow);
+    outline: none;
+}
+#openWidgetEditBtn {
+    margin-top: 2px;   /* 只控制它和上面按钮的距离 */
+}
     </style>
 </head>
 
@@ -1202,6 +1271,11 @@
     </div>
     <span class="ad-link" id="adEditBtn">自定义小广告</span>
     <button class="ad-close-btn" id="adCloseBtn">×</button>
+</div>
+
+<!-- 自定义小组件 -->
+<div class="widget-container hidden" id="widgetContainer">
+    <iframe class="widget-iframe" id="widgetIframe" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
 </div>
 
 <!-- 搜索与排序区域 -->
@@ -1434,6 +1508,21 @@
             </div>
         </div>
     </div>
+
+<!-- ==================== 小组件编辑弹窗 ==================== -->
+<div class="modal-overlay hidden" id="widgetEditModal">
+    <div class="modal-dialog" style="max-width:600px;">
+        <h3>编辑小组件 HTML</h3>
+        <div class="form-group">
+            <textarea id="widgetCodeTextarea" style="min-height:300px;font-family:'SF Mono','Fira Code',monospace;font-size:13px;">请输入小组件 HTML 代码...</textarea>
+        </div>
+        <div class="hint" style="margin-bottom:12px;">小组件会显示在欢迎页广告条下方，支持脚本和独立存储。</div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" id="cancelWidgetEditBtn">取消</button>
+            <button class="btn btn-primary" id="saveWidgetEditBtn">保存</button>
+        </div>
+    </div>
+</div>
 
     <!-- Toast -->
     <div class="toast" id="toast"></div>
@@ -1912,6 +2001,10 @@ function handleDrop(e) {
             stored.profile.adText = '欢迎使用MuyeCodeVault · 广告位招租...';
             changed = true;
         }
+        if (!stored.profile.widgetCode) {
+            stored.profile.widgetCode = '';
+            changed = true;
+        }
         // 补全缺失字段
         stored.groups.forEach(g => {
             if (g.pinned === undefined) {
@@ -1936,6 +2029,7 @@ function handleDrop(e) {
         updateProfileUI();
         updateSortBtnText();
         renderCustomSortOptions();
+        updateWidget();
     }
 
     function updateProfileUI() {
@@ -2072,10 +2166,20 @@ function renderContent() {
                 <div class="empty-title">欢迎回来</div>
                 <div class="empty-desc">已创建 ${appData.groups.length} 个分组，共 ${totalItems} 个条目</div>
                 <button class="welcome-manage-btn" id="welcomeManageBtn">管理分组</button>
+                <button class="welcome-manage-btn" id="openWidgetEditBtn">自定义组件</button>
             </div>`;
         const welcomeBtn = document.getElementById('welcomeManageBtn');
         if (welcomeBtn) welcomeBtn.addEventListener('click', openManageOverlay);
-        updateAdBar();
+        // ★ 给动态生成的自定义组件按钮绑定事件
+        const openWidgetBtn = document.getElementById('openWidgetEditBtn');
+        if (openWidgetBtn) {
+            openWidgetBtn.addEventListener('click', () => {
+                widgetCodeTextarea.value = appData.profile.widgetCode || '';
+                widgetEditModal.classList.remove('hidden');
+            });
+        }
+updateAdBar();;
+        updateWidget();
     } else {
         const group = appData.groups.find(g => g.id === activeGroupId);
         if (!group) {
@@ -2107,6 +2211,7 @@ function renderContent() {
         } else {
             disableDragSort();
         }
+        updateWidget();
     }
 }
 
@@ -2954,6 +3059,47 @@ document.addEventListener('click', (e) => {
     }
 });
 
+// ==================== 自定义小组件 ====================
+const widgetEditModal = $('#widgetEditModal');
+const widgetCodeTextarea = $('#widgetCodeTextarea');
+const cancelWidgetEditBtn = $('#cancelWidgetEditBtn');
+const saveWidgetEditBtn = $('#saveWidgetEditBtn');
+const widgetEditBtn = $('#widgetEditBtn');
+
+if (widgetEditBtn) {
+    widgetEditBtn.addEventListener('click', () => {
+        widgetCodeTextarea.value = appData.profile.widgetCode || '';
+        widgetEditModal.classList.remove('hidden');
+    });
+}
+
+if (cancelWidgetEditBtn) {
+    cancelWidgetEditBtn.addEventListener('click', () => {
+        widgetEditModal.classList.add('hidden');
+    });
+}
+
+if (saveWidgetEditBtn) {
+    saveWidgetEditBtn.addEventListener('click', () => {
+        appData.profile.widgetCode = widgetCodeTextarea.value.trim();
+        const iframe = document.getElementById('widgetIframe');
+        if (iframe) {
+            iframe.srcdoc = appData.profile.widgetCode;
+        }
+        saveData(appData).then(() => {
+            lastSavedData = JSON.stringify(appData);
+            updateWidget();
+        });
+        widgetEditModal.classList.add('hidden');
+    });
+}
+
+widgetEditModal?.addEventListener('click', (e) => {
+    if (e.target === widgetEditModal) {
+        widgetEditModal.classList.add('hidden');
+    }
+});
+
 // ==================== 滚动广告条 ====================
 // 更新广告条显示
 function updateAdBar() {
@@ -2970,6 +3116,20 @@ function updateAdBar() {
         }
     } else {
         bar.style.display = 'none';
+    }
+}
+
+function updateWidget() {
+    const container = document.getElementById('widgetContainer');
+    if (!container) return;
+    if (activeGroupId === '__home__' && appData.profile.widgetCode) {
+        container.classList.remove('hidden');
+        const iframe = document.getElementById('widgetIframe');
+        if (iframe && iframe.srcdoc !== appData.profile.widgetCode) {
+            iframe.srcdoc = appData.profile.widgetCode;
+        }
+    } else {
+        container.classList.add('hidden');
     }
 }
 
@@ -3039,5 +3199,6 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 </body>
 </html>
+
 
 
