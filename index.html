@@ -921,6 +921,23 @@
             .item-count {
                 font-size: 11px;
              }
+             .custom-sort-bar {
+                height: 28px;
+                margin-bottom: 4px;
+             }
+             .cancel-custom-order-btn,
+             .save-custom-order-btn {
+                padding: 3px 10px;
+                font-size: 11px;
+             }
+             .ad-bar {
+                max-width: 100%;
+                padding: 5px 8px;
+                font-size: 11px;
+             }
+             .ad-scroll-text {
+                font-size: 11px;
+             }
         }
 
         @media (max-width: 400px) {
@@ -1017,6 +1034,129 @@
     .search-bar {
         flex-wrap: nowrap;
     }
+
+/* 自定义排序操作栏 */
+.custom-sort-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 32px;
+    margin-bottom: 6px;
+    padding: 0 8px;   /* 原来是 0 2px，现在左右各多留一点空间 */
+}
+.custom-sort-bar.hidden { display: none; }
+.custom-sort-name {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+.custom-sort-actions {
+    display: flex;
+    gap: 8px;
+}
+.cancel-custom-order-btn {
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border-card);
+    padding: 4px 14px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+.cancel-custom-order-btn:hover { opacity: 0.7; }
+.save-custom-order-btn {
+    background: var(--btn-primary-bg);
+    color: var(--btn-primary-color);
+    border: none;
+    padding: 4px 14px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+.save-custom-order-btn:hover { opacity: 0.85; }
+
+/* 菜单中的自定义排序项（含删除按钮） */
+.custom-sort-list .sort-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.custom-sort-delete {
+    font-size: 12px;
+    color: var(--action-delete);
+    cursor: pointer;
+    padding: 0 4px;
+}
+.custom-sort-delete:hover { opacity: 0.7; }
+.add-custom-sort {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* 拖拽样式 */
+.item-card.dragging {
+    opacity: 0.4;
+    border: 2px dashed var(--text-muted);
+}
+.item-card.drag-over {
+    border-top: 3px solid var(--btn-primary-bg);
+}
+
+/* 滚动广告条 */
+.ad-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    margin-top: 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.ad-icon { flex-shrink: 0; font-size: 14px; }
+.ad-scroll-wrapper {
+    flex: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    position: relative;
+}
+.ad-scroll-text {
+    display: inline-block;
+    white-space: nowrap;
+    padding-left: 100%;
+    animation: ad-scroll 8s linear infinite;
+}
+@keyframes ad-scroll {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+}
+.ad-link {
+    flex-shrink: 0;
+    font-size: 11px;
+    text-decoration: underline;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s;
+}
+.ad-link:hover { opacity: 0.7; }
+.ad-close-btn {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+    transition: opacity 0.15s;
+}
+.ad-close-btn:hover { opacity: 0.7; }
     </style>
 </head>
 
@@ -1054,6 +1194,16 @@
             <div class="group-subtitle" id="groupSubtitle">Manage your HTML snippets with ease</div>
         </div>
 
+<!-- 滚动广告条 -->
+<div class="ad-bar" id="adBar" style="display:none;">
+    <span class="ad-icon">📣</span>
+    <div class="ad-scroll-wrapper">
+        <span class="ad-scroll-text" id="adScrollText">欢迎使用MuyeCodeVault · 广告位招租</span>
+    </div>
+    <span class="ad-link" id="adEditBtn">自定义小广告</span>
+    <button class="ad-close-btn" id="adCloseBtn">×</button>
+</div>
+
 <!-- 搜索与排序区域 -->
 <div class="search-and-sort-row" id="searchAndSortRow" style="display:none;">
     <!-- 搜索框 -->
@@ -1078,11 +1228,23 @@
                 <div class="sort-option" data-sort="time-desc">按从新到旧排序</div>
                 <div class="sort-option" data-sort="name-asc">按从A到Z排序</div>
                 <div class="sort-option" data-sort="name-desc">按从Z到A排序</div>
+                <!-- 自定义排序列表（JS动态生成） -->
+                <div class="custom-sort-list" id="customSortList"></div>
+                <!-- 新增按钮 -->
+                <div class="sort-option add-custom-sort" id="addCustomSortBtn">+ 自定义排序</div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- 自定义排序操作栏（默认隐藏） -->
+<div class="custom-sort-bar hidden" id="customSortBar">
+    <span class="custom-sort-name" id="customSortName">自定义排序中</span>
+    <div class="custom-sort-actions">
+        <button class="cancel-custom-order-btn" id="cancelCustomOrderBtn">取消</button>
+        <button class="save-custom-order-btn" id="saveCustomOrderBtn">保存</button>
+    </div>
+</div>
 
         <div class="content-body" id="contentBody">
             <div class="empty-state">
@@ -1399,7 +1561,9 @@
                     contentType: 'html',
                     isPreset: true,
                     items: [],
-                    pinned: false
+                    pinned: false,
+                    customSorts: [],
+                    sortOrder: 'default'
                 },
                 {
                     id: 'preset_link_repo',
@@ -1412,7 +1576,9 @@
                     contentType: 'link',
                     isPreset: true,
                     items: [],
-                    pinned: false
+                    pinned: false,
+                    customSorts: [],
+                    sortOrder: 'default'
                 }
             ]
         };
@@ -1421,6 +1587,9 @@
     let appData = null;
     let activeGroupId = '__home__';
     let currentSearchKeyword = '';
+    let currentCustomSortId = null;
+    let isCustomSortMode = false;
+    let dragSrcIndex = null;
 
     const $ = (sel) => document.querySelector(sel);
 
@@ -1486,36 +1655,204 @@
         return [...pinned, ...rest];
     }
 
-// 按所选排序方式排列（始终保持置顶优先）
-function sortItemsBy(items, sortType) {
-    if (!items || !items.length) return items;
-    const sorted = [...items];
+    // 按所选排序方式排列（始终保持置顶优先）
+    function sortItemsBy(items, sortType) {
+        if (!items || !items.length) return items;
+        const sorted = [...items];
 
-    switch (sortType) {
-        case 'name-asc':
-            sorted.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'zh'));
-            break;
-        case 'name-desc':
-            sorted.sort((a, b) => (b.name || '').localeCompare(a.name || '', 'zh'));
-            break;
-        case 'time-desc':
-            sorted.sort((a, b) => {
-                const timeA = a.createdAt || '';
-                const timeB = b.createdAt || '';
-                return timeB.localeCompare(timeA); // 新在前
-            });
-            break;
-        default: // 'default'
-            // 保持原始添加顺序（从旧到新），置顶已在下面处理
-            // 不做排序，由数组原始顺序决定
-            break;
+        // 自定义排序处理
+        const group = appData.groups.find(g => g.id === activeGroupId);
+        if (sortType && sortType.startsWith('cs_') && group) {
+            const customSort = group.customSorts.find(c => c.id === sortType);
+            if (customSort && customSort.order) {
+                const orderMap = new Map(customSort.order.map((id, index) => [id, index]));
+                const sortedByCustom = [...items].sort((a, b) => {
+                    const ia = orderMap.has(a.id) ? orderMap.get(a.id) : Infinity;
+                    const ib = orderMap.has(b.id) ? orderMap.get(b.id) : Infinity;
+                    return ia - ib;
+                });
+                const pinned = sortedByCustom.filter(i => i.pinned);
+                const unpinned = sortedByCustom.filter(i => !i.pinned);
+                return [...pinned, ...unpinned];
+            }
+        }
+
+        switch (sortType) {
+            case 'name-asc':
+                sorted.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'zh', { sensitivity: 'base', numeric: true }));
+                break;
+            case 'name-desc':
+                sorted.sort((a, b) => (b.name || '').localeCompare(a.name || '', 'zh', { sensitivity: 'base', numeric: true }));
+                break;
+            case 'time-desc':
+                sorted.sort((a, b) => {
+                    const timeA = a.createdAt || '';
+                    const timeB = b.createdAt || '';
+                    return timeB.localeCompare(timeA);
+                });
+                break;
+            default: // 'default' 或未知
+                break;
+        }
+
+        const pinned = sorted.filter(i => i.pinned);
+        const unpinned = sorted.filter(i => !i.pinned);
+        return [...pinned, ...unpinned];
     }
 
-    // 始终置顶优先
-    const pinned = sorted.filter(i => i.pinned);
-    const unpinned = sorted.filter(i => !i.pinned);
-    return [...pinned, ...unpinned];
+    // ==================== 自定义排序相关函数 ====================
+    function getGroupCustomSorts(group) {
+        return (group && group.customSorts) ? group.customSorts : [];
+    }
+
+    function generateCustomSortId() {
+        return 'cs_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 6);
+    }
+
+    function renderCustomSortOptions() {
+        const group = appData.groups.find(g => g.id === activeGroupId);
+        if (!group) return;
+        const customSorts = getGroupCustomSorts(group);
+        const listEl = $('#customSortList');
+        if (!listEl) return;
+        let html = '';
+        customSorts.forEach(cs => {
+            html += `<div class="sort-option" data-sort="${cs.id}">
+                <span>${escapeHTML(cs.name)}</span>
+                <span class="custom-sort-delete" data-sort-id="${cs.id}">×</span>
+            </div>`;
+        });
+        listEl.innerHTML = html;
+
+        listEl.querySelectorAll('.custom-sort-delete').forEach(del => {
+            del.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const sortId = del.dataset.sortId;
+                deleteCustomSort(sortId);
+            });
+        });
+        // 便签分组里隐藏自定义排序按钮
+        if ($('#addCustomSortBtn')) {
+    $('#addCustomSortBtn').style.display = (group && group.contentType === 'text') ? 'none' : '';
+        }
+    }
+
+function deleteCustomSort(sortId) {
+    const group = appData.groups.find(g => g.id === activeGroupId);
+    if (!group) return;
+    group.customSorts = group.customSorts.filter(cs => cs.id !== sortId);
+    if (group.sortOrder === sortId) {
+        group.sortOrder = 'default';
+        exitCustomSortMode();
+    }
+    saveData(appData).then(() => {
+        lastSavedData = JSON.stringify(appData);
+        renderContent();               // 立刻刷新卡片顺序
+        renderCustomSortOptions();     // 立刻刷新下拉菜单
+        updateSortBtnText();
+    });
 }
+
+    function enterCustomSortMode(sortId) {
+        const group = appData.groups.find(g => g.id === activeGroupId);
+        if (!group) return;
+        const customSort = group.customSorts.find(cs => cs.id === sortId);
+        if (!customSort) return;
+        currentCustomSortId = sortId;
+        isCustomSortMode = true;
+        $('#customSortBar').classList.remove('hidden');
+        $('#customSortName').textContent = customSort.name;
+        group.sortOrder = sortId;
+        saveData(appData).then(() => {
+            lastSavedData = JSON.stringify(appData);
+        });
+        renderContent();
+        enableDragSort();
+    }
+
+function exitCustomSortMode() {
+    currentCustomSortId = null;
+    isCustomSortMode = false;
+    $('#customSortBar').classList.add('hidden');
+    disableDragSort();
+    renderContent();
+    updateSortBtnText();
+}
+
+    function enableDragSort() {
+        const cards = document.querySelectorAll('.item-card');
+        cards.forEach((card) => {
+            card.setAttribute('draggable', 'true');
+            card.addEventListener('dragstart', handleDragStart);
+            card.addEventListener('dragover', handleDragOver);
+            card.addEventListener('drop', handleDrop);
+            card.addEventListener('dragend', handleDragEnd);
+        });
+    }
+
+    function disableDragSort() {
+        const cards = document.querySelectorAll('.item-card');
+        cards.forEach(card => {
+            card.removeAttribute('draggable');
+            card.removeEventListener('dragstart', handleDragStart);
+            card.removeEventListener('dragover', handleDragOver);
+            card.removeEventListener('drop', handleDrop);
+            card.removeEventListener('dragend', handleDragEnd);
+        });
+    }
+
+    function handleDragStart(e) {
+        dragSrcIndex = Array.from(e.target.parentNode.children).indexOf(e.target);
+        e.target.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', e.target.dataset.itemId);
+    }
+    function handleDragOver(e) {
+        e.preventDefault();
+        const target = e.target.closest('.item-card');
+        if (target && !target.classList.contains('dragging')) {
+            target.classList.add('drag-over');
+        }
+    }
+function handleDrop(e) {
+    e.preventDefault();
+    const target = e.target.closest('.item-card');
+    if (!target || target.classList.contains('dragging')) return;
+    const targetIndex = Array.from(target.parentNode.children).indexOf(target);
+    const draggedItemId = e.dataTransfer.getData('text/plain');
+    const group = appData.groups.find(g => g.id === activeGroupId);
+    if (!group || !group.items) return;
+    const items = group.items;
+    const draggedItem = items.find(it => it.id === draggedItemId);
+    if (!draggedItem) return;
+
+    // ★ 关键修复：只更新当前自定义排序的 order，绝对不碰 items 数组
+    if (currentCustomSortId) {
+        const customSort = group.customSorts.find(cs => cs.id === currentCustomSortId);
+        if (customSort) {
+            // 获取当前的显示顺序（即当前自定义排序的顺序）
+            const currentOrder = (customSort.order && customSort.order.length === items.length)
+                ? customSort.order
+                : items.map(it => it.id);
+            
+            // 从顺序中移除被拖拽的元素
+            const draggedIdxInOrder = currentOrder.indexOf(draggedItemId);
+            if (draggedIdxInOrder !== -1) {
+                currentOrder.splice(draggedIdxInOrder, 1);
+                // 插入到目标位置
+                currentOrder.splice(targetIndex, 0, draggedItemId);
+            }
+            customSort.order = currentOrder;
+        }
+    }
+    renderContent();
+    enableDragSort();
+}
+    function handleDragEnd(e) {
+        e.target.classList.remove('dragging');
+        document.querySelectorAll('.item-card').forEach(c => c.classList.remove('drag-over'));
+        dragSrcIndex = null;
+    }
 
     // 图片压缩（保留 PNG 透明）
     function compressImage(file, maxWidth = 1200, quality = 0.75) {
@@ -1571,10 +1908,18 @@ function sortItemsBy(items, sortType) {
             else stored.groups.unshift(linkGroup);
             changed = true;
         }
-        // 补全 pinned 字段并标记变更
+        if (!stored.profile.adText) {
+            stored.profile.adText = '欢迎使用MuyeCodeVault · 广告位招租...';
+            changed = true;
+        }
+        // 补全缺失字段
         stored.groups.forEach(g => {
             if (g.pinned === undefined) {
                 g.pinned = false;
+                changed = true;
+            }
+            if (g.customSorts === undefined) {
+                g.customSorts = [];
                 changed = true;
             }
             if (g.sortOrder === undefined) {
@@ -1590,6 +1935,7 @@ function sortItemsBy(items, sortType) {
         renderAll();
         updateProfileUI();
         updateSortBtnText();
+        renderCustomSortOptions();
     }
 
     function updateProfileUI() {
@@ -1654,7 +2000,6 @@ function sortItemsBy(items, sortType) {
                 btn.style.backgroundImage = av.bg;
                 btn.style.backgroundColor = 'transparent';
                 btn.classList.add('has-image');
-                // 图片头像不显示文字首字母（避免展开时叠加文字）
             } else {
                 btn.style.backgroundColor = av.bg;
                 btn.style.backgroundImage = 'none';
@@ -1666,7 +2011,6 @@ function sortItemsBy(items, sortType) {
             }
             if (g.id === activeGroupId) btn.classList.add('active');
 
-            // 展开时显示的文字容器
             const textContainer = document.createElement('span');
             textContainer.className = 'group-text';
             const nameSpan = document.createElement('span');
@@ -1684,6 +2028,7 @@ function sortItemsBy(items, sortType) {
         });
         homeBtn.classList.toggle('active', activeGroupId === '__home__');
         updateSidebarTextVisibility();
+        updateAdBar();
     }
 
     function updateSidebarTextVisibility() {
@@ -1705,56 +2050,63 @@ function sortItemsBy(items, sortType) {
             expandSidebarBtn.textContent = '展开';
             updateSidebarTextVisibility();
         }
+        renderCustomSortOptions();
+        updateSortBtnText();
     }
 
-    // ==================== 主内容渲染 ====================
-    function renderContent() {
-        if (activeGroupId === '__home__') {
-            $('#searchAndSortRow').style.display = 'none';
-            groupTitle.textContent = '欢迎使用 CodeVault';
-            groupSubtitle.textContent = 'Manage your HTML snippets with ease';
-            fabAddItem.classList.add('hidden');
-            const totalItems = appData.groups.reduce((s,g) => s + (g.items?.length||0), 0);
-            contentBody.innerHTML = `
-                <div class="empty-state">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
-                        <rect x="2" y="3" width="20" height="14" rx="2"/>
-                        <line x1="8" y1="21" x2="16" y2="21"/>
-                        <line x1="12" y1="17" x2="12" y2="21"/>
-                    </svg>
-                    <div class="empty-title">欢迎回来</div>
-                    <div class="empty-desc">已创建 ${appData.groups.length} 个分组，共 ${totalItems} 个条目</div>
-                    <button class="welcome-manage-btn" id="welcomeManageBtn">管理分组</button>
-                </div>`;
-            const welcomeBtn = document.getElementById('welcomeManageBtn');
-            if (welcomeBtn) welcomeBtn.addEventListener('click', openManageOverlay);
-        } else {
-            const group = appData.groups.find(g => g.id === activeGroupId);
-            if (!group) {
-                activeGroupId = '__home__';
-                localStorage.setItem('codevault_active_v3', '__home__');
-                renderAll();
-                return;
-            }
-            $('#searchAndSortRow').style.display = 'block';
-            groupTitle.textContent = group.name;
-            groupSubtitle.textContent = group.englishPhrase || '';
-            fabAddItem.classList.remove('hidden');
-            // 更新条目统计
-            const totalInGroup = group.items ? group.items.length : 0;
-            $('#itemCount').textContent = '共' + totalInGroup + '项';
+// ==================== 主内容渲染 ====================
+function renderContent() {
+    if (activeGroupId === '__home__') {
+        $('#searchAndSortRow').style.display = 'none';
+        groupTitle.textContent = '欢迎使用 CodeVault';
+        groupSubtitle.textContent = 'Manage your HTML snippets with ease';
+        fabAddItem.classList.add('hidden');
+        const totalItems = appData.groups.reduce((s,g) => s + (g.items?.length||0), 0);
+        contentBody.innerHTML = `
+            <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                    <rect x="2" y="3" width="20" height="14" rx="2"/>
+                    <line x1="8" y1="21" x2="16" y2="21"/>
+                    <line x1="12" y1="17" x2="12" y2="21"/>
+                </svg>
+                <div class="empty-title">欢迎回来</div>
+                <div class="empty-desc">已创建 ${appData.groups.length} 个分组，共 ${totalItems} 个条目</div>
+                <button class="welcome-manage-btn" id="welcomeManageBtn">管理分组</button>
+            </div>`;
+        const welcomeBtn = document.getElementById('welcomeManageBtn');
+        if (welcomeBtn) welcomeBtn.addEventListener('click', openManageOverlay);
+        updateAdBar();
+    } else {
+        const group = appData.groups.find(g => g.id === activeGroupId);
+        if (!group) {
+            activeGroupId = '__home__';
+            localStorage.setItem('codevault_active_v3', '__home__');
+            renderAll();
+            return;
+        }
+        $('#searchAndSortRow').style.display = 'block';
+        groupTitle.textContent = group.name;
+        groupSubtitle.textContent = group.englishPhrase || '';
+        fabAddItem.classList.remove('hidden');
+        const totalInGroup = group.items ? group.items.length : 0;
+        $('#itemCount').textContent = '共' + totalInGroup + '项';
 
-            const rawItems = group.items || [];
-            const filteredItems = filterItems(rawItems, currentSearchKeyword);
-            const groupSort = (group && group.sortOrder) ? group.sortOrder : 'default';
-            const sortedItems = sortItemsBy(filteredItems, groupSort);
+        const rawItems = group.items || [];
+        const filteredItems = filterItems(rawItems, currentSearchKeyword);
+        const groupSort = (group && group.sortOrder) ? group.sortOrder : 'default';
+        const sortedItems = sortItemsBy(filteredItems, groupSort);
 
         if (group.contentType === 'text') {
             renderMemoGroup(group, sortedItems);
         } else {
             renderDefaultGroup(group, sortedItems);
         }
-        updateSortBtnText();  // ← 新增这一行，确保切换分组后按钮文字正确
+        updateSortBtnText();
+        if (isCustomSortMode) {
+            enableDragSort();
+        } else {
+            disableDragSort();
+        }
     }
 }
 
@@ -2075,7 +2427,9 @@ function sortItemsBy(items, sortType) {
                 contentType,
                 isPreset: false,
                 items: [],
-                pinned: false
+                pinned: false,
+                customSorts: [],
+                sortOrder: 'default'
             };
             appData.groups.push(newG);
         }
@@ -2452,6 +2806,8 @@ if (clearAllDataBtn) {
                 if (!g.items) g.items = [];
                 if (!g.contentType) g.contentType = 'html';
                 if (g.pinned === undefined) g.pinned = false;
+                if (g.customSorts === undefined) g.customSorts = [];
+                if (g.sortOrder === undefined) g.sortOrder = 'default';
             });
             activeGroupId = '__home__';
             localStorage.removeItem('codevault_active_v3');
@@ -2486,17 +2842,80 @@ const sortWrapper = $('#sortWrapper');
 const sortBtn = $('#sortBtn');
 const sortMenu = $('#sortMenu');
 
+// 弹出命名对话框
+function promptCustomSortName() {
+    const group = appData.groups.find(g => g.id === activeGroupId);
+    if (!group) return;
+    // 禁止便签分组使用自定义排序
+    if (group.contentType === 'text') {
+        showToast('便签不支持自定义排序');
+        return;
+    }
+
+    const name = prompt('请输入自定义排序的名称：');
+    if (!name || !name.trim()) return;
+    if (!group.customSorts) group.customSorts = [];
+    const newSort = {
+        id: generateCustomSortId(),
+        name: name.trim(),
+        order: (group.items || []).map(it => it.id)
+    };
+    group.customSorts.push(newSort);
+    saveData(appData).then(() => {
+        lastSavedData = JSON.stringify(appData);
+        renderCustomSortOptions();
+        enterCustomSortMode(newSort.id);  // ← 这一行必须存在
+        updateSortBtnText();
+        renderContent();
+    });
+}
+
+// 取消按钮
+$('#cancelCustomOrderBtn').addEventListener('click', () => {
+    exitCustomSortMode();
+});
+
+// 保存按钮
+$('#saveCustomOrderBtn').addEventListener('click', () => {
+    const group = appData.groups.find(g => g.id === activeGroupId);
+    if (!group || !currentCustomSortId) return;
+    const customSort = group.customSorts.find(cs => cs.id === currentCustomSortId);
+    if (customSort) {
+        saveData(appData).then(() => {
+            lastSavedData = JSON.stringify(appData);
+            showToast('自定义顺序已保存');
+            exitCustomSortMode(); // ← 加这一行
+        });
+    }
+});
+
+$('#addCustomSortBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    sortMenu.classList.add('hidden');
+    promptCustomSortName();
+});
+
 function updateSortBtnText() {
     const group = appData.groups.find(g => g.id === activeGroupId);
     const currentGroupSort = (group && group.sortOrder) ? group.sortOrder : 'default';
-    const map = {
-        'default': '默认',
-        'time-desc': '时间',
-        'name-asc': '名称正序',
-        'name-desc': '名称倒序'
-    };
-    sortBtn.textContent = map[currentGroupSort] || '默认';
-    // 高亮当前选中项
+
+    // 根据排序类型决定按钮显示的文字
+    let displayText = '默认';
+    if (currentGroupSort.startsWith('cs_') && group) {
+        const cs = group.customSorts.find(c => c.id === currentGroupSort);
+        displayText = cs ? cs.name : '默认';
+    } else {
+        const map = {
+            'default': '默认',
+            'time-desc': '时间',
+            'name-asc': '名称正序',
+            'name-desc': '名称倒序'
+        };
+        displayText = map[currentGroupSort] || '默认';
+    }
+    sortBtn.textContent = displayText;
+
+    // 高亮当前选中项（保持原样不变）
     document.querySelectorAll('.sort-option').forEach(opt => {
         opt.classList.toggle('selected', opt.dataset.sort === currentGroupSort);
     });
@@ -2532,6 +2951,53 @@ sortMenu.addEventListener('click', (e) => {
 document.addEventListener('click', (e) => {
     if (!sortWrapper.contains(e.target)) {
         sortMenu.classList.add('hidden');
+    }
+});
+
+// ==================== 滚动广告条 ====================
+// 更新广告条显示
+function updateAdBar() {
+    const bar = document.getElementById('adBar');
+    const textEl = document.getElementById('adScrollText');
+    if (!bar || !textEl) return;
+    if (activeGroupId === '__home__') {
+        const closed = sessionStorage.getItem('codevault_ad_closed');
+        if (!closed) {
+            bar.style.display = 'flex';
+            textEl.textContent = appData.profile.adText || '欢迎使用MuyeCodeVault · 自定义小广告';
+        } else {
+            bar.style.display = 'none';
+        }
+    } else {
+        bar.style.display = 'none';
+    }
+}
+
+// 绑定事件（确保 DOM 加载后执行）
+document.addEventListener('DOMContentLoaded', function() {
+    const closeBtn = document.getElementById('adCloseBtn');
+    const editBtn = document.getElementById('adEditBtn');
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function() {
+            const bar = document.getElementById('adBar');
+            if (bar) bar.style.display = 'none';
+            sessionStorage.setItem('codevault_ad_closed', '1');
+        });
+    }
+
+    if (editBtn) {
+        editBtn.addEventListener('click', function() {
+            const newText = prompt('编辑广告文案：', appData.profile.adText || '');
+            if (newText !== null && newText.trim()) {
+                appData.profile.adText = newText.trim();
+                const textEl = document.getElementById('adScrollText');
+                if (textEl) textEl.textContent = appData.profile.adText;
+                saveData(appData).then(function() {
+                    lastSavedData = JSON.stringify(appData);
+                });
+            }
+        });
     }
 });
 
@@ -2573,4 +3039,5 @@ document.addEventListener('click', (e) => {
 </script>
 </body>
 </html>
+
 
