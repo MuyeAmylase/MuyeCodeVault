@@ -1413,6 +1413,10 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 导出全部数据
             </button>
+            <button class="export-btn" id="cleanUnusedDataBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                清理无用数据
+            </button>
             <button class="clear-data-btn" id="clearAllDataBtn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                 清空全部数据
@@ -2771,6 +2775,57 @@ function renderContent() {
     cancelProfileBtn.addEventListener('click', () => editProfileModal.classList.add('hidden'));
     editProfileModal.addEventListener('click', e => { if (e.target === editProfileModal) editProfileModal.classList.add('hidden'); });
     profileEditBtn.addEventListener('click', openEditProfileModal);
+
+// 清理无用数据
+const cleanUnusedDataBtn = $('#cleanUnusedDataBtn');
+if (cleanUnusedDataBtn) {
+    cleanUnusedDataBtn.addEventListener('click', async () => {
+        if (!appData) return;
+
+        // 定义需要保留的字段白名单
+        const profileKeys = ['name', 'bio', 'avatarColor', 'avatarImage'];
+        const groupKeys = ['id', 'avatarColor', 'avatarType', 'avatarImage', 'name', 'englishPhrase', 'tags', 'contentType', 'isPreset', 'items', 'pinned', 'customSorts', 'sortOrder'];
+        const itemKeys = ['id', 'name', 'description', 'tags', 'htmlCode', 'pinned', 'imageData', 'createdAt'];
+
+        let cleanedCount = 0;
+
+        // 清理 profile 多余字段
+        for (let key of Object.keys(appData.profile)) {
+            if (!profileKeys.includes(key)) {
+                delete appData.profile[key];
+                cleanedCount++;
+            }
+        }
+
+        // 清理每个 group 和内部 items
+        appData.groups.forEach(group => {
+            for (let key of Object.keys(group)) {
+                if (!groupKeys.includes(key)) {
+                    delete group[key];
+                    cleanedCount++;
+                }
+            }
+            if (group.items) {
+                group.items.forEach(item => {
+                    for (let key of Object.keys(item)) {
+                        if (!itemKeys.includes(key)) {
+                            delete item[key];
+                            cleanedCount++;
+                        }
+                    }
+                });
+            }
+        });
+
+        if (cleanedCount === 0) {
+            showToast('没有发现无用数据');
+        } else {
+            await saveData(appData);
+            lastSavedData = JSON.stringify(appData);
+            showToast(`已清理 ${cleanedCount} 个无用字段`);
+        }
+    });
+}
 
 // 清空全部数据
 const clearAllDataBtn = $('#clearAllDataBtn');
