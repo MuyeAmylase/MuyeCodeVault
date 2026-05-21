@@ -1,0 +1,94 @@
+/* ============ MuyeCodeVault 公共主题 ============ */
+:root {
+    --bg-primary: #1a1a1f;
+    --bg-card: #222228;
+    --bg-card-hover: #282830;
+    --text-primary: #e8e8ec;
+    --text-secondary: #9a9aa6;
+    --text-muted: #6b6b78;
+    --border-card: #303038;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.4);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-color-scheme: light) {
+    :root {
+        --bg-primary: #f2f2f7;
+        --bg-card: #ffffff;
+        --bg-card-hover: #f5f5fa;
+        --text-primary: #1c1c1e;
+        --text-secondary: #6e6e73;
+        --text-muted: #8e8e93;
+        --border-card: #d1d1d6;
+        --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.02);
+        --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.04);
+    }
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* 通用按钮 */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    text-decoration: none;
+    box-shadow: var(--shadow-sm);
+}
+.btn:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--text-muted);
+}
+
+/* 返回按钮 */
+.back-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-normal);
+    outline: none;
+    text-decoration: none;
+}
+.back-btn:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--text-secondary);
+}
+.back-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* 页面头部 */
+.page-header {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+}
