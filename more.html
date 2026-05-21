@@ -112,6 +112,361 @@
             font-size: 22px;
             font-weight: 600;
             letter-spacing: -0.2px;
+            line-height: 40px;
+        }
+
+        /* 分区小标题 */
+        .section-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-muted);
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            padding-left: 4px;
+        }
+
+        /* 网格 */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        /* 卡片 */
+        .card-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        .card-item:hover .card-icon-box {
+            background: var(--bg-card-hover);
+            border-color: var(--text-secondary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        .card-item:active .card-icon-box {
+            transform: scale(0.94);
+        }
+        a.card-item {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        /* 方形图标容器 */
+        .card-icon-box {
+            width: 50%;
+            max-width: 80px;
+            aspect-ratio: 1 / 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-normal);
+            box-shadow: var(--shadow-sm);
+            margin: 0 auto;
+        }
+        .card-icon-box svg {
+            width: 36%;
+            height: 36%;
+            color: var(--text-secondary);
+            transition: color 0.2s ease;
+        }
+        .card-item:hover .card-icon-box svg {
+            color: var(--text-primary);
+        }
+
+        /* 卡片下方文字 */
+        .card-label {
+            margin-top: 10px;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-primary);
+            letter-spacing: 0.2px;
+            line-height: 1.3;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .card-grid {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 12px;
+            }
+            .top-title { font-size: 20px; }
+            .section-label { font-size: 13px; }
+            .card-label { font-size: 14px; }
+            .card-icon-box {
+                width: 60%;
+                max-width: 72px;
+            }
+        }
+
+        @media (max-width: 500px) {
+            .card-grid {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 10px;
+            }
+            .top-title { font-size: 18px; }
+            .section-label { font-size: 12px; }
+            .card-label { font-size: 13px; }
+            .card-icon-box {
+                width: 65%;
+                max-width: 64px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .card-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+            }
+            .card-label { font-size: 12px; }
+            .card-icon-box {
+                width: 70%;
+                max-width: 56px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <!-- 顶部：返回 + 标题 -->
+        <div class="top-bar">
+            <button class="back-btn" id="backBtn" title="返回">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="16 4 7 12 16 20"/>
+                </svg>
+            </button>
+            <span class="top-title">更多功能</span>
+        </div>
+
+        <!-- 第一区：MuyeCodeVault 拓展功能 -->
+        <div class="section-label">MuyeCodeVault 拓展功能</div>
+        <div class="card-grid">
+            <!-- 占位卡片 1 -->
+            <div class="card-item">
+                <div class="card-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="3"/>
+                        <line x1="9" y1="9" x2="15" y2="9"/>
+                        <line x1="9" y1="13" x2="15" y2="13"/>
+                        <line x1="9" y1="17" x2="12" y2="17"/>
+                    </svg>
+                </div>
+                <span class="card-label">待开发</span>
+            </div>
+            <!-- 占位卡片 2 -->
+            <div class="card-item">
+                <div class="card-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="9"/>
+                        <polyline points="12 7 12 12 15 15"/>
+                    </svg>
+                </div>
+                <span class="card-label">待开发</span>
+            </div>
+            <!-- 占位卡片 3 -->
+            <div class="card-item">
+                <div class="card-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                </div>
+                <span class="card-label">待开发</span>
+            </div>
+            <!-- 占位卡片 4 -->
+            <div class="card-item">
+                <div class="card-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                </div>
+                <span class="card-label">待开发</span>
+            </div>
+        </div>
+
+        <!-- 第二区：MuyeChat -->
+        <div class="section-label">MuyeChat</div>
+        <div class="card-grid">
+            <!-- Chat -->
+            <a class="card-item" href="chat.html">
+                <div class="card-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                </div>
+                <span class="card-label">Chat</span>
+            </a>
+            <!-- Note -->
+            <a class="card-item" href="note.html">
+                <div class="card-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                </div>
+                <span class="card-label">Note</span>
+            </a>
+            <!-- 设置（已链接到 setting.html） -->
+            <a class="card-item" href="setting.html">
+                <div class="card-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                </div>
+                <span class="card-label">设置</span>
+            </a>
+            <!-- 美化（无跳转） -->
+            <div class="card-item">
+                <div class="card-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 20h9"/>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                    </svg>
+                </div>
+                <span class="card-label">美化</span>
+            </div>
+            <!-- 世界书 -->
+            <a class="card-item" href="worldbook.html">
+                <div class="card-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="2" y1="12" x2="22" y2="12"/>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                    </svg>
+                </div>
+                <span class="card-label">世界书</span>
+            </a>
+            <!-- 音乐 -->
+            <a class="card-item" href="music.html">
+                <div class="card-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 18V5l12-2v13"/>
+                        <circle cx="6" cy="18" r="3"/>
+                        <circle cx="18" cy="16" r="3"/>
+                    </svg>
+                </div>
+                <span class="card-label">音乐</span>
+            </a>
+            <!-- 记忆库 -->
+            <a class="card-item" href="memory.html">
+                <div class="card-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                        <path d="M2 17l10 5 10-5"/>
+                        <path d="M2 12l10 5 10-5"/>
+                    </svg>
+                </div>
+                <span class="card-label">记忆库</span>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // 返回按钮：优先回退历史记录，否则跳转到 index.html（不增加多余历史）
+        document.getElementById('backBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            if (document.referrer && document.referrer.includes(location.host)) {
+                history.back();
+            } else {
+                location.href = 'index.html';
+            }
+        });
+    </script>
+</body>
+</html>        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* 主容器 */
+        .page-wrapper {
+            width: 100%;
+            max-width: 900px;
+            margin-top: 16px;
+        }
+
+        /* 顶部区域：返回按钮 + 标题 */
+        .top-bar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .back-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(20, 20, 26, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+            transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+            outline: none;
+            text-decoration: none;
+            flex-shrink: 0;
+        }
+        .back-btn:hover {
+            background: rgba(30,30,38,0.9);
+            border-color: rgba(255,255,255,0.25);
+            transform: scale(1.05);
+        }
+        .back-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* 浅色主题下的返回按钮 */
+        @media (prefers-color-scheme: light) {
+            .back-btn {
+                background: rgba(255, 255, 255, 0.72);
+                border: 1px solid rgba(0, 0, 0, 0.1);
+                color: #1c1c1e;
+                box-shadow: 0 12px 40px rgba(0,0,0,0.06);
+            }
+            .back-btn:hover {
+                background: rgba(230,230,235,0.9);
+                border-color: rgba(0,0,0,0.18);
+            }
+        }
+
+        .top-title {
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.2px;
             line-height: 40px; /* 与按钮高度一致 */
         }
 
