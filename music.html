@@ -1,0 +1,2021 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=1.5, viewport-fit=cover">
+    <title>音乐 · MuyeChat</title>
+    <style>
+        /* ========== 与主页面一致的配色 ========== */
+        :root {
+            --bg-primary: #1a1a1f;
+            --bg-secondary: #151518;
+            --bg-card: #222228;
+            --bg-card-hover: #282830;
+            --text-primary: #e8e8ec;
+            --text-secondary: #9a9aa6;
+            --text-muted: #6b6b78;
+            --border-subtle: #2a2a32;
+            --border-card: #303038;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.4);
+
+            /* 音乐播放器专用变量 */
+            --player-bg: #1a1a1f;
+            --player-border: rgba(255, 255, 255, 0.08);
+            --cover-border: rgba(255, 255, 255, 0.3);
+            --item-bg: #222228;
+            --item-bg-hover: #282830;
+            --item-bg-active: #303038;
+            --modal-bg: #1e1e24;
+            --modal-border: #303038;
+            --input-bg: #1c1c21;
+            --input-border: #303038;
+            --btn-glass-bg: transparent;
+            --btn-glass-color: #e8e8ec;
+            --btn-glass-border: #303038;
+            --btn-dark-bg: #e8e8ec;
+            --btn-dark-text: #1a1a1f;
+            --green-hint: #4caf50;
+            --danger-warning: #e57373;
+            --time-color: #9a9aa6;
+            --lyrics-highlight: #ffb74d;
+            --section-title-color: #9a9aa6;
+            --progress-bg: rgba(255,255,255,0.15);
+            --thumb-bg: #222228;
+            --thumb-border: #303038;
+            --edit-hover: rgba(255,255,255,0.05);
+            --ctrl-hover: rgba(255,255,255,0.08);
+            --modal-overlay: rgba(0,0,0,0.45);
+        }
+
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg-primary: #f2f2f7;
+                --bg-secondary: #e5e5ea;
+                --bg-card: #ffffff;
+                --bg-card-hover: #f5f5fa;
+                --text-primary: #1c1c1e;
+                --text-secondary: #6e6e73;
+                --text-muted: #8e8e93;
+                --border-subtle: #c6c6c8;
+                --border-card: #d1d1d6;
+                --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.02);
+                --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.04);
+
+                --player-bg: #f2f2f7;
+                --player-border: rgba(0,0,0,0.08);
+                --cover-border: rgba(0,0,0,0.2);
+                --item-bg: #ffffff;
+                --item-bg-hover: #f5f5fa;
+                --item-bg-active: #e5e5ea;
+                --modal-bg: #ffffff;
+                --modal-border: #d1d1d6;
+                --input-bg: #ffffff;
+                --input-border: #d1d1d6;
+                --btn-glass-bg: transparent;
+                --btn-glass-color: #1c1c1e;
+                --btn-glass-border: #d1d1d6;
+                --btn-dark-bg: #1c1c1e;
+                --btn-dark-text: #ffffff;
+                --green-hint: #2e7d32;
+                --danger-warning: #d32f2f;
+                --time-color: #6e6e73;
+                --lyrics-highlight: #f57c00;
+                --section-title-color: #6e6e73;
+                --progress-bg: rgba(0,0,0,0.1);
+                --thumb-bg: #ffffff;
+                --thumb-border: #d1d1d6;
+                --edit-hover: rgba(0,0,0,0.04);
+                --ctrl-hover: rgba(0,0,0,0.06);
+                --modal-overlay: rgba(0,0,0,0.25);
+            }
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            user-select: none;
+            -webkit-user-select: none;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        #app {
+            height: 100vh;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ========== 顶部栏：返回按钮 + 标题 ========== */
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            height: 52px;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-subtle);
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        .back-btn {
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: opacity 0.2s;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .back-btn:hover {
+            opacity: 0.7;
+        }
+        .back-btn svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .app-title {
+            font-weight: 400;
+            font-size: 1.25rem;
+            letter-spacing: 0.5px;
+            color: var(--text-primary);
+            font-style: italic;
+            white-space: nowrap;
+        }
+
+        /* ========== 播放器 ========== */
+        .player-section {
+            display: flex;
+            align-items: flex-start;
+            padding: 10px 20px 8px;
+            background: var(--player-bg);
+            gap: 14px;
+            flex-shrink: 0;
+            border-bottom: 1px solid var(--player-border);
+        }
+
+        .cover-wrapper {
+            width: 60px;
+            height: 60px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 2px;
+        }
+
+        .cover-circle {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: #1a1a1a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border: 2px solid var(--cover-border);
+            animation: spin 10s linear infinite paused;
+        }
+        .cover-circle.spinning {
+            animation-play-state: running;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .cover-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .cover-circle svg {
+            color: var(--text-primary);
+            opacity: 0.7;
+        }
+
+        .player-right {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .player-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .song-title {
+            font-weight: 600;
+            font-size: 1.2rem;
+            color: var(--text-primary);
+            line-height: 1.35;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-style: italic;
+        }
+
+        .song-artist {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.25;
+            font-style: italic;
+        }
+
+        .progress-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .time-label {
+            font-size: 0.7rem;
+            color: var(--time-color);
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+            min-width: 34px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .progress-container {
+            flex: 1;
+        }
+
+        .progress-container input[type="range"] {
+            width: 100%;
+            height: 4px;
+            -webkit-appearance: none;
+            background: var(--progress-bg);
+            border-radius: 4px;
+            outline: none;
+            cursor: pointer;
+        }
+        .progress-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--text-primary);
+            border: 1px solid var(--border-card);
+            cursor: pointer;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            gap: 0;
+        }
+
+        .ctrl-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            padding: 4px 0;
+            border-radius: 6px;
+            transition: background 0.2s, opacity 0.2s;
+        }
+        .ctrl-btn:disabled {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+        .ctrl-btn:hover:not(:disabled) {
+            background: var(--ctrl-hover);
+            opacity: 0.85;
+        }
+        .ctrl-btn svg {
+            width: 22px;
+            height: 22px;
+            fill: currentColor;
+        }
+        .play-btn svg {
+            width: 28px;
+            height: 28px;
+        }
+
+        .mode-text-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.72rem;
+            cursor: pointer;
+            padding: 4px 0;
+            border-radius: 4px;
+            white-space: nowrap;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            flex: 1;
+            text-align: center;
+            transition: color 0.2s, background 0.2s;
+        }
+        .mode-text-btn:hover {
+            color: var(--text-primary);
+            background: var(--ctrl-hover);
+        }
+
+        /* ========== 歌词/列表切换 ========== */
+        .view-switcher {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            min-height: 0;
+        }
+        .view-panels {
+            display: flex;
+            width: 200%;
+            height: 100%;
+            transition: transform 0.3s ease;
+        }
+        .view-panels.show-list {
+            transform: translateX(-50%);
+        }
+
+        .lyrics-panel,
+        .list-panel {
+            width: 50%;
+            height: 100%;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .lyrics-panel {
+            padding: 16px 20px;
+            font-size: 0.88rem;
+            line-height: 2.2;
+            color: var(--text-primary);
+            text-align: center;
+            scroll-behavior: smooth;
+        }
+
+        .lyrics-line {
+            padding: 4px 0;
+            transition: color 0.2s, font-size 0.2s, font-weight 0.2s;
+            white-space: pre-wrap;
+            word-break: break-all;
+            cursor: pointer;
+        }
+        .lyrics-line.current {
+            color: var(--lyrics-highlight);
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .no-lyrics {
+            color: var(--text-secondary);
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .list-panel {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .lyrics-btn-text {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .file-name-hint {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-left: 8px;
+        }
+
+        .list-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 9px 20px;
+            background: var(--bg-primary);
+            flex-shrink: 0;
+        }
+
+        .list-header .section-title {
+            font-size: 0.82rem;
+            color: var(--section-title-color);
+        }
+
+        .text-btn {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 0.88rem;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 4px;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+        .text-btn:hover {
+            background: var(--ctrl-hover);
+        }
+
+        .separator {
+            color: var(--border-card);
+            font-size: 1rem;
+            margin: 0 2px;
+            align-self: center;
+            user-select: none;
+        }
+
+        .batch-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 20px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            flex-shrink: 0;
+            border-bottom: 1px solid var(--border-subtle);
+            position: relative;
+        }
+
+        .batch-count {
+            font-size: 0.88rem;
+            font-weight: 500;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+        }
+
+        .batch-left,
+        .batch-right {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-dark {
+            background: var(--btn-dark-bg);
+            color: var(--btn-dark-text);
+            border: none;
+            border-radius: 8px;
+            padding: 6px 15px;
+            font-size: 0.84rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: opacity 0.2s;
+            white-space: nowrap;
+        }
+        .btn-dark:hover {
+            opacity: 0.88;
+        }
+
+        .btn-red {
+            background: #d32f2f !important;
+            color: #fff !important;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 15px;
+            font-size: 0.84rem;
+            cursor: pointer;
+            font-weight: 500;
+            white-space: nowrap;
+            transition: opacity 0.2s;
+        }
+        .btn-red:hover {
+            opacity: 0.88;
+        }
+
+        .song-list-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 6px 20px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            background: var(--bg-primary);
+            min-height: 0;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .song-list-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .song-item {
+            display: flex;
+            align-items: center;
+            background: var(--item-bg);
+            color: var(--text-primary);
+            border-radius: 8px;
+            padding: 9px 11px;
+            gap: 10px;
+            transition: background 0.15s, color 0.3s, opacity 0.2s, transform 0.2s;
+            cursor: pointer;
+        }
+        .song-item:hover {
+            background: var(--item-bg-hover);
+        }
+        .song-item.active {
+            background: var(--item-bg-active);
+        }
+        .song-item.selected {
+            outline: 2px solid var(--text-primary);
+            outline-offset: -2px;
+        }
+        .song-item.dragging {
+            opacity: 0.5;
+            transform: scale(0.97);
+        }
+        .song-item.drag-over {
+            border-top: 3px solid var(--text-primary);
+        }
+
+        .item-thumb {
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+            background: var(--thumb-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+            border: 1px solid var(--thumb-border);
+        }
+        .item-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .item-thumb svg {
+            color: var(--text-secondary);
+        }
+
+        .item-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .item-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .item-artist {
+            font-size: 0.73rem;
+            color: var(--text-secondary);
+            margin-top: 1px;
+        }
+
+        .item-edit {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-secondary);
+            padding: 5px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+        .item-edit:hover {
+            background: var(--edit-hover);
+        }
+        .item-edit svg {
+            width: 17px;
+            height: 17px;
+        }
+
+        /* ========== 弹窗 ========== */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: var(--modal-overlay);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.18s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal {
+            background: var(--modal-bg);
+            color: var(--text-primary);
+            border-radius: 14px;
+            width: 420px;
+            max-width: 92vw;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-md);
+            animation: slideUp 0.2s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 13px 18px;
+            border-bottom: 1px solid var(--modal-border);
+        }
+        .modal-header h3 {
+            font-weight: 600;
+            font-size: 1.05rem;
+            color: var(--text-primary);
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.88rem;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+        .modal-close:hover {
+            background: rgba(128, 128, 128, 0.15);
+        }
+
+        .modal-body {
+            padding: 16px 18px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            color: var(--text-primary);
+        }
+
+        .form-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .form-label {
+            font-size: 0.84rem;
+            color: var(--text-primary);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .input-underline {
+            border: none;
+            border-bottom: 1px solid var(--input-border);
+            padding: 6px 2px;
+            font-size: 0.88rem;
+            outline: none;
+            width: 180px;
+            background: transparent;
+            color: var(--text-primary);
+            transition: border-color 0.3s;
+            flex: 1;
+            min-width: 0;
+        }
+        .input-underline:focus {
+            border-bottom-color: var(--text-primary);
+        }
+
+        .upload-preview-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .preview-thumb {
+            width: 42px; height: 42px;
+            border-radius: 4px;
+            background: var(--thumb-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border: 1px solid var(--thumb-border);
+            flex-shrink: 0;
+        }
+        .preview-thumb img {
+            width: 100%; height: 100%;
+            object-fit: cover;
+        }
+
+        .btn-clear-img {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+        .btn-clear-img:hover {
+            color: var(--text-primary);
+            background: rgba(128,128,128,0.15);
+        }
+
+        .green-hint {
+            color: var(--green-hint);
+            font-size: 0.78rem;
+            margin-left: 8px;
+            font-weight: 500;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 10px;
+            margin-top: 4px;
+        }
+
+        .btn-save {
+            border: 1px solid var(--btn-glass-border);
+            border-radius: 8px;
+            background: transparent;
+            color: var(--btn-glass-color);
+            padding: 8px 22px;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-save:hover {
+            background: rgba(128,128,128,0.2);
+        }
+
+        .btn-delete-text {
+            background: none;
+            border: none;
+            color: #d32f2f !important;
+            font-size: 0.88rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        .btn-delete-text:hover {
+            background: rgba(211,47,47,0.15);
+        }
+
+        .export-btns {
+            display: flex;
+            gap: 12px;
+            margin-top: 6px;
+        }
+        .export-btn {
+            background: var(--btn-dark-bg);
+            color: var(--btn-dark-text);
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: 0.92rem;
+            cursor: pointer;
+        }
+        .export-btn:hover {
+            opacity: 0.88;
+        }
+
+        .delete-warning {
+            font-size: 0.88rem;
+            color: var(--danger-warning);
+            margin-bottom: 6px;
+            line-height: 1.5;
+        }
+
+        /* ========== 响应式 ========== */
+        @media (max-width: 480px) {
+            .top-bar {
+                padding: 0 12px;
+                height: 46px;
+            }
+            .cover-wrapper {
+                width: 48px; height: 48px;
+            }
+            .song-title {
+                font-size: 1rem;
+            }
+            .player-section {
+                padding: 8px 12px 6px;
+                gap: 10px;
+            }
+            .player-right {
+                gap: 4px;
+            }
+            .progress-row {
+                gap: 6px;
+            }
+            .time-label {
+                font-size: 0.65rem;
+                min-width: 28px;
+            }
+            .ctrl-btn svg {
+                width: 20px;
+                height: 20px;
+            }
+            .play-btn svg {
+                width: 26px;
+                height: 26px;
+            }
+            .mode-text-btn {
+                font-size: 0.65rem;
+            }
+            .batch-bar {
+                padding: 8px 10px;
+            }
+            .lyrics-panel {
+                font-size: 0.82rem;
+                padding: 12px 16px;
+            }
+        }
+.loading-screen {
+        position: fixed;
+        inset: 0;
+        background: var(--bg-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        font-size: 16px;
+        color: var(--text-secondary);
+        letter-spacing: 0.5px;
+}
+    </style>
+</head>
+<body>
+<div id="app">
+    <div v-show="loaded" style="height: 100%; display: flex; flex-direction: column;">
+        <header class="top-bar">
+            <button class="back-btn" @click="goBack" title="返回">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="16 4 7 12 16 20"/>
+                </svg>
+            </button>
+            <div class="app-title">𝑴𝒖𝒔𝒊𝒄</div>
+        </header>
+
+        <input type="file" accept=".txt,.json" ref="fileImportInput" style="display:none" @change="handleFileImport" />
+
+        <div class="player-section">
+            <div class="cover-wrapper">
+                <div class="cover-circle" :class="{ spinning: playing && !!currentSong.id }">
+                    <img v-if="currentSong.cover" :src="currentSong.cover" alt="封面" />
+                    <svg v-else width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M9 18V8l6-2v8M9 14a2 2 0 1 0 0 4M15 12a2 2 0 1 0 0 4" />
+                    </svg>
+                </div>
+            </div>
+            <div class="player-right">
+                <div class="player-meta">
+                    <div class="song-title">{{ currentSong.name || '未选择歌曲' }}</div>
+                    <div class="song-artist">{{ currentSong.artist || '未知歌手' }}</div>
+                </div>
+                <div class="progress-row">
+                    <span class="time-label">{{ formatTime(currentTime) }}</span>
+                    <div class="progress-container">
+                        <input type="range" min="0" :max="duration || 100" v-model="displayTime" @input="onSeekStart" @change="onSeekEnd" step="0.1" />
+                    </div>
+                    <span class="time-label">{{ formatTime(duration) }}</span>
+                </div>
+                <div class="controls">
+                    <button class="mode-text-btn" @click="cycleMode" :title="modeTitleFull">{{ modeTitleShort }}</button>
+                    <button class="ctrl-btn" @click="prevSong" :disabled="!songs.length" title="上一首">
+                        <svg width="22" height="22" viewBox="0 0 24 24"><polygon points="14,6 6,12 14,18" fill="currentColor"/><polygon points="20,6 12,12 20,18" fill="currentColor"/><rect x="3" y="6" width="2" height="12" fill="currentColor"/></svg>
+                    </button>
+                    <button class="ctrl-btn play-btn" @click="togglePlay" :disabled="!currentSong.url" title="播放/暂停">
+                        <svg v-if="!playing" width="30" height="30" viewBox="0 0 24 24"><polygon points="7,4 20,12 7,20" fill="currentColor"/></svg>
+                        <svg v-else width="30" height="30" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" fill="currentColor"/><rect x="14" y="4" width="4" height="16" fill="currentColor"/></svg>
+                    </button>
+                    <button class="ctrl-btn" @click="nextSong" :disabled="!songs.length" title="下一首">
+                        <svg width="22" height="22" viewBox="0 0 24 24"><polygon points="10,6 18,12 10,18" fill="currentColor"/><polygon points="4,6 12,12 4,18" fill="currentColor"/><rect x="19" y="6" width="2" height="12" fill="currentColor"/></svg>
+                    </button>
+                    <button class="ctrl-btn" @click="toggleView" title="切换歌词/列表">
+                        <svg v-if="showLyrics" width="22" height="22" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="2" rx="1" fill="currentColor"/><rect x="4" y="11" width="16" height="2" rx="1" fill="currentColor"/><rect x="4" y="17" width="16" height="2" rx="1" fill="currentColor"/></svg>
+                        <span v-else class="lyrics-btn-text">词</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="view-switcher">
+            <div class="view-panels" :class="{ 'show-list': !showLyrics }">
+                <div class="lyrics-panel" ref="lyricsPanel">
+                    <div v-if="parsedLyrics.length" class="lyrics-content">
+                        <div v-for="(line, index) in parsedLyrics" :key="index"
+                             class="lyrics-line"
+                             :class="{ current: index === currentLyricIndex }"
+                             @click="seekToLyric(index)">
+                            {{ line.text }}
+                        </div>
+                    </div>
+                    <div class="no-lyrics" v-else>暂无歌词</div>
+                </div>
+                <div class="list-panel">
+                    <div class="list-header">
+                        <span class="section-title">歌曲列表</span>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <button class="text-btn" @click="openUploadModal">+ 上传歌曲</button>
+                            <span class="separator">|</span>
+                            <button class="text-btn" @click="toggleBatchMode">{{ batchMode ? '取消批量' : '批量管理' }}</button>
+                        </div>
+                    </div>
+
+                    <div v-if="batchMode" class="batch-bar">
+                        <div class="batch-left">
+                            <button class="btn-dark" @click="triggerFileImport">导入</button>
+                            <button class="btn-dark" @click="selectAll">{{ selectAllLabel }}</button>
+                        </div>
+                        <span class="batch-count">已选择 {{ selectedIds.length }} 项</span>
+                        <div class="batch-right">
+                            <button class="btn-dark" @click="exportSelected">导出</button>
+                            <button class="btn-red" @click="confirmDeleteSelected">删除</button>
+                        </div>
+                    </div>
+
+                    <div class="song-list-container">
+                        <div v-for="(song, index) in songs" :key="song.id"
+                             class="song-item"
+                             :class="{ active: currentSong.id === song.id, selected: batchMode && selectedIds.includes(song.id), dragging: dragIndex === index, 'drag-over': dragOverIndex === index && dragIndex !== index }"
+                             :draggable="batchMode"
+                             @click="handleItemClick(song)"
+                             @dragstart="onDragStart($event, index)"
+                             @dragover.prevent="onDragOver($event, index)"
+                             @dragleave="onDragLeave(index)"
+                             @drop="onDrop($event, index)"
+                             @dragend="onDragEnd">
+                            <div class="item-thumb">
+                                <img v-if="song.cover" :src="song.cover" alt="封面缩略图" />
+                                <svg v-else width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                                    <polygon points="21,3 17,3 21,7" fill="currentColor" stroke="none" />
+                                </svg>
+                            </div>
+                            <div class="item-info">
+                                <div class="item-title">{{ song.name }}</div>
+                                <div class="item-artist">{{ song.artist }}</div>
+                            </div>
+                            <button v-if="!batchMode" class="item-edit" @click.stop="openEditModal(song)" title="编辑">
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div v-if="songs.length === 0" style="color:#aaa; text-align:center; padding:40px; font-size:0.9rem;">暂无歌曲，请上传</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 上传/编辑歌曲弹窗 -->
+        <div v-if="showFormModal" class="modal-overlay" @click.self="closeFormModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>{{ editingSong ? '编辑歌曲' : '上传歌曲' }}</h3>
+                    <button class="modal-close" @click="closeFormModal">返回</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-row"><span class="form-label">专辑封面</span></div>
+                    <div class="upload-preview-row">
+                        <div class="preview-thumb" v-if="formCoverPreview"><img :src="formCoverPreview" alt="预览" /></div>
+                        <button class="btn-dark" @click="triggerUpload">上传图片</button>
+                        <button class="btn-clear-img" v-if="formCoverPreview" @click="clearCoverImage">清除图片</button>
+                        <input type="file" accept="image/*" ref="fileInput" style="display:none" @change="handleCoverUpload" />
+                    </div>
+                    <div class="form-row"><span class="form-label">歌曲名</span><input class="input-underline" v-model="formName" placeholder="请输入歌曲名" /></div>
+                    <div class="form-row"><span class="form-label">歌手名</span><input class="input-underline" v-model="formArtist" placeholder="请输入歌手名" /></div>
+                    <div class="form-row"><span class="form-label">歌曲URL</span></div>
+                    <div class="form-row" style="flex-wrap:wrap; gap:8px;">
+                        <input class="input-underline" v-model="formUrl" placeholder="请输入歌曲链接" style="flex:1; min-width:150px;" />
+                        <button class="btn-dark" style="padding:6px 12px; font-size:0.8rem;" @click="validateUrl">校验格式</button>
+                    </div>
+                    <div class="form-row" v-if="urlHint"><span class="green-hint">{{ urlHint }}</span></div>
+                    <div class="form-row">
+                        <span class="form-label">歌词文件</span>
+                        <span class="file-name-hint" v-if="formLyricsFileName">{{ formLyricsFileName }}</span>
+                    </div>
+                    <div class="form-row" style="flex-wrap:nowrap; gap:8px;">
+                        <button class="btn-dark" @click="triggerLyricsUpload">上传歌词文件</button>
+                        <button v-if="formLyricsText" class="btn-clear-img" @click="clearLyricsFile">清除文件</button>
+                        <input type="file" accept=".lrc,.txt" ref="lyricsFileInput" style="display:none" @change="handleLyricsUpload" />
+                    </div>
+                    <div class="modal-footer">
+                        <button v-if="editingSong" class="btn-delete-text" @click="deleteCurrentSong">删除</button>
+                        <button class="btn-save" @click="saveSong">保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 删除确认 -->
+        <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="showDeleteConfirm=false">
+            <div class="modal">
+                <div class="modal-header"><h3>删除确认</h3><button class="modal-close" @click="showDeleteConfirm=false">返回</button></div>
+                <div class="modal-body">
+                    <p class="delete-warning">确定删除这首歌曲吗？此操作不可恢复。</p>
+                    <div style="display:flex; justify-content:flex-end; gap:10px;">
+                        <button class="btn-save" @click="showDeleteConfirm=false">取消</button>
+                        <button class="btn-red" @click="confirmDeleteSong">删除</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 批量删除确认 -->
+        <div v-if="showBatchDeleteConfirm" class="modal-overlay" @click.self="showBatchDeleteConfirm=false">
+            <div class="modal">
+                <div class="modal-header"><h3>批量删除</h3><button class="modal-close" @click="showBatchDeleteConfirm=false">返回</button></div>
+                <div class="modal-body">
+                    <p class="delete-warning">将删除所选歌曲，此操作不可恢复，确定继续？</p>
+                    <div style="display:flex; justify-content:flex-end; gap:10px;">
+                        <button class="btn-save" @click="showBatchDeleteConfirm=false">取消</button>
+                        <button class="btn-red" @click="executeBatchDelete">删除</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 导出弹窗 -->
+        <div v-if="showExportModal" class="modal-overlay" @click.self="showExportModal=false">
+            <div class="modal">
+                <div class="modal-header"><h3>导出歌曲</h3><button class="modal-close" @click="showExportModal=false">返回</button></div>
+                <div class="modal-body">
+                    <div class="form-row">
+                        <span class="form-label">文件名</span>
+                        <input class="input-underline" v-model="exportFileName" placeholder="songs" style="width:180px;" />
+                    </div>
+                    <div class="form-row"><span class="form-label">导出 TXT</span></div>
+                    <div class="form-row">
+                        <button class="export-btn" style="width:100%;" @click="doExport('txt')">导出 TXT（歌名 - 歌手 / URL）</button>
+                    </div>
+                    <div class="form-row"><span class="form-label">导出 JSON</span></div>
+                    <div class="export-btns">
+                        <button class="export-btn" @click="doExport('basic')">仅基本信息</button>
+                        <button class="export-btn" @click="doExport('full')">导出全部缓存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div v-show="!loaded" class="loading-screen">加载中...</div>
+</div>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script>
+    const { createApp, ref, computed, onMounted, onUnmounted, nextTick, watch } = Vue;
+
+    createApp({
+        setup() {
+            // ---------- 数据库 ----------
+            const DB_NAME = 'MuyeChat7403DB';
+            const DB_VERSION = 2;
+            let db = null;
+
+            const openDB = () => new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onupgradeneeded = (e) => {
+                    const database = e.target.result;
+                    const oldVersion = e.oldVersion;
+                    if (oldVersion < 1) {
+                        if (!database.objectStoreNames.contains('songs')) {
+                            database.createObjectStore('songs', { keyPath: 'id', autoIncrement: true });
+                        }
+                    }
+                    if (oldVersion < 2) {
+                        if (database.objectStoreNames.contains('songs')) {
+                            const tx = e.target.transaction;
+                            const store = tx.objectStore('songs');
+                            const getAllReq = store.getAll();
+                            getAllReq.onsuccess = () => {
+                                const allSongs = getAllReq.result || [];
+                                allSongs.forEach((song, index) => {
+                                    if (song.order === undefined || song.order === null) {
+                                        song.order = index;
+                                        store.put(song);
+                                    }
+                                });
+                            };
+                        }
+                    }
+                };
+                request.onsuccess = (e) => { db = e.target.result; resolve(db); };
+                request.onerror = (e) => reject(e);
+            });
+
+            const getAllSongs = () => new Promise((resolve) => {
+                if (!db) { resolve([]); return; }
+                const tx = db.transaction('songs', 'readonly');
+                const store = tx.objectStore('songs');
+                const req = store.getAll();
+                req.onsuccess = () => {
+                    const result = req.result || [];
+                    result.sort((a, b) => (a.order ?? a.id) - (b.order ?? b.id));
+                    resolve(result);
+                };
+                req.onerror = () => resolve([]);
+            });
+
+            const addSong = (song) => new Promise((resolve, reject) => {
+                const tx = db.transaction('songs', 'readwrite');
+                const store = tx.objectStore('songs');
+                const req = store.add(song);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = (e) => reject(e);
+            });
+
+            const updateSong = (song) => new Promise((resolve, reject) => {
+                const tx = db.transaction('songs', 'readwrite');
+                const store = tx.objectStore('songs');
+                const req = store.put(song);
+                req.onsuccess = () => resolve();
+                req.onerror = (e) => reject(e);
+            });
+
+            const deleteSongFromDB = (id) => new Promise((resolve, reject) => {
+                const tx = db.transaction('songs', 'readwrite');
+                const store = tx.objectStore('songs');
+                const req = store.delete(id);
+                req.onsuccess = () => resolve();
+                req.onerror = (e) => reject(e);
+            });
+
+            const batchUpdateSongs = (songsArray) => new Promise((resolve, reject) => {
+                if (!db || songsArray.length === 0) { resolve(); return; }
+                const tx = db.transaction('songs', 'readwrite');
+                const store = tx.objectStore('songs');
+                let completed = 0;
+                let failed = false;
+                let settled = false;
+
+                const tryResolve = () => {
+                    if (settled) return;
+                    if (failed) {
+                        settled = true;
+                        try { reject(new Error('批量更新失败')); } catch (_) {}
+                        return;
+                    }
+                    if (completed === songsArray.length) {
+                        settled = true;
+                        resolve();
+                    }
+                };
+
+                tx.oncomplete = () => {
+                    if (!failed && !settled) {
+                        settled = true;
+                        resolve();
+                    }
+                };
+                tx.onerror = () => {
+                    failed = true;
+                    settled = true;
+                    reject(tx.error);
+                };
+
+                songsArray.forEach(song => {
+                    const req = store.put(song);
+                    req.onsuccess = () => {
+                        completed++;
+                        tryResolve();
+                    };
+                    req.onerror = () => {
+                        failed = true;
+                        completed++;
+                        tryResolve();
+                    };
+                });
+            });
+
+            // ---------- 状态 ----------
+            const loaded = ref(false);
+            const songs = ref([]);
+            const currentSong = ref({
+                id: null, name: '', artist: '', url: '', cover: '', lyrics: ''
+            });
+            const playing = ref(false);
+            const audio = new Audio();
+            const duration = ref(0);
+            const currentTime = ref(0);
+            const isSeeking = ref(false);
+            const playMode = ref(1);
+            const modeTitleShort = computed(() => ['单曲', '列表', '随机'][playMode.value]);
+            const modeTitleFull = computed(() => ['单曲循环', '列表循环', '随机播放'][playMode.value]);
+
+            const displayTime = computed({
+                get: () => currentTime.value,
+                set: (val) => { currentTime.value = val; }
+            });
+
+            const batchMode = ref(false);
+            const selectedIds = ref([]);
+            const selectAllLabel = computed(() => {
+                if (songs.value.length === 0) return '全选';
+                return selectedIds.value.length === songs.value.length ? '取消全选' : '全选';
+            });
+
+            const showFormModal = ref(false);
+            const editingSong = ref(null);
+            const formName = ref('');
+            const formArtist = ref('');
+            const formUrl = ref('');
+            const formCoverPreview = ref('');
+            const formCoverData = ref('');
+            const fileInput = ref(null);
+            const urlHint = ref('');
+            let urlHintTimer = null;
+
+            const formLyricsText = ref('');
+            const formLyricsFileName = ref('');
+            const lyricsFileInput = ref(null);
+
+            const showDeleteConfirm = ref(false);
+            const showBatchDeleteConfirm = ref(false);
+            const showExportModal = ref(false);
+            const exportFileName = ref('songs');
+            const fileImportInput = ref(null);
+
+            const dragIndex = ref(-1);
+            const dragOverIndex = ref(-1);
+            const showLyrics = ref(true);
+
+            // 歌词相关
+            const parsedLyrics = ref([]);
+            const currentLyricIndex = ref(-1);
+            const lyricsPanel = ref(null);
+
+            // ---------- 工具函数 ----------
+            const formatTime = (seconds) => {
+                if (!seconds || !isFinite(seconds) || seconds < 0) return '0:00';
+                const m = Math.floor(seconds / 60);
+                const s = Math.floor(seconds % 60);
+                return `${m}:${s.toString().padStart(2, '0')}`;
+            };
+
+            const compressImage = (file) => new Promise((resolve, reject) => {
+                const maxDim = 200;
+                const quality = 0.7;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let { width, height } = img;
+                        if (width > maxDim || height > maxDim) {
+                            if (width > height) {
+                                height = Math.round((height / width) * maxDim);
+                                width = maxDim;
+                            } else {
+                                width = Math.round((width / height) * maxDim);
+                                height = maxDim;
+                            }
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                        if (dataUrl.length > 200 * 1024) {
+                            const dataUrl2 = canvas.toDataURL('image/jpeg', 0.4);
+                            resolve(dataUrl2);
+                        } else {
+                            resolve(dataUrl);
+                        }
+                    };
+                    img.onerror = () => reject(new Error('图片加载失败'));
+                    img.src = e.target.result;
+                };
+                reader.onerror = () => reject(new Error('读取失败'));
+                reader.readAsDataURL(file);
+            });
+
+            const parseLRC = (lrcText) => {
+                const lines = [];
+                const regex = /\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\]/g;
+                const rows = lrcText.split(/\r?\n/);
+                for (const row of rows) {
+                    const trimmed = row.trim();
+                    if (!trimmed) continue;
+                    const matches = [...trimmed.matchAll(regex)];
+                    if (matches.length === 0) continue;
+                    const text = trimmed.replace(regex, '').trim();
+                    if (!text) continue;
+                    for (const match of matches) {
+                        const min = parseInt(match[1], 10);
+                        const sec = parseInt(match[2], 10);
+                        let ms = 0;
+                        if (match[3]) {
+                            ms = parseInt(match[3], 10);
+                            if (match[3].length === 2) ms /= 100;
+                            else ms /= 1000;
+                        }
+                        const time = min * 60 + sec + ms;
+                        lines.push({ time, text });
+                    }
+                }
+                lines.sort((a, b) => a.time - b.time);
+                return lines;
+            };
+
+            const scrollLyricToCenter = (index) => {
+                if (!lyricsPanel.value) return;
+                const panel = lyricsPanel.value;
+                const lines = panel.querySelectorAll('.lyrics-line');
+                if (!lines || index < 0 || index >= lines.length) return;
+                const targetLine = lines[index];
+                const panelHeight = panel.clientHeight;
+                const lineTop = targetLine.offsetTop;
+                const lineHeight = targetLine.offsetHeight;
+                const scrollTarget = lineTop - panelHeight / 2 + lineHeight / 2;
+                panel.scrollTo({
+                    top: Math.max(0, scrollTarget),
+                    behavior: 'smooth'
+                });
+            };
+
+            const updateLyricIndex = () => {
+                if (!parsedLyrics.value.length) {
+                    currentLyricIndex.value = -1;
+                    return;
+                }
+                const t = currentTime.value;
+                let newIndex = -1;
+                for (let i = 0; i < parsedLyrics.value.length; i++) {
+                    if (parsedLyrics.value[i].time <= t) {
+                        newIndex = i;
+                    } else {
+                        break;
+                    }
+                }
+                if (newIndex !== currentLyricIndex.value) {
+                    currentLyricIndex.value = newIndex;
+                    nextTick(() => {
+                        scrollLyricToCenter(newIndex);
+                    });
+                }
+            };
+
+            watch(currentTime, () => {
+                updateLyricIndex();
+            });
+
+            watch(() => currentSong.value.lyrics, (lyrics) => {
+                if (lyrics) {
+                    parsedLyrics.value = parseLRC(lyrics);
+                } else {
+                    parsedLyrics.value = [];
+                }
+                currentLyricIndex.value = -1;
+                if (playing.value) {
+                    updateLyricIndex();
+                }
+            }, { immediate: true });
+
+            const seekToLyric = (index) => {
+                if (!parsedLyrics.value[index]) return;
+                const targetTime = parsedLyrics.value[index].time;
+                if (audio.src && isFinite(targetTime) && audio.duration) {
+                    audio.currentTime = targetTime;
+                }
+                currentTime.value = targetTime;
+                currentLyricIndex.value = index;
+                nextTick(() => {
+                    scrollLyricToCenter(index);
+                });
+            };
+
+            // ---------- 歌曲操作 ----------
+            const loadSongs = async () => {
+                if (!db) await openDB();
+                const list = await getAllSongs();
+                songs.value = list;
+            };
+
+            const playSong = (song) => {
+                if (!song || !song.url) return;
+                currentSong.value = { ...song };
+                // 保存最后播放的歌曲信息到 localStorage
+                localStorage.setItem('muyechat_last_song', JSON.stringify({
+                    id: song.id,
+                    name: song.name,
+                    artist: song.artist,
+                    url: song.url,
+                    cover: song.cover,
+                    lyrics: song.lyrics
+                }));
+                audio.src = song.url;
+                audio.play().then(() => { 
+                    playing.value = true; 
+                    savePlaybackState();
+                }).catch(() => {
+                    playing.value = false;
+                    alert('播放失败，请检查链接有效性或浏览器音频权限。');
+                });
+            };
+
+            const handleItemClick = (song) => {
+                if (batchMode.value) {
+                    const idx = selectedIds.value.indexOf(song.id);
+                    if (idx === -1) selectedIds.value.push(song.id);
+                    else selectedIds.value.splice(idx, 1);
+                } else {
+                    playSong(song);
+                }
+            };
+
+            const togglePlay = () => {
+                if (!currentSong.value.url) return;
+                if (audio.paused) {
+                    audio.play().then(() => { 
+                        playing.value = true; 
+                        savePlaybackState();
+                    }).catch(() => {
+                        playing.value = false;
+                        alert('无法播放，请检查链接或浏览器权限。');
+                    });
+                } else {
+                    audio.pause();
+                    playing.value = false;
+                    savePlaybackState();
+                }
+            };
+
+            const prevSong = () => {
+                if (songs.value.length === 0) return;
+                const idx = songs.value.findIndex(s => s.id === currentSong.value.id);
+                if (idx > 0) playSong(songs.value[idx - 1]);
+                else playSong(songs.value[songs.value.length - 1]);
+            };
+
+            const nextSong = () => {
+                if (songs.value.length === 0) return;
+                const idx = songs.value.findIndex(s => s.id === currentSong.value.id);
+                if (idx < songs.value.length - 1) playSong(songs.value[idx + 1]);
+                else playSong(songs.value[0]);
+            };
+
+            const handleEnded = () => {
+                if (playMode.value === 0) {
+                    audio.currentTime = 0;
+                    audio.play().catch(() => {});
+                } else if (playMode.value === 1) {
+                    nextSong();
+                } else if (playMode.value === 2 && songs.value.length > 0) {
+                    const ri = Math.floor(Math.random() * songs.value.length);
+                    if (songs.value[ri]) playSong(songs.value[ri]);
+                }
+            };
+
+            audio.addEventListener('loadedmetadata', () => { duration.value = audio.duration || 0; });
+            audio.addEventListener('timeupdate', () => {
+                if (!isSeeking.value) currentTime.value = audio.currentTime;
+            });
+            audio.addEventListener('ended', handleEnded);
+            audio.addEventListener('play', () => { playing.value = true; });
+            audio.addEventListener('pause', () => { playing.value = false; });
+            audio.addEventListener('error', () => {
+                playing.value = false;
+                alert('音频加载错误，请检查歌曲链接。');
+            });
+
+            const onSeekStart = (e) => {
+                isSeeking.value = true;
+                const val = parseFloat(e.target.value);
+                if (!isNaN(val) && isFinite(val) && audio.duration) audio.currentTime = val;
+            };
+
+            const onSeekEnd = (e) => {
+                isSeeking.value = false;
+                const val = parseFloat(e.target.value);
+                if (!isNaN(val) && isFinite(val) && audio.duration) audio.currentTime = val;
+            };
+
+            const ensureSeekEnd = () => {
+                if (isSeeking.value) isSeeking.value = false;
+            };
+
+            const addSliderListeners = () => {
+                const container = document.querySelector('.progress-container');
+                if (!container) return;
+                const handler = (e) => {
+                    if (e.target.tagName === 'INPUT' && e.target.type === 'range') {
+                        ensureSeekEnd();
+                    }
+                };
+                container.addEventListener('mouseup', handler);
+                container.addEventListener('touchend', handler);
+            };
+
+            const cycleMode = () => { playMode.value = (playMode.value + 1) % 3; };
+
+            const toggleBatchMode = () => {
+                batchMode.value = !batchMode.value;
+                if (!batchMode.value) selectedIds.value = [];
+            };
+
+            const selectAll = () => {
+                if (selectedIds.value.length === songs.value.length && songs.value.length > 0) {
+                    selectedIds.value = [];
+                } else {
+                    selectedIds.value = songs.value.map(s => s.id);
+                }
+            };
+
+            // 拖拽排序
+            const onDragStart = (e, index) => {
+                if (!batchMode.value) return;
+                dragIndex.value = index;
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', index.toString());
+            };
+
+            const onDragOver = (e, index) => {
+                if (dragIndex.value === -1) return;
+                e.dataTransfer.dropEffect = 'move';
+                dragOverIndex.value = index;
+            };
+
+            const onDragLeave = (index) => {
+                if (dragOverIndex.value === index) dragOverIndex.value = -1;
+            };
+
+            const onDrop = async (e, targetIndex) => {
+                e.preventDefault();
+                const fromIndex = dragIndex.value;
+                if (fromIndex === -1 || fromIndex === targetIndex) { onDragEnd(); return; }
+                const newSongs = [...songs.value];
+                const [moved] = newSongs.splice(fromIndex, 1);
+                newSongs.splice(targetIndex, 0, moved);
+                const updatedSongs = newSongs.map((s, i) => ({ ...s, order: i }));
+                songs.value = updatedSongs;
+                try {
+                    await batchUpdateSongs(updatedSongs);
+                } catch (err) {
+                    alert('排序保存失败，请重试');
+                    await loadSongs();
+                }
+                onDragEnd();
+            };
+
+            const onDragEnd = () => {
+                dragIndex.value = -1;
+                dragOverIndex.value = -1;
+            };
+
+            // ---------- 播放状态保存与恢复 ----------
+            const savePlaybackState = () => {
+                if (!currentSong.value.id) return;
+                localStorage.setItem('muyechat_playback', JSON.stringify({
+                    songId: currentSong.value.id,
+                    currentTime: currentTime.value,
+                    duration: duration.value,
+                    playing: playing.value
+                }));
+            };
+
+            let saveStateTimer = null;
+
+            // ---------- 弹窗逻辑 ----------
+            const openUploadModal = () => {
+                editingSong.value = null;
+                formName.value = ''; formArtist.value = ''; formUrl.value = '';
+                formCoverPreview.value = ''; formCoverData.value = '';
+                formLyricsText.value = ''; formLyricsFileName.value = '';
+                urlHint.value = '';
+                if (urlHintTimer) clearTimeout(urlHintTimer);
+                showFormModal.value = true;
+            };
+
+            const openEditModal = (song) => {
+                editingSong.value = { ...song };
+                formName.value = song.name || '';
+                formArtist.value = song.artist || '';
+                formUrl.value = song.url || '';
+                formCoverPreview.value = song.cover || '';
+                formCoverData.value = song.cover || '';
+                formLyricsText.value = song.lyrics || '';
+                formLyricsFileName.value = song.lyricsFileName || '';
+                urlHint.value = '';
+                if (urlHintTimer) clearTimeout(urlHintTimer);
+                showFormModal.value = true;
+            };
+
+            const closeFormModal = () => {
+                showFormModal.value = false;
+                if (urlHintTimer) clearTimeout(urlHintTimer);
+                urlHint.value = '';
+            };
+
+            const triggerUpload = () => { if (fileInput.value) fileInput.value.click(); };
+
+            const handleCoverUpload = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                if (file.size > 500 * 1024) {
+                    alert('封面图片不能超过 500KB，请使用较小文件');
+                    e.target.value = '';
+                    return;
+                }
+                if (!file.type.startsWith('image/')) {
+                    alert('请选择图片文件');
+                    e.target.value = '';
+                    return;
+                }
+                try {
+                    const compressed = await compressImage(file);
+                    formCoverData.value = compressed;
+                    formCoverPreview.value = compressed;
+                } catch (err) {
+                    alert('图片处理失败，请重试');
+                }
+                if (fileInput.value) fileInput.value.value = '';
+            };
+
+            const clearCoverImage = () => {
+                formCoverPreview.value = ''; formCoverData.value = '';
+                if (fileInput.value) fileInput.value.value = '';
+            };
+
+            const validateUrl = () => {
+                const url = formUrl.value.trim();
+                if (!url) {
+                    urlHint.value = '请输入链接';
+                } else {
+                    try {
+                        const u = new URL(url);
+                        if (!['http:', 'https:'].includes(u.protocol)) {
+                            urlHint.value = '仅支持 http/https 链接';
+                        } else {
+                            urlHint.value = '格式正确';
+                        }
+                    } catch {
+                        urlHint.value = '链接格式无效，请输入完整 URL (http:// 或 https://)';
+                    }
+                }
+                if (urlHintTimer) clearTimeout(urlHintTimer);
+                urlHintTimer = setTimeout(() => { urlHint.value = ''; urlHintTimer = null; }, 4000);
+            };
+
+            const triggerLyricsUpload = () => { if (lyricsFileInput.value) lyricsFileInput.value.click(); };
+
+            const handleLyricsUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                if (file.size > 500 * 1024) { alert('歌词文件不能超过 500KB'); e.target.value = ''; return; }
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    formLyricsText.value = ev.target.result;
+                    formLyricsFileName.value = file.name;
+                };
+                reader.readAsText(file, 'UTF-8');
+                e.target.value = '';
+            };
+
+            const clearLyricsFile = () => {
+                formLyricsText.value = ''; formLyricsFileName.value = '';
+                if (lyricsFileInput.value) lyricsFileInput.value.value = '';
+            };
+
+            const saveSong = async () => {
+                const trimmedName = formName.value.trim();
+                const trimmedUrl = formUrl.value.trim();
+                if (!trimmedName || !trimmedUrl) { alert('请填写歌曲名和歌曲URL'); return; }
+                try {
+                    const u = new URL(trimmedUrl);
+                    if (!['http:', 'https:'].includes(u.protocol)) {
+                        alert('歌曲链接仅支持 http 或 https 协议');
+                        return;
+                    }
+                } catch {
+                    alert('歌曲链接格式错误');
+                    return;
+                }
+                const data = {
+                    name: trimmedName,
+                    artist: formArtist.value.trim(),
+                    url: trimmedUrl,
+                    cover: formCoverData.value || '',
+                    lyrics: formLyricsText.value,
+                    lyricsFileName: formLyricsFileName.value,
+                    order: editingSong.value ? editingSong.value.order : songs.value.length
+                };
+                try {
+                    if (editingSong.value) await updateSong({ ...editingSong.value, ...data });
+                    else await addSong(data);
+                    await loadSongs();
+                    showFormModal.value = false;
+                } catch (err) { alert('保存失败，可能是存储空间不足。'); }
+            };
+
+            const deleteCurrentSong = () => { if (editingSong.value) showDeleteConfirm.value = true; };
+
+            const confirmDeleteSong = async () => {
+                if (editingSong.value) {
+                    try {
+                        await deleteSongFromDB(editingSong.value.id);
+                        if (currentSong.value.id === editingSong.value.id) {
+                            currentSong.value = { id: null, name: '', artist: '', url: '', cover: '', lyrics: '' };
+                            audio.pause(); audio.src = ''; playing.value = false; duration.value = 0; currentTime.value = 0;
+                            parsedLyrics.value = [];
+                            currentLyricIndex.value = -1;
+                            localStorage.removeItem('muyechat_last_song');
+                            localStorage.removeItem('muyechat_playback');
+                        }
+                        await loadSongs();
+                    } catch (err) { alert('删除失败'); }
+                }
+                showDeleteConfirm.value = false;
+                showFormModal.value = false;
+            };
+
+            const confirmDeleteSelected = () => { if (selectedIds.value.length) showBatchDeleteConfirm.value = true; };
+
+            const executeBatchDelete = async () => {
+                try {
+                    for (const id of selectedIds.value) {
+                        await deleteSongFromDB(id);
+                        if (currentSong.value.id === id) {
+                            currentSong.value = { id: null, name: '', artist: '', url: '', cover: '', lyrics: '' };
+                            audio.pause(); audio.src = ''; playing.value = false; duration.value = 0; currentTime.value = 0;
+                            parsedLyrics.value = [];
+                            currentLyricIndex.value = -1;
+                            localStorage.removeItem('muyechat_last_song');
+                            localStorage.removeItem('muyechat_playback');
+                        }
+                    }
+                    selectedIds.value = []; batchMode.value = false;
+                    await loadSongs();
+                } catch (err) { alert('批量删除失败'); }
+                showBatchDeleteConfirm.value = false;
+            };
+
+            const exportSelected = () => { if (selectedIds.value.length) { exportFileName.value = 'songs'; showExportModal.value = true; } };
+
+            const sanitizeFilename = (name) => name.replace(/[/\\?%*:|"<>]/g, '_').trim() || 'songs';
+
+            const doExport = (mode) => {
+                const selectedSongs = songs.value.filter(s => selectedIds.value.includes(s.id));
+                if (!selectedSongs.length) return;
+                const baseName = sanitizeFilename(exportFileName.value.trim());
+                let content, filename, mime;
+
+                if (mode === 'txt') {
+                    content = selectedSongs.map(s => {
+                        const line = `${s.name} - ${s.artist}`;
+                        return `${line}\n${s.url}\n`;
+                    }).join('\n');
+                    filename = baseName + '.txt';
+                    mime = 'text/plain;charset=utf-8';
+                } else if (mode === 'basic') {
+                    content = JSON.stringify(selectedSongs.map(s => ({ name: s.name, artist: s.artist, url: s.url })), null, 2);
+                    filename = baseName + '.json';
+                    mime = 'application/json;charset=utf-8';
+                } else if (mode === 'full') {
+                    content = JSON.stringify(selectedSongs.map(s => ({
+                        name: s.name, artist: s.artist, url: s.url,
+                        cover: s.cover || '', lyrics: s.lyrics || '', lyricsFileName: s.lyricsFileName || '', order: s.order
+                    })), null, 2);
+                    filename = baseName + '_full.json';
+                    mime = 'application/json;charset=utf-8';
+                }
+
+                const blob = new Blob([content], { type: mime });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = filename;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+                showExportModal.value = false;
+            };
+
+            // ---------- 导入 ----------
+            const triggerFileImport = () => { if (fileImportInput.value) fileImportInput.value.click(); };
+
+            const handleFileImport = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                if (file.size > 5 * 1024 * 1024) { alert('文件大小不能超过 5MB'); e.target.value = ''; return; }
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const content = ev.target.result;
+                    let songsToAdd = [];
+                    try {
+                        let json;
+                        try {
+                            json = JSON.parse(content);
+                        } catch (parseErr) {
+                            json = null;
+                        }
+
+                        if (json && Array.isArray(json)) {
+                            songsToAdd = json.map((item, index) => {
+                                const name = (item.name || '').toString().substring(0, 200);
+                                const artist = (item.artist || '').toString().substring(0, 200);
+                                const url = (item.url || '').toString().substring(0, 2000);
+                                let validUrl = false;
+                                try {
+                                    const u = new URL(url);
+                                    validUrl = ['http:', 'https:'].includes(u.protocol);
+                                } catch (_) {}
+                                if (!name || !url || !validUrl) return null;
+                                return {
+                                    name,
+                                    artist,
+                                    url,
+                                    cover: (item.cover || '').substring(0, 300000),
+                                    lyrics: (item.lyrics || '').substring(0, 50000),
+                                    lyricsFileName: (item.lyricsFileName || '').substring(0, 200),
+                                    order: songs.value.length + index
+                                };
+                            }).filter(Boolean);
+                        } else if (json && typeof json === 'object' && !Array.isArray(json)) {
+                            const item = json;
+                            const name = (item.name || '').toString().substring(0, 200);
+                            const artist = (item.artist || '').toString().substring(0, 200);
+                            const url = (item.url || '').toString().substring(0, 2000);
+                            let validUrl = false;
+                            try {
+                                const u = new URL(url);
+                                validUrl = ['http:', 'https:'].includes(u.protocol);
+                            } catch (_) {}
+                            if (name && url && validUrl) {
+                                songsToAdd.push({
+                                    name,
+                                    artist,
+                                    url,
+                                    cover: (item.cover || '').substring(0, 300000),
+                                    lyrics: (item.lyrics || '').substring(0, 50000),
+                                    lyricsFileName: (item.lyricsFileName || '').substring(0, 200),
+                                    order: songs.value.length
+                                });
+                            }
+                        } else if (json !== null) {
+                            alert('JSON 内容不是数组或对象');
+                        } else {
+                            const lines = content.split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+                            let songName = null;
+                            for (let i = 0; i < lines.length; i++) {
+                                const line = lines[i];
+                                if (/^https?:\/\/.+/.test(line)) {
+                                    if (songName) {
+                                        const idx = songName.indexOf(' - ');
+                                        let name = songName, artist = '';
+                                        if (idx !== -1) {
+                                            name = songName.substring(0, idx).trim();
+                                            artist = songName.substring(idx + 3).trim();
+                                        }
+                                        if (name) {
+                                            try {
+                                                const u = new URL(line);
+                                                if (['http:', 'https:'].includes(u.protocol)) {
+                                                    songsToAdd.push({
+                                                        name: name.substring(0, 200),
+                                                        artist: artist.substring(0, 200),
+                                                        url: line.substring(0, 2000),
+                                                        cover: '',
+                                                        lyrics: '',
+                                                        lyricsFileName: '',
+                                                        order: songs.value.length + songsToAdd.length
+                                                    });
+                                                }
+                                            } catch (_) {}
+                                        }
+                                        songName = null;
+                                    }
+                                } else {
+                                    songName = line;
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        alert('导入过程发生错误');
+                        console.error(err);
+                    }
+
+                    if (songsToAdd.length) {
+                        Promise.all(songsToAdd.map(s => addSong(s)))
+                            .then(() => { alert(`成功导入 ${songsToAdd.length} 首歌曲`); loadSongs(); })
+                            .catch(() => alert('导入失败'));
+                    } else {
+                        alert('未解析到有效歌曲，请检查文件格式');
+                    }
+                    e.target.value = '';
+                };
+                reader.readAsText(file, 'UTF-8');
+            };
+
+            const toggleView = () => {
+                showLyrics.value = !showLyrics.value;
+            };
+
+            // 返回按钮
+            const goBack = () => {
+                window.location.href = 'more.html';
+            };
+
+            // ---------- 生命周期 ----------
+            onMounted(async () => {
+                try {
+                    await openDB();
+                    await loadSongs();
+                    loaded.value = true;
+
+                    // 恢复上次播放状态
+                    const lastSong = JSON.parse(localStorage.getItem('muyechat_last_song') || 'null');
+                    const lastPlayback = JSON.parse(localStorage.getItem('muyechat_playback') || 'null');
+                    if (lastSong && lastPlayback) {
+                        const targetSong = songs.value.find(s => s.id === lastSong.id);
+                        if (targetSong) {
+                            currentSong.value = {
+                                id: targetSong.id,
+                                name: targetSong.name,
+                                artist: targetSong.artist,
+                                url: targetSong.url,
+                                cover: targetSong.cover,
+                                lyrics: targetSong.lyrics
+                            };
+                            audio.src = targetSong.url;
+                            audio.currentTime = lastPlayback.currentTime || 0;
+                            duration.value = lastPlayback.duration || 0;
+                            playing.value = false;
+                        }
+                    }
+
+                    await nextTick();
+                    addSliderListeners();
+
+                    // 每秒保存一次播放状态（用于恢复和 chat）
+                    saveStateTimer = setInterval(savePlaybackState, 1000);
+                } catch (err) { console.error('初始化失败', err); }
+            });
+
+            onUnmounted(() => {
+                audio.removeEventListener('loadedmetadata', () => {});
+                audio.removeEventListener('timeupdate', () => {});
+                audio.removeEventListener('ended', handleEnded);
+                audio.removeEventListener('play', () => {});
+                audio.removeEventListener('pause', () => {});
+                audio.removeEventListener('error', () => {});
+                if (urlHintTimer) clearTimeout(urlHintTimer);
+                if (saveStateTimer) clearInterval(saveStateTimer);
+            });
+
+            return {
+                loaded,
+                songs, currentSong, playing, duration, displayTime, isSeeking,
+                playMode, modeTitleShort, modeTitleFull,
+                batchMode, selectedIds, selectAllLabel,
+                showFormModal, editingSong, formName, formArtist, formUrl, formCoverPreview, fileInput, urlHint,
+                formLyricsText, formLyricsFileName, lyricsFileInput,
+                showDeleteConfirm, showBatchDeleteConfirm, showExportModal, exportFileName, fileImportInput,
+                dragIndex, dragOverIndex, showLyrics,
+                parsedLyrics, currentLyricIndex, lyricsPanel,
+                formatTime, handleItemClick, playSong, togglePlay, prevSong, nextSong,
+                onSeekStart, onSeekEnd, cycleMode, toggleBatchMode, selectAll,
+                onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd,
+                openUploadModal, openEditModal, closeFormModal,
+                triggerUpload, handleCoverUpload, clearCoverImage, validateUrl,
+                triggerLyricsUpload, handleLyricsUpload, clearLyricsFile,
+                saveSong, deleteCurrentSong, confirmDeleteSong,
+                confirmDeleteSelected, executeBatchDelete,
+                exportSelected, doExport, triggerFileImport, handleFileImport,
+                toggleView, goBack,
+                seekToLyric
+            };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>
