@@ -1245,17 +1245,21 @@ function openCvGroupDropdown() {
 
 document.getElementById('clearAllBtn').addEventListener('click', async () => {
     if (confirm('确定清空所有 MuyeChat 数据？此操作不可恢复！')) {
-        // 强制删除整个数据库
-        const deleteRequest = indexedDB.deleteDatabase('MuyeChat7403DB');
-        deleteRequest.onsuccess = () => {
+        // 先关闭 MuyeDB 可能持有的连接
+        if (window.MuyeDB && MuyeDB.close) {
+            MuyeDB.close();
+        }
+        
+        const req = indexedDB.deleteDatabase('MuyeChat7403DB');
+        req.onsuccess = () => {
             alert('所有数据已清空');
             location.reload();
         };
-        deleteRequest.onerror = () => {
-            alert('清除失败，请重试');
+        req.onerror = () => {
+            alert('删除失败，请关闭所有相关页面后重试');
         };
-        deleteRequest.onblocked = () => {
-            alert('数据库被占用，请关闭其他标签页后重试');
+        req.onblocked = () => {
+            alert('数据库被占用，请关闭所有 MuyeChat 标签页，然后手动刷新本页面即可完成清空。');
         };
     }
 });
@@ -1352,4 +1356,4 @@ document.getElementById('clearAllBtn').addEventListener('click', async () => {
 </script>
 
 </body>
-</html>
+                    </html>
