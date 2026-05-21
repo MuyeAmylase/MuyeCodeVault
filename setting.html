@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>MuyeChat</title>
+    <style>
+        :root {
+            --bg-primary: #1a1a1f;
+            --bg-card: #222228;
+            --bg-card-hover: #282830;
+            --text-primary: #e8e8ec;
+            --text-secondary: #9a9aa6;
+            --text-muted: #6b6b78;
+            --border-card: #303038;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.4);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            --safe-bottom: env(safe-area-inset-bottom, 16px);
+            --search-bg: #1c1c21;
+            --search-border: #303038;
+            --accent: #4a9eff;
+            --input-bg: #1c1c21;
+            --input-border: #303038;
+            --btn-save-bg: #252525;
+            --btn-save-border: #252525;
+            --btn-save-text: #ffffff;
+        }
+
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg-primary: #f2f2f7;
+                --bg-card: #ffffff;
+                --bg-card-hover: #f5f5fa;
+                --text-primary: #1c1c1e;
+                --text-secondary: #6e6e73;
+                --text-muted: #8e8e93;
+                --border-card: #d1d1d6;
+                --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.02);
+                --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.04);
+                --search-bg: #ffffff;
+                --search-border: #d1d1d6;
+                --accent: #007aff;
+                --input-bg: #ffffff;
+                --input-border: #d1d1d6;
+                --btn-save-bg: #252525;
+                --btn-save-border: #252525;
+                --btn-save-text: #ffffff;
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .page-wrapper {
+            width: 100%;
+            max-width: 600px;
+            margin-top: 16px;
+        }
+
+        /* 顶部栏 */
+        .top-bar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .back-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: transparent;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: background 0.2s;
+            outline: none;
+            flex-shrink: 0;
+        }
+        .back-btn:hover {
+            background: rgba(128, 128, 128, 0.15);
+        }
+        .back-btn svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .top-title {
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.2px;
+            line-height: 40px;
+        }
+
+        /* 搜索栏 */
+        .search-bar {
+            display: flex;
+            align-items: center;
+            background: var(--search-bg);
+            border: 1px solid var(--search-border);
+            border-radius: var(--radius-md);
+            padding: 0 12px;
+            height: 38px;
+            gap: 8px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .search-icon {
+            display: flex;
+            align-items: center;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+        .search-icon svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .search-input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            min-width: 0;
+        }
+        .search-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-action {
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: background 0.15s;
+            flex-shrink: 0;
+        }
+        .search-action:hover {
+            background: rgba(74, 158, 255, 0.1);
+        }
+
+        /* 设置条目列表（默认可见） */
+        .settings-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .settings-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background 0.2s;
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+        }
+        .settings-item:hover {
+            background: var(--bg-card-hover);
+        }
+        .settings-item:active {
+            background: var(--bg-card);
+        }
+
+        .item-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: var(--text-secondary);
+        }
+        .item-icon svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .item-content {
+            flex: 1;
+            min-width: 0;
+        }
+        .item-title {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-primary);
+            line-height: 1.3;
+        }
+        .item-subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .item-arrow {
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+        .item-arrow svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* 设置面板（隐藏） */
+        .settings-panel {
+            display: none;
+        }
+        .settings-panel.active {
+            display: block;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .panel-back {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: transparent;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+        .panel-back:hover {
+            background: rgba(128, 128, 128, 0.15);
+        }
+        .panel-back svg {
+            width: 20px;
+            height: 20px;
+        }
+        .panel-title {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: -0.2px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+        }
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-input:focus {
+            border-color: var(--accent);
+        }
+        textarea.form-input {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* 预设选择器 */
+        .preset-selector {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 14px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+            user-select: none;
+        }
+        .preset-selector:hover {
+            border-color: var(--accent);
+        }
+        .preset-selector .preset-value {
+            font-weight: 500;
+        }
+        .preset-selector .preset-arrow {
+            width: 16px;
+            height: 16px;
+            color: var(--text-muted);
+            transition: transform 0.2s;
+        }
+        .preset-selector.open .preset-arrow {
+            transform: rotate(180deg);
+        }
+
+.preset-dropdown {
+    position: fixed;       /* 改这里 */
+    top: auto;
+    left: auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md);
+    z-index: 99999;        /* 加大一点 */
+    display: none;
+    max-height: 200px;
+    overflow-y: auto;
+}
+        .preset-dropdown.show {
+            display: block;
+        }
+        .preset-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-primary);
+            transition: background 0.15s;
+        }
+        .preset-item:first-child {
+            border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+        }
+        .preset-item:last-child {
+            border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+        }
+        .preset-item:hover {
+            background: var(--bg-card-hover);
+        }
+
+        /* 模型行（保证不换行） */
+        .model-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: nowrap;
+        }
+        .model-row .form-input {
+            flex: 1;
+            min-width: 0;
+        }
+        .model-row .btn-secondary {
+            white-space: nowrap;
+            flex-shrink: 0;
+            width: auto; /* 保持自适应宽度，不与输入框同宽 */
+        }
+
+        /* 切换开关 */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-card);
+        }
+        .toggle-label {
+            font-size: 15px;
+            font-weight: 500;
+        }
+        .toggle-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 28px;
+            background: var(--border-card);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+        .toggle-switch.on {
+            background: var(--accent);
+        }
+        .toggle-knob {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 24px;
+            height: 24px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform 0.2s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+        .toggle-switch.on .toggle-knob {
+            transform: translateX(20px);
+        }
+
+        /* 按钮基础样式 */
+        .btn-primary,
+        .btn-secondary,
+        .btn-save,
+        .btn-danger {
+            width: 100%;
+            box-sizing: border-box;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-sm);
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s, background 0.2s;
+            outline: none;
+            border: none;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            opacity: 0.85;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-card);
+        }
+        .btn-secondary:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .btn-save {
+            background: var(--btn-save-bg);
+            border: 1px solid var(--btn-save-border);
+            color: var(--btn-save-text);
+        }
+        .btn-save:hover {
+            opacity: 0.85;
+        }
+
+        .btn-danger {
+            background: #d32f2f;
+            color: #fff;
+        }
+        .btn-danger:hover {
+            opacity: 0.85;
+        }
+
+        /* 弹性容器内按钮恢复宽度 */
+        .modal-actions .btn-secondary,
+        .modal-actions .btn-save {
+            width: auto;
+            flex: 0 0 auto;
+        }
+
+        .action-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        /* 模态弹窗 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            backdrop-filter: blur(2px);
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-dialog {
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: var(--shadow-md);
+            color: var(--text-primary);
+        }
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        .modal-input {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            margin-bottom: 20px;
+        }
+        .modal-input:focus {
+            border-color: var(--accent);
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        @media (max-width: 500px) {
+            .top-title {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page-wrapper">
+        <!-- 顶部栏（主界面可见，子面板隐藏） -->
+        <div class="top-bar" id="topBar">
+            <button class="back-btn" id="mainBackBtn" title="返回">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="16 4 7 12 16 20" />
+                </svg>
+            </button>
+            <span class="top-title" id="topTitle">设置</span>
+        </div>
+
+        <!-- 搜索栏（全局） -->
+        <div class="search-bar" id="searchBar">
+            <span class="search-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+            </span>
+            <input type="text" class="search-input" id="searchInput" placeholder="搜索设置项...">
+            <button class="search-action" id="searchActionBtn">搜索</button>
+        </div>
+
+        <!-- 设置条目列表（无分割线） -->
+        <div class="settings-list" id="settingsList">
+            <div class="settings-item" data-panel="api">
+                <div class="item-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3" />
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    </svg>
+                </div>
+                <div class="item-content">
+                    <div class="item-title">API 配置</div>
+                    <div class="item-subtitle">Base URL、Key、Model、System Prompt</div>
+                </div>
+                <div class="item-arrow">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="9 6 15 12 9 18" />
+                    </svg>
+                </div>
+            </div>
+
+            <div class="settings-item" data-panel="permissions">
+                <div class="item-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" />
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                </div>
+                <div class="item-content">
+                    <div class="item-title">权限设置</div>
+                    <div class="item-subtitle">CodeVault 数据访问、悬浮窗控制</div>
+                </div>
+                <div class="item-arrow">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="9 6 15 12 9 18" />
+                    </svg>
+                </div>
+            </div>
+
+            <div class="settings-item" data-panel="storage">
+                <div class="item-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <ellipse cx="12" cy="5" rx="9" ry="3" />
+                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+                    </svg>
+                </div>
+                <div class="item-content">
+                    <div class="item-title">存储管理</div>
+                    <div class="item-subtitle">导出/导入数据、清空记录</div>
+                </div>
+                <div class="item-arrow">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="9 6 15 12 9 18" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- API 配置面板 -->
+        <div class="settings-panel" id="panel-api">
+            <div class="panel-header">
+                <button class="panel-back" id="apiBackBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="16 4 7 12 16 20" />
+                    </svg>
+                </button>
+                <span class="panel-title">API 配置</span>
+            </div>
+
+            <!-- API预设 -->
+            <div class="form-group">
+                <label class="form-label">API预设</label>
+                <div class="preset-selector" id="presetSelector">
+                    <span class="preset-value" id="presetValue">默认预设</span>
+                    <svg class="preset-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                </div>
+                <div class="preset-dropdown" id="presetDropdown"></div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Base URL</label>
+                <input type="text" class="form-input" id="apiBaseUrl" placeholder="https://api.openai.com/v1" value="https://api.openai.com/v1">
+            </div>
+            <div class="form-group">
+                <label class="form-label">API Key</label>
+                <input type="password" class="form-input" id="apiKey" placeholder="sk-...">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Model</label>
+                <div class="model-row">
+                    <input type="text" class="form-input" id="apiModel" placeholder="gpt-3.5-turbo" value="gpt-3.5-turbo">
+                    <button class="btn-secondary" id="fetchModelsBtn">拉取模型</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">System Prompt（可选）</label>
+                <textarea class="form-input" id="apiSystemPrompt" placeholder="你是一个有用的助手..."></textarea>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px;">
+                <button class="btn-save" id="saveApiBtn">保存当前设置</button>
+                <button class="btn-save" id="savePresetBtn">保存为预设</button>
+            </div>
+        </div>
+
+        <!-- 权限设置面板 -->
+        <div class="settings-panel" id="panel-permissions">
+            <div class="panel-header">
+                <button class="panel-back" id="permissionsBackBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="16 4 7 12 16 20" />
+                    </svg>
+                </button>
+                <span class="panel-title">权限设置</span>
+            </div>
+            <div class="toggle-row">
+                <div>
+                    <div class="toggle-label">允许读取 CodeVault 数据</div>
+                    <div class="toggle-desc">AI 可访问 CodeVault 指定分组中的内容</div>
+                </div>
+                <div class="toggle-switch" id="codevaultToggle">
+                    <div class="toggle-knob"></div>
+                </div>
+            </div>
+            <div class="form-group" style="margin-top: 16px;">
+                <label class="form-label">选择 CodeVault 分组</label>
+                <div class="preset-selector" id="cvGroupSelector">
+                    <span class="preset-value" id="cvGroupValue">AI 记忆</span>
+                    <svg class="preset-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                </div>
+                <div class="preset-dropdown" id="cvGroupDropdown"></div>
+            </div>
+            <div class="toggle-row">
+                <div>
+                    <div class="toggle-label">启用悬浮窗</div>
+                    <div class="toggle-desc">在所有页面显示音乐/AI 控制悬浮窗</div>
+                </div>
+                <div class="toggle-switch" id="widgetToggle">
+                    <div class="toggle-knob"></div>
+                </div>
+            </div>
+            <div style="margin-top: 20px;">
+                <button class="btn-primary" id="savePermissionsBtn">保存</button>
+            </div>
+        </div>
+
+        <!-- 存储管理面板 -->
+<div class="settings-panel" id="panel-storage">
+    <div class="panel-header">
+        <button class="panel-back" id="storageBackBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="16 4 7 12 16 20" />
+            </svg>
+        </button>
+        <span class="panel-title">存储管理</span>
+    </div>
+
+    <div class="form-group">
+        <label class="form-label">导出数据</label>
+        <button class="btn-secondary" id="exportChatBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; flex-shrink: 0;">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            导出全部数据
+        </button>
+        <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">导出所有 MuyeChat 设置与数据为 JSON 文件</p>
+    </div>
+
+    <div class="form-group">
+        <label class="form-label">导入数据</label>
+        <input type="file" id="importChatFile" accept=".json" style="display:none;">
+        <button class="btn-secondary" id="importChatBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; flex-shrink: 0;">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            选择文件并导入
+        </button>
+        <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">导入将覆盖现有全部数据，请谨慎操作</p>
+    </div>
+
+    <div class="form-group">
+        <label class="form-label">危险操作</label>
+        <button class="btn-danger" id="clearAllBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; flex-shrink: 0;">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                <line x1="10" y1="11" x2="10" y2="17" />
+                <line x1="14" y1="11" x2="14" y2="17" />
+            </svg>
+            清空全部 MuyeChat 数据
+        </button>
+    </div>
+</div>
+
+    <!-- 预设名称弹窗 -->
+    <div class="modal-overlay" id="presetModal">
+        <div class="modal-dialog">
+            <div class="modal-title">保存为预设</div>
+            <input type="text" class="modal-input" id="presetNameInput" placeholder="输入预设名称...">
+            <div class="modal-actions">
+                <button class="btn-secondary" id="cancelPresetBtn">取消</button>
+                <button class="btn-save" id="confirmPresetBtn">保存</button>
+            </div>
+        </div>
+    </div>
+
+<script src="db.js"></script>
+<script>
+    (function() {
+        // ---- 初始化设置数据 ----
+        async function loadSettings() {
+            const settings = await MuyeDB.getSettings();
+            const defaultSettings = {
+                id: 'global',
+                allowCodeVaultAccess: false,
+                codeVaultGroupName: 'AI 记忆',
+                widgetEnabled: false,
+                apiBaseUrl: 'https://api.openai.com/v1',
+                apiKey: '',
+                apiModel: 'gpt-3.5-turbo',
+                apiSystemPrompt: '',
+                currentPreset: '默认预设'
+            };
+            return Object.assign(defaultSettings, settings);
+        }
+
+        async function saveSettings(newSettings) {
+            newSettings.id = 'global';
+            await MuyeDB.put('settings', newSettings);
+        }
+
+        // ---- CodeVault 分组获取 ----
+        async function getCodeVaultGroups() {
+            return new Promise((resolve) => {
+                const req = indexedDB.open('MuyeCodeVaultDB', 1);
+                req.onerror = () => resolve([]);
+                req.onsuccess = (e) => {
+                    const db = e.target.result;
+                    try {
+                        const tx = db.transaction('appData', 'readonly');
+                        const store = tx.objectStore('appData');
+                        const getReq = store.get('globalData');
+                        getReq.onsuccess = () => {
+                            const data = getReq.result?.data;
+                            if (data && Array.isArray(data.groups)) {
+                                resolve(data.groups.map(g => g.name));
+                            } else {
+                                resolve([]);
+                            }
+                        };
+                        getReq.onerror = () => resolve([]);
+                    } catch (e) {
+                        resolve([]);
+                    } finally {
+                        db.close();
+                    }
+                };
+            });
+        }
+
+        // ---- UI 变量 ----
+        const settingsList = document.getElementById('settingsList');
+        const searchBar = document.getElementById('searchBar');
+        const topBar = document.getElementById('topBar');
+        const panels = {
+            api: document.getElementById('panel-api'),
+            permissions: document.getElementById('panel-permissions'),
+            storage: document.getElementById('panel-storage')
+        };
+        let currentPanel = null;
+
+        function showPanel(panelName) {
+            topBar.style.display = 'none';
+            settingsList.style.display = 'none';
+            searchBar.style.display = 'none';
+            Object.values(panels).forEach(p => p.classList.remove('active'));
+            if (panels[panelName]) {
+                panels[panelName].classList.add('active');
+                currentPanel = panelName;
+                if (panelName === 'api') {
+                    renderPresetDropdown();
+                }
+                if (panelName === 'permissions') {
+                    loadCodeVaultGroupsIntoSelector();
+                }
+            }
+        }
+
+        function showList() {
+            topBar.style.display = '';
+            settingsList.style.display = '';
+            searchBar.style.display = '';
+            Object.values(panels).forEach(p => p.classList.remove('active'));
+            currentPanel = null;
+        }
+
+        document.querySelectorAll('.settings-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const panel = this.dataset.panel;
+                if (panel) showPanel(panel);
+            });
+        });
+
+        document.getElementById('apiBackBtn').addEventListener('click', showList);
+        document.getElementById('permissionsBackBtn').addEventListener('click', showList);
+        document.getElementById('storageBackBtn').addEventListener('click', showList);
+
+        document.getElementById('mainBackBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            if (currentPanel) {
+                showList();
+            } else {
+                if (document.referrer && document.referrer.includes(location.host)) {
+                    history.back();
+                } else {
+                    location.href = 'more.html';
+                }
+            }
+        });
+
+        // 搜索功能
+        document.getElementById('searchActionBtn').addEventListener('click', function() {
+            const query = document.getElementById('searchInput').value.trim().toLowerCase();
+            const items = document.querySelectorAll('.settings-item');
+            let found = false;
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (query && text.includes(query)) {
+                    item.style.display = 'flex';
+                    found = true;
+                } else if (query) {
+                    item.style.display = 'none';
+                } else {
+                    item.style.display = 'flex';
+                }
+            });
+            if (query && !found) {
+                alert('未找到匹配的设置项');
+            }
+        });
+
+        // ---- API 预设 ----
+        const presetSelector = document.getElementById('presetSelector');
+        const presetValue = document.getElementById('presetValue');
+        const presetDropdown = document.getElementById('presetDropdown');
+        const saveApiBtn = document.getElementById('saveApiBtn');
+        const savePresetBtn = document.getElementById('savePresetBtn');
+        const presetModal = document.getElementById('presetModal');
+        const presetNameInput = document.getElementById('presetNameInput');
+        const cancelPresetBtn = document.getElementById('cancelPresetBtn');
+        const confirmPresetBtn = document.getElementById('confirmPresetBtn');
+
+        let presets = [];
+        let currentPresetName = '默认预设';
+
+        async function loadPresets() {
+            const saved = await MuyeDB.get('settings', 'api_presets');
+            let loadedPresets = saved?.value || [];
+            if (!Array.isArray(loadedPresets)) loadedPresets = [];
+            presets = loadedPresets.filter(p => p && p.name && p.config);
+            if (!presets.find(p => p.name === '默认预设')) {
+                presets.unshift({
+                    name: '默认预设',
+                    config: {
+                        baseUrl: 'https://api.openai.com/v1',
+                        apiKey: '',
+                        model: 'gpt-3.5-turbo',
+                        systemPrompt: ''
+                    }
+                });
+            }
+            renderPresetDropdown();
+        }
+
+async function savePresets() {
+    await MuyeDB.put('settings', { id: 'api_presets', value: presets });
+}
+
+        function renderPresetDropdown() {
+            presetDropdown.innerHTML = '';
+            if (presets.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'preset-item';
+                empty.textContent = '暂无预设';
+                empty.style.color = 'var(--text-muted)';
+                empty.style.pointerEvents = 'none';
+                presetDropdown.appendChild(empty);
+                return;
+            }
+            presets.forEach(p => {
+                const item = document.createElement('div');
+                item.className = 'preset-item';
+                item.textContent = p.name;
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    selectPreset(p.name);
+                });
+                presetDropdown.appendChild(item);
+            });
+        }
+
+        function selectPreset(name) {
+            const preset = presets.find(p => p.name === name);
+            if (!preset) return;
+            currentPresetName = name;
+            presetValue.textContent = name;
+            closePresetDropdown();
+            document.getElementById('apiBaseUrl').value = preset.config.baseUrl || '';
+            document.getElementById('apiKey').value = preset.config.apiKey || '';
+            document.getElementById('apiModel').value = preset.config.model || '';
+            document.getElementById('apiSystemPrompt').value = preset.config.systemPrompt || '';
+            settingsState.currentPreset = name;
+        }
+
+        function closePresetDropdown() {
+            presetDropdown.classList.remove('show');
+            presetSelector.classList.remove('open');
+        }
+
+function openPresetDropdown() {
+    renderPresetDropdown();
+    const rect = presetSelector.getBoundingClientRect();
+    const dropdown = presetDropdown;
+    dropdown.style.top = (rect.bottom + 4) + 'px';
+    dropdown.style.left = rect.left + 'px';
+    dropdown.style.width = rect.width + 'px';
+    dropdown.classList.add('show');
+    presetSelector.classList.add('open');
+    // 把下拉菜单移到 body 下，避免父容器裁剪
+    if (dropdown.parentNode !== document.body) {
+        document.body.appendChild(dropdown);
+    }
+}
+
+        presetSelector.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (presetDropdown.classList.contains('show')) {
+                closePresetDropdown();
+            } else {
+                closeCvGroupDropdown();
+                openPresetDropdown();
+            }
+        });
+
+        presetDropdown.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+
+        saveApiBtn.addEventListener('click', async () => {
+            const apiConfig = {
+                baseUrl: document.getElementById('apiBaseUrl').value.trim(),
+                apiKey: document.getElementById('apiKey').value.trim(),
+                model: document.getElementById('apiModel').value.trim(),
+                systemPrompt: document.getElementById('apiSystemPrompt').value
+            };
+            settingsState = { ...settingsState, ...apiConfig };
+            await saveSettings(settingsState);
+            const preset = presets.find(p => p.name === currentPresetName);
+            if (preset) {
+                preset.config = apiConfig;
+                await savePresets();
+            }
+            alert('设置已保存');
+        });
+
+        savePresetBtn.addEventListener('click', () => {
+            presetNameInput.value = '';
+            presetModal.classList.add('active');
+        });
+
+        cancelPresetBtn.addEventListener('click', () => {
+            presetModal.classList.remove('active');
+        });
+
+confirmPresetBtn.addEventListener('click', async () => {
+    const name = presetNameInput.value.trim();
+    if (!name) {
+        alert('请输入预设名称');
+        return;
+    }
+
+    // 检查重名（本地内存和数据库双保险）
+    const exists = presets.some(p => p.name === name);
+    if (exists) {
+        alert('预设名称已存在');
+        return;
+    }
+
+    const config = {
+        baseUrl: document.getElementById('apiBaseUrl').value.trim(),
+        apiKey: document.getElementById('apiKey').value.trim(),
+        model: document.getElementById('apiModel').value.trim(),
+        systemPrompt: document.getElementById('apiSystemPrompt').value
+    };
+
+    // 先更新本地数组
+    presets.push({ name, config });
+    
+    // 等待数据库写入完成
+    try {
+        await savePresets();
+    } catch (e) {
+        // 如果写入失败，把刚 push 的条目移除，避免内存与数据库不一致
+        presets.pop();
+        alert('保存失败：' + e.message);
+        return;
+    }
+
+    // 写入成功后更新 UI
+    currentPresetName = name;
+    presetValue.textContent = name;
+    presetModal.classList.remove('active');
+    
+    // 重新渲染下拉列表（此时数据库已是新数据）
+    renderPresetDropdown();
+    
+    alert(`预设“${name}”已保存`);
+});
+
+        presetModal.addEventListener('click', (e) => {
+            if (e.target === presetModal) presetModal.classList.remove('active');
+        });
+
+        // ---- 权限设置 ----
+        const codevaultToggle = document.getElementById('codevaultToggle');
+        const widgetToggle = document.getElementById('widgetToggle');
+        const cvGroupSelector = document.getElementById('cvGroupSelector');
+        const cvGroupValue = document.getElementById('cvGroupValue');
+        const cvGroupDropdown = document.getElementById('cvGroupDropdown');
+        const savePermissionsBtn = document.getElementById('savePermissionsBtn');
+
+        let codeVaultGroups = [];
+
+        async function loadCodeVaultGroupsIntoSelector() {
+            codeVaultGroups = await getCodeVaultGroups();
+            cvGroupDropdown.innerHTML = '';
+            if (codeVaultGroups.length === 0) {
+                cvGroupDropdown.innerHTML = '<div class="preset-item" style="color:var(--text-muted); pointer-events:none;">未找到任何分组</div>';
+            } else {
+                codeVaultGroups.forEach(name => {
+                    const item = document.createElement('div');
+                    item.className = 'preset-item';
+                    item.textContent = name;
+                    item.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        cvGroupValue.textContent = name;
+                        closeCvGroupDropdown();
+                    });
+                    cvGroupDropdown.appendChild(item);
+                });
+            }
+        }
+
+        function closeCvGroupDropdown() {
+            cvGroupDropdown.classList.remove('show');
+            cvGroupSelector.classList.remove('open');
+        }
+
+function openCvGroupDropdown() {
+    loadCodeVaultGroupsIntoSelector().then(() => {
+        const rect = cvGroupSelector.getBoundingClientRect();
+        const dropdown = cvGroupDropdown;
+        dropdown.style.top = (rect.bottom + 4) + 'px';
+        dropdown.style.left = rect.left + 'px';
+        dropdown.style.width = rect.width + 'px';
+        cvGroupDropdown.classList.add('show');
+        cvGroupSelector.classList.add('open');
+        if (dropdown.parentNode !== document.body) {
+            document.body.appendChild(dropdown);
+        }
+    });
+}
+
+        codevaultToggle.addEventListener('click', () => codevaultToggle.classList.toggle('on'));
+        widgetToggle.addEventListener('click', () => widgetToggle.classList.toggle('on'));
+
+        cvGroupSelector.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (cvGroupDropdown.classList.contains('show')) {
+                closeCvGroupDropdown();
+            } else {
+                closePresetDropdown();
+                openCvGroupDropdown();
+            }
+        });
+
+        cvGroupDropdown.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+
+        savePermissionsBtn.addEventListener('click', async () => {
+            settingsState.allowCodeVaultAccess = codevaultToggle.classList.contains('on');
+            settingsState.codeVaultGroupName = cvGroupValue.textContent || 'AI 记忆';
+            settingsState.widgetEnabled = widgetToggle.classList.contains('on');
+            await saveSettings(settingsState);
+            alert('权限设置已保存');
+        });
+
+        // ---- 存储管理 ----
+        document.getElementById('exportChatBtn').addEventListener('click', async () => {
+            try {
+                const allSongs = await MuyeDB.getAll('songs');
+                const allSettings = await MuyeDB.getAll('settings');
+                const exportData = {
+                    songs: allSongs,
+                    settings: allSettings,
+                    exportedAt: new Date().toISOString()
+                };
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `muyechat_backup_${new Date().toISOString().slice(0,10)}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                alert('导出成功');
+            } catch (e) {
+                alert('导出失败：' + e.message);
+            }
+        });
+
+        document.getElementById('importChatBtn').addEventListener('click', () => {
+            document.getElementById('importChatFile').click();
+        });
+
+        document.getElementById('importChatFile').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+                if (!data.songs || !Array.isArray(data.songs) || !data.settings || !Array.isArray(data.settings)) {
+                    throw new Error('数据格式无效');
+                }
+                if (!confirm('导入将覆盖现有全部数据，确定继续吗？')) return;
+                await MuyeDB.clear('songs');
+                await MuyeDB.clear('settings');
+                for (const song of data.songs) {
+                    await MuyeDB.put('songs', song);
+                }
+                for (const setting of data.settings) {
+                    await MuyeDB.put('settings', setting);
+                }
+                alert('数据导入成功，即将刷新页面');
+                location.reload();
+            } catch (e) {
+                alert('导入失败：' + e.message);
+            } finally {
+                e.target.value = '';
+            }
+        });
+
+document.getElementById('clearAllBtn').addEventListener('click', async () => {
+    if (confirm('确定清空所有 MuyeChat 数据？此操作不可恢复！')) {
+        // 强制删除整个数据库
+        const deleteRequest = indexedDB.deleteDatabase('MuyeChat7403DB');
+        deleteRequest.onsuccess = () => {
+            alert('所有数据已清空');
+            location.reload();
+        };
+        deleteRequest.onerror = () => {
+            alert('清除失败，请重试');
+        };
+        deleteRequest.onblocked = () => {
+            alert('数据库被占用，请关闭其他标签页后重试');
+        };
+    }
+});
+
+        // ---- 拉取模型列表 ----
+        document.getElementById('fetchModelsBtn').addEventListener('click', async () => {
+            const baseUrl = document.getElementById('apiBaseUrl').value.trim();
+            const apiKey = document.getElementById('apiKey').value.trim();
+            if (!baseUrl || !apiKey) {
+                alert('请先填写 Base URL 和 API Key');
+                return;
+            }
+            const btn = document.getElementById('fetchModelsBtn');
+            btn.disabled = true;
+            btn.textContent = '获取中...';
+            try {
+                const res = await fetch(`${baseUrl}/models`, {
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.error?.message || `HTTP ${res.status}`);
+                }
+                const data = await res.json();
+                const models = (data.data || []).map(m => m.id).sort();
+                if (models.length === 0) {
+                    alert('没有可用模型');
+                    return;
+                }
+                const existing = document.getElementById('modelSelectContainer');
+                if (existing) existing.remove();
+                const container = document.createElement('div');
+                container.id = 'modelSelectContainer';
+                container.style.cssText = 'margin-top:8px; max-height:160px; overflow-y:auto; border:1px solid var(--border-card); border-radius:8px; background:var(--bg-card);';
+                models.forEach(model => {
+                    const item = document.createElement('div');
+                    item.textContent = model;
+                    item.style.cssText = 'padding:8px 12px; cursor:pointer; font-size:14px; border-bottom:0.5px solid var(--border-card);';
+                    item.addEventListener('click', () => {
+                        document.getElementById('apiModel').value = model;
+                        container.remove();
+                    });
+                    container.appendChild(item);
+                });
+                const modelRow = document.getElementById('fetchModelsBtn').parentNode;
+                modelRow.parentNode.insertBefore(container, modelRow.nextSibling);
+            } catch (e) {
+                alert('获取模型列表失败：' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '拉取模型';
+            }
+        });
+
+        // ---- 初始化 ----
+        let settingsState = {};
+        async function init() {
+            await loadPresets();
+            settingsState = await loadSettings();
+
+            if (settingsState.allowCodeVaultAccess) codevaultToggle.classList.add('on');
+            else codevaultToggle.classList.remove('on');
+            cvGroupValue.textContent = settingsState.codeVaultGroupName || 'AI 记忆';
+            if (settingsState.widgetEnabled) widgetToggle.classList.add('on');
+            else widgetToggle.classList.remove('on');
+
+            document.getElementById('apiBaseUrl').value = settingsState.apiBaseUrl || 'https://api.openai.com/v1';
+            document.getElementById('apiKey').value = settingsState.apiKey || '';
+            document.getElementById('apiModel').value = settingsState.apiModel || 'gpt-3.5-turbo';
+            document.getElementById('apiSystemPrompt').value = settingsState.apiSystemPrompt || '';
+
+            const savedPresetName = settingsState.currentPreset || '默认预设';
+            if (presets.find(p => p.name === savedPresetName)) {
+                selectPreset(savedPresetName);
+            } else {
+                selectPreset('默认预设');
+            }
+
+            codeVaultGroups = await getCodeVaultGroups();
+        }
+
+        // 全局点击监听：点击空白处关闭所有下拉
+        document.addEventListener('click', function(e) {
+            if (!presetSelector.contains(e.target) && !presetDropdown.contains(e.target)) {
+                closePresetDropdown();
+            }
+            if (!cvGroupSelector.contains(e.target) && !cvGroupDropdown.contains(e.target)) {
+                closeCvGroupDropdown();
+            }
+        });
+
+        init();
+    })();
+</script>
+
+</body>
+</html>
