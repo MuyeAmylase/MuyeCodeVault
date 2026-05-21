@@ -1465,6 +1465,12 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 导入数据
             </button>
+            <button class="export-btn" id="migrateDataBtn" style="margin-top:8px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2v6m0 0l3-3m-3 3L9 5m-5 8h16M4 18a2 2 0 002 2h12a2 2 0 002-2v-4H4v4z"/>
+                </svg>
+                迁移旧数据
+            </button>
             <input type="file" id="importFileInput" accept=".json" style="display:none;">
             <button class="export-btn" id="exportDataBtn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -1544,7 +1550,7 @@
     "use strict";
 
     // ==================== IndexedDB 增强封装 ====================
-    const DB_NAME = 'CodeVaultDB';
+    const DB_NAME = 'MuyeCodeVaultDB';
     const DB_VERSION = 1;
     const STORE_NAME = 'appData';
     const DATA_KEY = 'globalData';
@@ -2178,6 +2184,7 @@ function renderContent() {
                 <div class="empty-title">欢迎回来</div>
                 <div class="empty-desc">已创建 ${appData.groups.length} 个分组，共 ${totalItems} 个条目</div>
                 <button class="welcome-manage-btn" id="welcomeManageBtn">管理分组</button>
+                <a href="more.html" style="color:var(--text-secondary); text-decoration:none; font-size:14px; margin-top:12px; display:inline-block;">更多功能</a>
             </div>`;
         const welcomeBtn = document.getElementById('welcomeManageBtn');
         if (welcomeBtn) welcomeBtn.addEventListener('click', openManageOverlay);
@@ -3085,6 +3092,86 @@ if (clearAllDataBtn) {
         }
         this.value = '';
     });
+
+// 迁移旧数据库数据到新数据库
+$('#migrateDataBtn').addEventListener('click', async () => {
+    const OLD_DB_NAME = 'CodeVaultDB';
+
+    // 1. 读取旧数据库
+    let oldData = null;
+    try {
+        oldData = await new Promise((resolve, reject) => {
+            const req = indexedDB.open(OLD_DB_NAME, 1);
+            req.onerror = () => reject(new Error('无法打开旧数据库'));
+            req.onsuccess = () => {
+                const db = req.result;
+                // 检查对象仓库是否存在
+                if (!db.objectStoreNames.contains('appData')) {
+                    db.close();
+                    return reject(new Error('旧数据库中没有数据表'));
+                }
+                try {
+                    const tx = db.transaction('appData', 'readonly');
+                    const store = tx.objectStore('appData');
+                    const getReq = store.get('globalData');
+                    getReq.onsuccess = () => {
+                        resolve(getReq.result ? getReq.result.data : null);
+                    };
+                    getReq.onerror = () => reject(getReq.error);
+                    tx.oncomplete = () => db.close();
+                } catch (e) {
+                    db.close();
+                    reject(e);
+                }
+            };
+        });
+    } catch (e) {
+        showToast('未找到旧数据库（CodeVaultDB）');
+        return;
+    }
+
+    if (!oldData) {
+        showToast('旧数据库中没有数据');
+        return;
+    }
+
+    // 2. 写入新数据库
+    try {
+        const db = await openDB(); // 当前 appData 所在的数据库，即新库
+        await new Promise((resolve, reject) => {
+            const tx = db.transaction('appData', 'readwrite');
+            const store = tx.objectStore('appData');
+            store.put({ id: 'globalData', data: oldData });
+            tx.oncomplete = () => { db.close(); resolve(); };
+            tx.onerror = () => reject(tx.error);
+        });
+    } catch (e) {
+        showToast('写入新数据库失败: ' + e.message);
+        return;
+    }
+
+    // 3. 询问是否删除旧数据库
+    showToast('迁移成功！旧数据已复制到新数据库');
+    if (confirm('数据迁移成功！是否删除旧数据库（CodeVaultDB）？')) {
+        try {
+            await new Promise((resolve, reject) => {
+                const delReq = indexedDB.deleteDatabase(OLD_DB_NAME);
+                delReq.onsuccess = resolve;
+                delReq.onerror = reject;
+                delReq.onblocked = () => reject(new Error('有其它标签页占用旧数据库'));
+            });
+            showToast('旧数据库已删除');
+        } catch (e) {
+            showToast('删除旧数据库失败: ' + e.message);
+        }
+    }
+
+    // 4. 重新加载新数据
+    appData = oldData;
+    lastSavedData = JSON.stringify(appData);
+    renderAll();
+    updateProfileUI();
+});
 
     // 导出数据
     exportDataBtn.addEventListener('click', async () => {
