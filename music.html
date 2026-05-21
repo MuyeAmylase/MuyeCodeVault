@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=1.5, viewport-fit=cover">
-    <title>音乐 · MuyeChat</title>
+    <title>MuyeChat</title>
     <style>
         /* ========== 与主页面一致的配色 ========== */
         :root {
@@ -1942,7 +1942,11 @@
 
             // 返回按钮
             const goBack = () => {
-                window.location.href = 'more.html';
+                if (document.referrer && document.referrer.includes(location.host)) {
+                    history.back();
+                } else {
+                    window.location.href = 'more.html';
+                }
             };
 
             // ---------- 生命周期 ----------
@@ -2018,4 +2022,4 @@
     }).mount('#app');
 </script>
 </body>
-</html>
+    </html>
