@@ -275,7 +275,7 @@
         .sidebar-groups::-webkit-scrollbar { display: none; }
         .sidebar.expanded .sidebar-groups {
             align-items: stretch;
-            gap: 12px;
+            gap: 6px;
             padding: 8px 0;
         }
         .sidebar-bottom {
@@ -304,7 +304,7 @@
         .manage-btn:hover, .expand-btn:hover { color: var(--text-secondary); }
 
         .circle-btn {
-            width: 42px; height: 42px; border-radius: var(--radius-round); border: none; cursor: pointer;
+            width: 48px; height: 48px; border-radius: var(--radius-round); border: none; cursor: pointer;
             display: flex; align-items: center; justify-content: center; transition: all var(--transition-normal);
             position: relative; flex-shrink: 0; outline: none; -webkit-tap-highlight-color: transparent;
             background-size: cover; background-position: center; background-repeat: no-repeat;
@@ -314,6 +314,8 @@
         }
         .circle-btn:active { transform: scale(0.92); transition: transform 0.1s ease; }
         .home-btn {
+            width: 42px;      /* 恢复原来的大小 */
+            height: 42px;
             background: var(--home-btn-bg);
             border: 2px solid var(--home-btn-border);
             color: var(--home-btn-color);
@@ -351,6 +353,11 @@
             height: 40px;
             gap: 8px;
             text-indent: 0;
+        }
+        .sidebar.expanded .add-group-btn {
+            width: 100%;
+            border-radius: 8px;
+            height: 40px;
         }
         .sidebar.expanded .group-btn.has-image {
             text-indent: 0;
@@ -522,6 +529,21 @@
         .action-btn.edit-btn:hover { color: var(--action-edit-hover); }
         .action-btn.delete-btn { color: var(--action-delete); }
         .action-btn.delete-btn:hover { color: var(--action-delete-hover); }
+        .action-btn.move-btn { color: #8fb2c8; }
+        .action-btn.move-btn:hover { color: #42a5f5; }
+
+        #moveGroupList .move-option {
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s;
+            border: 1px solid var(--border-card);
+            margin-bottom: 6px;
+        }
+        #moveGroupList .move-option:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--text-muted);
+        }
         .action-btn.pin-btn { color: var(--action-pin); }
         .action-btn.pin-btn.pinned { color: var(--action-pin-pinned); }
         .action-btn.pin-btn:hover { color: var(--text-primary); }
@@ -869,7 +891,7 @@
         /* ============ 响应式 ============ */
         @media (max-width: 768px) {
             :root { --sidebar-width: 56px; --sidebar-expanded-width: 180px; }
-            .circle-btn { width: 36px; height: 36px; }
+            .circle-btn { width: 40px; height: 40px; }
             .add-group-btn { width: 32px; height: 32px; }
             .add-group-btn svg { width: 14px; height: 14px; }
             .sidebar-divider { width: 28px; }
@@ -884,6 +906,10 @@
             .fab-add-item { right: 18px; bottom: calc(22px + var(--safe-bottom)); width: 44px; height: 44px; }
             .fab-add-item svg { width: 18px; height: 18px; }
             .modal-dialog { padding: 20px 18px 18px; max-width: 95vw; border-radius: var(--radius-md); }
+            .home-btn {
+                width: 36px;
+                height: 36px;
+            }
             .back-btn { width: 38px; height: 38px; top: 10px; left: 10px; }
             .back-btn svg { width: 17px; height: 17px; }
             .manage-content { padding: 70px 16px 30px; }
@@ -945,13 +971,17 @@
 
         @media (max-width: 400px) {
             :root { --sidebar-width: 48px; --sidebar-expanded-width: 160px; }
-            .circle-btn { width: 30px; height: 30px; }
+            .circle-btn { width: 34px; height: 34px; }
             .add-group-btn { width: 28px; height: 28px; }
             .add-group-btn svg { width: 12px; height: 12px; }
             .sidebar-divider { width: 22px; }
             .group-btn { font-size: 11px; }
             .content-body { grid-template-columns: 1fr; padding: 8px 8px 120px; }
             .memo-content.collapsed { max-height: 4.5em; }
+            .home-btn {
+                width: 36px;
+                height: 36px;
+            }
         }
 
     /* ============ 排序按钮与下拉菜单 ============ */
@@ -1175,6 +1205,33 @@
 }
 .ad-close-btn:hover { opacity: 0.7; }
 
+#profileFontSizeSlider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    background: var(--border-card);
+    border-radius: 2px;
+    outline: none;
+}
+#profileFontSizeSlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--btn-primary-bg);
+    border: 2px solid var(--btn-primary-bg);
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+#profileFontSizeSlider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--btn-primary-bg);
+    border: none;
+    cursor: pointer;
+}
     </style>
 </head>
 
@@ -1217,7 +1274,7 @@
     <span class="ad-icon">📣</span>
     <div class="ad-scroll-wrapper">
         <div class="ad-scroll-inner">
-            <span class="ad-scroll-text" id="adScrollText">欢迎使用MuyeCodeVault · 广告位招租</span>
+            <span class="ad-scroll-text" id="adScrollText">广告位招租 ◆ 广告位招租 ◆ 广告位招租 ◆</span>
             <span class="ad-link" id="adEditBtn">自定义小广告</span>
         </div>
     </div>
@@ -1426,6 +1483,17 @@
         </div>
     </div>
 
+<!-- ==================== 移动条目弹窗 ==================== -->
+<div class="modal-overlay hidden" id="moveItemModal">
+    <div class="modal-dialog" style="max-width:400px;">
+        <h3>移动到分组</h3>
+        <div id="moveGroupList" style="max-height:250px; overflow-y:auto; margin-bottom:16px;"></div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" id="cancelMoveBtn">取消</button>
+        </div>
+    </div>
+</div>
+
     <!-- ==================== 编辑个人资料弹窗 ==================== -->
     <div class="modal-overlay hidden" id="editProfileModal">
         <div class="modal-dialog">
@@ -1451,6 +1519,14 @@
             <div class="form-group">
                 <label>简介</label>
                 <input type="text" id="profileBioInput" placeholder="简短介绍自己" maxlength="60">
+            </div>
+            <div class="form-group">
+                <label>全局字体大小</label>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <input type="range" id="profileFontSizeSlider" min="12" max="20" value="14" step="1" style="flex:1;">
+                    <span id="profileFontSizeValue" style="min-width:45px; text-align:right;">14px</span>
+                </div>
+                <div class="hint">调整应用内文字大小</div>
             </div>
             <div class="modal-actions">
                 <button class="btn btn-secondary" id="cancelProfileBtn">取消</button>
@@ -1933,7 +2009,7 @@ function handleDrop(e) {
             changed = true;
         }
         if (!stored.profile.adText) {
-            stored.profile.adText = '欢迎使用MuyeCodeVault · 广告位招租...';
+            stored.profile.adText = '广告位招租 ◆ 广告位招租 ◆ 广告位招租 ◆';
             changed = true;
         }
         // 补全缺失字段
@@ -1953,6 +2029,12 @@ function handleDrop(e) {
         });
         if (changed) await saveData(stored);
         appData = stored;
+        // 恢复字体大小
+        if (appData.profile.fontSize) {
+            document.documentElement.style.fontSize = appData.profile.fontSize + 'px';
+        } else {
+            document.documentElement.style.fontSize = '14px';
+        }
         lastSavedData = JSON.stringify(appData);
         const activeId = localStorage.getItem('codevault_active_v3');
         activeGroupId = activeId && appData.groups.some(g => g.id === activeId) ? activeId : '__home__';
@@ -2155,6 +2237,7 @@ function renderContent() {
                     <div class="item-actions">
                         <button class="action-btn pin-btn ${item.pinned?'pinned':''}" data-action="pin">${item.pinned?'已置顶':'置顶'}</button>
                         <button class="action-btn edit-btn" data-action="edit">编辑</button>
+                        <button class="action-btn move-btn" data-action="move">移动</button>
                         <button class="action-btn delete-btn" data-action="delete">删除</button>
                     </div>
                 </div>
@@ -2201,6 +2284,7 @@ function renderContent() {
                         <div class="item-tags">${tagsHTML || '<span class="item-tag" style="opacity:0.5;">无标签</span>'}</div>
                         <button class="action-btn pin-btn ${item.pinned?'pinned':''}" data-action="pin">${item.pinned?'已置顶':'置顶'}</button>
                         <button class="action-btn edit-btn" data-action="edit">编辑</button>
+                        <button class="action-btn move-btn" data-action="move">移动</button>
                         <button class="action-btn delete-btn" data-action="delete">删除</button>
                     </div>
                 </div>
@@ -2247,6 +2331,9 @@ function renderContent() {
             card.querySelector('[data-action="pin"]').addEventListener('click', () => togglePin(group, itemId));
             card.querySelector('[data-action="edit"]').addEventListener('click', () => openEditItemModal(group, itemId));
             card.querySelector('[data-action="delete"]').addEventListener('click', () => deleteItem(group, itemId));
+            card.querySelector('[data-action="move"]').addEventListener('click', () => {
+                openMoveItemModal(group.id, itemId);
+            });
         });
     }
     function bindMemoEvents(group) {
@@ -2255,6 +2342,9 @@ function renderContent() {
             card.querySelector('[data-action="pin"]').addEventListener('click', () => togglePin(group, itemId));
             card.querySelector('[data-action="edit"]').addEventListener('click', () => openEditItemModal(group, itemId));
             card.querySelector('[data-action="delete"]').addEventListener('click', () => deleteItem(group, itemId));
+            card.querySelector('[data-action="move"]').addEventListener('click', () => {
+                openMoveItemModal(group.id, itemId);
+            });
         });
     }
 
@@ -2537,6 +2627,12 @@ function renderContent() {
         } catch(e) { showToast('图片处理失败'); }
         this.value = '';
     });
+    // === 字体大小滑块实时更新 ===
+    if ($('#profileFontSizeSlider')) {
+        $('#profileFontSizeSlider').addEventListener('input', function() {
+            $('#profileFontSizeValue').textContent = this.value + 'px';
+        });
+    }
     clearMemoImageBtn.addEventListener('click', () => {
         tempMemoImage = '';
         memoImagePreview.style.display = 'none';
@@ -2585,6 +2681,89 @@ function renderContent() {
         updateProfileUI();
         showToast(editingItemId ? '条目已更新' : '条目已添加');
     }
+
+// ==================== 移动条目功能 ====================
+let movingItemId = null;
+let movingFromGroupId = null;
+
+function openMoveItemModal(groupId, itemId) {
+    const fromGroup = appData.groups.find(g => g.id === groupId);
+    if (!fromGroup) return;
+    movingItemId = itemId;
+    movingFromGroupId = groupId;
+
+    const listEl = $('#moveGroupList');
+    let html = '';
+    const otherGroups = appData.groups.filter(g => g.id !== groupId && g.contentType === fromGroup.contentType);
+    if (otherGroups.length === 0) {
+        html = '<p style="text-align:center;color:var(--text-muted);">没有其他分组</p>';
+    } else {
+        otherGroups.forEach(g => {
+            html += `<div class="move-option" data-target-group="${g.id}">
+                <strong>${escapeHTML(g.name)}</strong>
+                <span style="color:var(--text-muted); margin-left:8px;">${g.items ? g.items.length : 0} 个条目</span>
+            </div>`;
+        });
+    }
+    listEl.innerHTML = html;
+
+    listEl.querySelectorAll('.move-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+            const targetGroupId = opt.dataset.targetGroup;
+            executeMoveItem(targetGroupId);
+        });
+    });
+
+    $('#moveItemModal').classList.remove('hidden');
+}
+
+function closeMoveItemModal() {
+    $('#moveItemModal').classList.add('hidden');
+    movingItemId = null;
+    movingFromGroupId = null;
+}
+
+async function executeMoveItem(targetGroupId) {
+    const fromGroup = appData.groups.find(g => g.id === movingFromGroupId);
+    const toGroup = appData.groups.find(g => g.id === targetGroupId);
+    if (!fromGroup || !toGroup) return;
+
+    const itemIndex = (fromGroup.items || []).findIndex(i => i.id === movingItemId);
+    if (itemIndex === -1) return;
+
+    const [movedItem] = fromGroup.items.splice(itemIndex, 1);
+
+    // 清理原分组所有自定义排序里的该条目ID
+    if (fromGroup.customSorts) {
+        fromGroup.customSorts.forEach(cs => {
+            if (cs.order) cs.order = cs.order.filter(id => id !== movingItemId);
+        });
+    }
+
+    if (!toGroup.items) toGroup.items = [];
+    toGroup.items.push(movedItem);
+
+    // 如果目标分组是自定义排序，插入到最前
+    const currentSortId = toGroup.sortOrder;
+    if (currentSortId && currentSortId.startsWith('cs_') && toGroup.customSorts) {
+        const targetSort = toGroup.customSorts.find(cs => cs.id === currentSortId);
+        if (targetSort && targetSort.order) {
+            targetSort.order.unshift(movedItem.id);
+        }
+    }
+
+    await saveData(appData);
+    lastSavedData = JSON.stringify(appData);
+    closeMoveItemModal();
+    renderContent();
+    showToast(`已移动到「${toGroup.name}」`);
+}
+
+// 取消移动弹窗
+$('#cancelMoveBtn').addEventListener('click', closeMoveItemModal);
+$('#moveItemModal').addEventListener('click', (e) => {
+    if (e.target === $('#moveItemModal')) closeMoveItemModal();
+});
 
     async function deleteItem(group, itemId) {
         confirmMessage.textContent = '确定删除这个条目吗？';
@@ -2712,6 +2891,12 @@ function renderContent() {
             profileAvatarPreviewEl.textContent = (p.name || 'U').charAt(0).toUpperCase();
         }
         profileAvatarUrl.value = tempProfileAvatar;
+        // 恢复字体大小滑块
+        const savedFontSize = appData.profile.fontSize || 14;
+        if ($('#profileFontSizeSlider')) {
+            $('#profileFontSizeSlider').value = savedFontSize;
+            $('#profileFontSizeValue').textContent = savedFontSize + 'px';
+        }
         profileNameInput.value = p.name || '';
         profileBioInput.value = p.bio || '';
         editProfileModal.classList.remove('hidden');
@@ -2764,6 +2949,10 @@ function renderContent() {
         if (!name) { showToast('请输入昵称'); return; }
         appData.profile.name = name;
         appData.profile.bio = profileBioInput.value.trim();
+        // 保存字体大小
+        const fontSize = parseInt($('#profileFontSizeSlider').value, 10) || 14;
+        appData.profile.fontSize = fontSize;
+        document.documentElement.style.fontSize = fontSize + 'px';
         appData.profile.avatarImage = tempProfileAvatar;
         await saveData(appData);
         lastSavedData = JSON.stringify(appData);
@@ -2783,7 +2972,7 @@ if (cleanUnusedDataBtn) {
         if (!appData) return;
 
         // 定义需要保留的字段白名单
-        const profileKeys = ['name', 'bio', 'avatarColor', 'avatarImage'];
+        const profileKeys = ['name', 'bio', 'avatarColor', 'avatarImage', 'fontSize'];
         const groupKeys = ['id', 'avatarColor', 'avatarType', 'avatarImage', 'name', 'englishPhrase', 'tags', 'contentType', 'isPreset', 'items', 'pinned', 'customSorts', 'sortOrder'];
         const itemKeys = ['id', 'name', 'description', 'tags', 'htmlCode', 'pinned', 'imageData', 'createdAt'];
 
@@ -3039,7 +3228,7 @@ function updateAdBar() {
         const closed = sessionStorage.getItem('codevault_ad_closed');
         if (!closed) {
             bar.style.display = 'flex';
-            textEl.textContent = appData.profile.adText || '欢迎使用MuyeCodeVault · 自定义小广告';
+            textEl.textContent = appData.profile.adText || '广告位招租 ◆ 广告位招租 ◆ 广告位招租 ◆';
         } else {
             bar.style.display = 'none';
         }
