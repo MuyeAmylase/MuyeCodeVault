@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>世界书 · MuyeChat</title>
+    <title>MuyeChat</title>
     <link rel="stylesheet" href="common.css">
     <style>
         body {
@@ -45,7 +45,7 @@
 </head>
 <body>
     <div class="page-header">
-        <a href="more.html" class="back-btn" title="返回更多功能">
+        <a href="#" class="back-btn" title="返回" id="backBtn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <polyline points="16 4 7 12 16 20"/>
             </svg>
@@ -61,5 +61,16 @@
     </div>
     <h1 class="page-title">世界书</h1>
     <p class="page-subtitle">构建你的世界设定 · 即将上线</p>
+
+    <script>
+        document.getElementById('backBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            if (document.referrer && document.referrer.includes(location.host)) {
+                history.back();
+            } else {
+                location.href = 'more.html';
+            }
+        });
+    </script>
 </body>
 </html>
