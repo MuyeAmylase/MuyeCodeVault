@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>MuyeCodeVault更多功能</title>
+    <title>MuyeCodeVault 更多功能</title>
     <style>
         /* ========== 主题变量 ========== */
         :root {
@@ -66,41 +66,58 @@
         }
 
         .back-btn {
-            width: 44px;
-            height: 44px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            background: var(--bg-card);
-            border: 1px solid var(--border-card);
-            color: var(--text-primary);
+            background: rgba(20, 20, 26, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #fff;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: var(--shadow-sm);
-            transition: all var(--transition-normal);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+            transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
             outline: none;
             text-decoration: none;
             flex-shrink: 0;
         }
         .back-btn:hover {
-            background: var(--bg-card-hover);
-            border-color: var(--text-secondary);
+            background: rgba(30,30,38,0.9);
+            border-color: rgba(255,255,255,0.25);
+            transform: scale(1.05);
         }
         .back-btn svg {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
+        }
+
+        /* 浅色主题下的返回按钮 */
+        @media (prefers-color-scheme: light) {
+            .back-btn {
+                background: rgba(255, 255, 255, 0.72);
+                border: 1px solid rgba(0, 0, 0, 0.1);
+                color: #1c1c1e;
+                box-shadow: 0 12px 40px rgba(0,0,0,0.06);
+            }
+            .back-btn:hover {
+                background: rgba(230,230,235,0.9);
+                border-color: rgba(0,0,0,0.18);
+            }
         }
 
         .top-title {
-            font-size: 22px;          /* 调大 */
+            font-size: 22px;
             font-weight: 600;
             letter-spacing: -0.2px;
-            line-height: 44px;
+            line-height: 40px; /* 与按钮高度一致 */
         }
 
         /* 分区小标题 */
         .section-label {
-            font-size: 14px;           /* 调大 */
+            font-size: 14px;
             font-weight: 500;
             color: var(--text-muted);
             letter-spacing: 0.4px;
@@ -137,12 +154,16 @@
         .card-item:active .card-icon-box {
             transform: scale(0.94);
         }
+        a.card-item {
+            text-decoration: none;
+            color: inherit;
+         }
 
-        /* 方形图标容器 - 缩小按钮 */
+        /* 方形图标容器 */
         .card-icon-box {
-            width: 50%;               /* 只占列宽一半 */
-            max-width: 80px;          /* 限制最大宽度 */
-            aspect-ratio: 1 / 1;      /* 保持正方形 */
+            width: 50%;
+            max-width: 80px;
+            aspect-ratio: 1 / 1;
             background: var(--bg-card);
             border: 1px solid var(--border-card);
             border-radius: 16px;
@@ -151,7 +172,7 @@
             justify-content: center;
             transition: all var(--transition-normal);
             box-shadow: var(--shadow-sm);
-            margin: 0 auto;           /* 居中 */
+            margin: 0 auto;
         }
         .card-icon-box svg {
             width: 36%;
@@ -163,10 +184,10 @@
             color: var(--text-primary);
         }
 
-        /* 卡片下方文字 - 调大 */
+        /* 卡片下方文字 */
         .card-label {
             margin-top: 10px;
-            font-size: 15px;           /* 调大 */
+            font-size: 15px;
             font-weight: 500;
             color: var(--text-primary);
             letter-spacing: 0.2px;
@@ -280,16 +301,16 @@
 <div class="section-label">MuyeChat</div>
 <div class="card-grid">
     <!-- Chat -->
-    <div class="card-item">
+    <a class="card-item" href="chat.html">
         <div class="card-icon-box">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </svg>
         </div>
         <span class="card-label">Chat</span>
-    </div>
+    </a>
     <!-- Note -->
-    <div class="card-item">
+    <a class="card-item" href="note.html">
         <div class="card-icon-box">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -299,8 +320,8 @@
             </svg>
         </div>
         <span class="card-label">Note</span>
-    </div>
-    <!-- 设置 -->
+    </a>
+    <!-- 设置（无跳转） -->
     <div class="card-item">
         <div class="card-icon-box">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -310,7 +331,7 @@
         </div>
         <span class="card-label">设置</span>
     </div>
-    <!-- 美化 -->
+    <!-- 美化（无跳转） -->
     <div class="card-item">
         <div class="card-icon-box">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -321,7 +342,7 @@
         <span class="card-label">美化</span>
     </div>
     <!-- 世界书 -->
-    <div class="card-item">
+    <a class="card-item" href="worldbook.html">
         <div class="card-icon-box">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"/>
@@ -330,9 +351,9 @@
             </svg>
         </div>
         <span class="card-label">世界书</span>
-    </div>
+    </a>
     <!-- 音乐 -->
-    <div class="card-item">
+    <a class="card-item" href="music.html">
         <div class="card-icon-box">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9 18V5l12-2v13"/>
@@ -341,9 +362,9 @@
             </svg>
         </div>
         <span class="card-label">音乐</span>
-    </div>
+    </a>
     <!-- 记忆库 -->
-    <div class="card-item">
+    <a class="card-item" href="memory.html">
         <div class="card-icon-box">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 2L2 7l10 5 10-5-10-5z"/>
@@ -352,7 +373,7 @@
             </svg>
         </div>
         <span class="card-label">记忆库</span>
-    </div>
+    </a>
 </div>
 </body>
-    </html>
+                        </html>
