@@ -72,16 +72,19 @@
             -webkit-font-smoothing: antialiased;
             user-select: none;
             -webkit-user-select: none;
+            height: 110vh;            /* 新增，固定为视口高度 */
+            overflow: hidden;         /* 新增，禁止 body 本身滚动 */
         }
-
-        .page-wrapper {
-            width: 100%;
-            max-width: 600px;
-            margin-top: 16px;
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-        }
+.page-wrapper {
+    width: 100%;
+    max-width: 600px;
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    height: 100%;             /* 新增，继承 body 高度 */
+    overflow: hidden;         /* 新增，防止溢出 */
+}
 
         /* 顶部栏（与设置页统一） */
         .top-bar {
@@ -233,14 +236,15 @@
         }
 
         /* 词条列表容器 */
-        .content {
-            flex: 1;
-            overflow-y: auto;
-            padding-bottom: 100px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
+.content {
+    flex: 1;
+    min-height: 0;            /* 必须保留，允许收缩 */
+    overflow-y: auto;         /* 已存在，确保是 auto */
+    padding-bottom: 100px;    /* 已存在 */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
 
         /* 词条卡片（卡片风格统一） */
         .entry-card {
@@ -549,7 +553,18 @@
             gap: 10px;
             justify-content: flex-end;
         }
-    </style>
+
+.import-txt-btn {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+}
+</style>
 </head>
 <body>
 <div class="page-wrapper">
@@ -621,11 +636,16 @@
             </div>
             <div class="preset-dropdown" id="groupDropdown"></div>
         </div>
-        <div>
-            <div class="field-label">正文内容</div>
-            <textarea class="form-input" id="entryContent" placeholder="描述这个世界…"></textarea>
-            <div class="char-count" id="charCount">共 0 字</div>
-        </div>
+<div>
+    <div class="field-label" style="display: flex; justify-content: space-between; align-items: center;">
+        <span>正文内容</span>
+        <button type="button" class="import-txt-btn" id="importTxtBtn">导入txt</button>
+    </div>
+    <textarea class="form-input" id="entryContent" placeholder="描述这个世界…"></textarea>
+    <div class="char-count" id="charCount">共 0 字</div>
+</div>
+<!-- 隐藏的文件选择器 -->
+<input type="file" id="importFileInput" accept=".txt" style="display: none;">
         <div>
             <div class="field-label">标签（用逗号分隔）</div>
             <input class="form-input" id="entryTags" placeholder="例如：种族, 地理">
@@ -685,7 +705,6 @@
         }).join('') + `
             <div class="add-group-chip" onclick="openAddGroup()">+</div>
         `;
-
         bar.querySelectorAll('.chip-delete').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -767,26 +786,34 @@
     async function loadEntries() {
         const all = await MuyeDB.getAll('worldbook');
         entries = (all || []).filter(e => (e.groupId || '__default__') === activeGroupId)
-            .sort((a,b) => {
-                if (a.pinned && !b.pinned) return -1;
-                if (!a.pinned && b.pinned) return 1;
-                return b.createdAt - a.createdAt;
-            });
-        renderEntries();
+                           .sort((a,b) => {
+                               if (a.pinned && !b.pinned) return -1;
+                               if (!a.pinned && b.pinned) return 1;
+                               return b.createdAt - a.createdAt;
+                           });
+        await renderEntries();
     }
 
-    function renderEntries() {
+    async function renderEntries() {
         const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
-        const filtered = keyword
-            ? entries.filter(e => e.title.toLowerCase().includes(keyword) || 
-                                (e.tags||[]).some(t => t.toLowerCase().includes(keyword)))
-            : entries;
+        let filtered;
+        if (keyword) {
+            const allEntries = await MuyeDB.getAll('worldbook');
+            const all = allEntries || [];
+            filtered = all.filter(e => 
+                e.title.toLowerCase().includes(keyword) ||
+                (e.tags && Array.isArray(e.tags) && e.tags.some(t => t.toLowerCase().includes(keyword)))
+            );
+        } else {
+            filtered = entries;
+        }
 
         const list = document.getElementById('entryList');
         if (!filtered.length) {
             list.innerHTML = '<div style="text-align:center;color:var(--text-muted);margin-top:60px;">暂无词条</div>';
             return;
         }
+
         list.innerHTML = filtered.map(e => {
             const tagsStr = (e.tags || []).map(t => `#${t}`).join(' ');
             return `
@@ -805,24 +832,89 @@
                             ${e.enabled !== false ? '已启用' : '启用'}
                         </button>
                         <button class="text-btn" data-edit="${e.id}">编辑</button>
+                        <button class="text-btn" data-export="${e.id}">导出</button>
                         <button class="text-btn delete-btn" data-delete="${e.id}">删除</button>
                     </div>
                 </div>
             </div>
         `}).join('');
+    }
 
-        list.querySelectorAll('[data-pin]').forEach(btn => {
-            btn.addEventListener('click', (e) => { e.stopPropagation(); togglePin(btn.dataset.pin); });
-        });
-        list.querySelectorAll('[data-toggle]').forEach(btn => {
-            btn.addEventListener('click', (e) => { e.stopPropagation(); toggleEnabled(btn.dataset.toggle); });
-        });
-        list.querySelectorAll('[data-edit]').forEach(btn => {
-            btn.addEventListener('click', (e) => { e.stopPropagation(); openEditEntry(btn.dataset.edit); });
-        });
-        list.querySelectorAll('[data-delete]').forEach(btn => {
-            btn.addEventListener('click', (e) => { e.stopPropagation(); deleteEntry(btn.dataset.delete); });
-        });
+    // ========== 全局事件委托（修复导出点击无反应） ==========
+    document.addEventListener('click', async (e) => {
+        const target = e.target;
+
+        // 导出按钮
+        const exportBtn = target.closest('[data-export]');
+        if (exportBtn) {
+            e.stopPropagation();
+            const id = exportBtn.dataset.export;
+            console.log('触发导出，词条ID:', id);
+            await exportEntry(id);
+            return;
+        }
+
+        // 置顶按钮
+        const pinBtn = target.closest('[data-pin]');
+        if (pinBtn) {
+            e.stopPropagation();
+            await togglePin(pinBtn.dataset.pin);
+            return;
+        }
+
+        // 启用按钮
+        const toggleBtn = target.closest('[data-toggle]');
+        if (toggleBtn) {
+            e.stopPropagation();
+            await toggleEnabled(toggleBtn.dataset.toggle);
+            return;
+        }
+
+        // 编辑按钮
+        const editBtn = target.closest('[data-edit]');
+        if (editBtn) {
+            e.stopPropagation();
+            openEditEntry(editBtn.dataset.edit);
+            return;
+        }
+
+        // 删除按钮
+        const deleteBtn = target.closest('[data-delete]');
+        if (deleteBtn) {
+            e.stopPropagation();
+            await deleteEntry(deleteBtn.dataset.delete);
+            return;
+        }
+    });
+
+    // 导出词条（字符串ID比较 + 详细日志）
+    async function exportEntry(id) {
+        console.log('开始导出，ID:', id, '类型:', typeof id);
+        try {
+            const allEntries = await MuyeDB.getAll('worldbook');
+            console.log('数据库所有词条数量:', allEntries?.length);
+            // 统一转为字符串比较
+            const entry = (allEntries || []).find(e => String(e.id) === String(id));
+            if (!entry) {
+                console.error('未找到匹配词条，传入ID:', id, '数据库ID列表:', allEntries.map(e => e.id));
+                alert('词条未找到，可能已被删除。请查看控制台获取详细信息。');
+                return;
+            }
+            console.log('找到词条:', entry.title);
+            const blob = new Blob([entry.content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = (entry.title || '词条') + '.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            console.log('导出成功');
+        } catch (err) {
+            console.error('导出失败:', err);
+            alert('导出失败：' + err.message);
+        }
     }
 
     async function togglePin(id) {
@@ -841,7 +933,7 @@
         await loadEntries();
     }
 
-    // ========== 弹窗内分组下拉（统一为预设选择器样式） ==========
+    // ========== 弹窗内分组下拉 ==========
     function renderGroupDropdown() {
         const dropdown = document.getElementById('groupDropdown');
         dropdown.innerHTML = groups.map(g => `
@@ -874,32 +966,11 @@
         }
     }
 
-    document.getElementById('groupSelector').addEventListener('click', (e) => {
-        e.stopPropagation();
-        const dropdown = document.getElementById('groupDropdown');
-        if (dropdown.classList.contains('show')) {
-            dropdown.classList.remove('show');
-            document.getElementById('groupSelector').classList.remove('open');
-        } else {
-            openGroupDropdown();
-        }
-    });
-
-    document.addEventListener('click', (e) => {
-        const dropdown = document.getElementById('groupDropdown');
-        const selector = document.getElementById('groupSelector');
-        if (dropdown && !selector.contains(e.target) && !dropdown.contains(e.target)) {
-            dropdown.classList.remove('show');
-            selector.classList.remove('open');
-        }
-    });
-
-    // 字数统计
+    // ========== 词条弹窗（新增/编辑） ==========
     const entryContentTextarea = document.getElementById('entryContent');
     const charCountDisplay = document.getElementById('charCount');
     entryContentTextarea.addEventListener('input', () => {
-        const len = entryContentTextarea.value.length;
-        charCountDisplay.textContent = `共 ${len} 字`;
+        charCountDisplay.textContent = `共 ${entryContentTextarea.value.length} 字`;
     });
 
     function openAddEntry() {
@@ -912,6 +983,7 @@
         selectedGroupId = activeGroupId;
         const group = groups.find(g => g.id === selectedGroupId) || { name: '默认分组' };
         document.getElementById('groupDisplayText').textContent = group.name;
+        document.getElementById('importTxtBtn').style.display = 'inline';
         document.getElementById('entryModal').classList.add('active');
     }
 
@@ -927,6 +999,7 @@
         selectedGroupId = entry.groupId || '__default__';
         const group = groups.find(g => g.id === selectedGroupId) || { name: '默认分组' };
         document.getElementById('groupDisplayText').textContent = group.name;
+        document.getElementById('importTxtBtn').style.display = 'none';
         document.getElementById('entryModal').classList.add('active');
     }
 
@@ -972,12 +1045,56 @@
         return d.innerHTML;
     }
 
-    // 事件绑定
+    // ========== 导入 txt ==========
+    document.getElementById('importTxtBtn').addEventListener('click', () => {
+        document.getElementById('importFileInput').click();
+    });
+
+    document.getElementById('importFileInput').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (!file.name.toLowerCase().endsWith('.txt')) {
+            alert('目前仅支持导入 .txt 文件');
+            e.target.value = '';
+            return;
+        }
+        const text = await file.text();
+        const title = file.name.replace(/\.[^/.]+$/, "");
+        document.getElementById('entryTitle').value = title;
+        document.getElementById('entryContent').value = text;
+        document.getElementById('charCount').textContent = `共 ${text.length} 字`;
+        selectedGroupId = '__default__';
+        const defaultGroup = groups.find(g => g.id === '__default__') || { name: '默认分组' };
+        document.getElementById('groupDisplayText').textContent = defaultGroup.name;
+        e.target.value = '';
+    });
+
+    // ========== 其他事件绑定 ==========
     document.getElementById('addEntryBtn').addEventListener('click', openAddEntry);
     document.getElementById('saveEntryBtn').addEventListener('click', saveEntry);
     document.getElementById('saveGroupBtn').addEventListener('click', saveGroup);
     document.getElementById('entryModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeEntryModal(); });
     document.getElementById('groupModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeGroupModal(); });
+
+    document.getElementById('groupSelector').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const dropdown = document.getElementById('groupDropdown');
+        if (dropdown.classList.contains('show')) {
+            dropdown.classList.remove('show');
+            document.getElementById('groupSelector').classList.remove('open');
+        } else {
+            openGroupDropdown();
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        const dropdown = document.getElementById('groupDropdown');
+        const selector = document.getElementById('groupSelector');
+        if (dropdown && !selector.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.remove('show');
+            selector.classList.remove('open');
+        }
+    });
 
     document.getElementById('backBtn').addEventListener('click', function(e) {
         e.preventDefault();
@@ -988,6 +1105,11 @@
         }
     });
 
+    document.getElementById('searchInput').addEventListener('input', () => {
+        renderEntries();
+    });
+
+    // 初始化
     loadGroups();
 </script>
 </body>
