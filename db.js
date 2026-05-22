@@ -6,9 +6,7 @@
     'use strict';
 
     const DB_NAME = 'MuyeChat7403DB';
-    const DB_VERSION = 2;
-
-    let currentDB = null;   // 保存当前打开的数据库实例
+    const DB_VERSION = 3;   // ← 升级到 3
 
     // ---------- 打开数据库 ----------
     function openDB() {
@@ -19,6 +17,7 @@
                 const database = e.target.result;
                 const oldVersion = e.oldVersion;
 
+                // 版本 < 1：创建 songs 和 settings（已有用户不会触发）
                 if (oldVersion < 1) {
                     if (!database.objectStoreNames.contains('songs')) {
                         const songsStore = database.createObjectStore('songs', {
@@ -29,6 +28,7 @@
                     }
                 }
 
+                // 版本 < 2：创建 settings（已有用户不会触发）
                 if (oldVersion < 2) {
                     if (!database.objectStoreNames.contains('settings')) {
                         database.createObjectStore('settings', {
@@ -36,11 +36,26 @@
                         });
                     }
                 }
+
+                // 版本 < 3：创建 chats, worldbook, memory, notes
+                if (oldVersion < 3) {
+                    if (!database.objectStoreNames.contains('chats')) {
+                        database.createObjectStore('chats', { keyPath: 'id' });
+                    }
+                    if (!database.objectStoreNames.contains('worldbook')) {
+                        database.createObjectStore('worldbook', { keyPath: 'id' });
+                    }
+                    if (!database.objectStoreNames.contains('memory')) {
+                        database.createObjectStore('memory', { keyPath: 'id' });
+                    }
+                    if (!database.objectStoreNames.contains('notes')) {
+                        database.createObjectStore('notes', { keyPath: 'id' });
+                    }
+                }
             };
 
             request.onsuccess = function (e) {
-                currentDB = e.target.result;   // 保存实例，供 close 使用
-                resolve(currentDB);
+                resolve(e.target.result);
             };
 
             request.onerror = function (e) {
@@ -54,14 +69,6 @@
         });
     }
 
-    // ---------- 关闭当前数据库连接 ----------
-    function closeDB() {
-        if (currentDB) {
-            currentDB.close();
-            currentDB = null;
-        }
-    }
-
     // ---------- 带重试的数据读取 ----------
     async function loadFromDB(storeName, operation, retries = 3) {
         for (let i = 0; i < retries; i++) {
@@ -73,10 +80,7 @@
                     const request = operation(store);
                     request.onsuccess = () => resolve(request.result);
                     request.onerror = () => reject(request.error);
-                    tx.oncomplete = () => {
-                        db.close();
-                        currentDB = null;   // 连接已关闭，清除引用
-                    };
+                    tx.oncomplete = () => { db.close(); };
                 });
             } catch (e) {
                 if (i === retries - 1) throw e;
@@ -94,11 +98,7 @@
                     const tx = db.transaction(storeName, 'readwrite');
                     const store = tx.objectStore(storeName);
                     operation(store);
-                    tx.oncomplete = () => {
-                        db.close();
-                        currentDB = null;
-                        resolve();
-                    };
+                    tx.oncomplete = () => { db.close(); resolve(); };
                     tx.onerror = () => reject(tx.error);
                     tx.onabort = () => reject(new Error('事务中止'));
                 });
@@ -158,8 +158,7 @@
         remove,
         clear,
         getSettings,
-        saveSettings,
-        close: closeDB   // 新增：手动关闭数据库连接
+        saveSettings
     };
 
 })();
