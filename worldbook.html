@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>MuyeChat</title>
+    <title>MuyeChat · 世界书</title>
     <style>
         :root {
+            /* 保留原世界书颜色主题 */
             --bg-primary: #1a1a1f;
             --bg-card: #222228;
             --bg-card-hover: #282830;
@@ -17,8 +18,24 @@
             --shadow-md: 0 6px 20px rgba(0,0,0,0.4);
             --accent: #8fb2c8;
             --danger: #e57373;
+
+            /* 统一设计系统变量（颜色继承原有） */
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             --safe-bottom: env(safe-area-inset-bottom, 16px);
+
+            /* 输入框/搜索栏背景沿用卡片色 */
+            --search-bg: var(--bg-card);
+            --search-border: var(--border-card);
+            --input-bg: var(--bg-primary);
+            --input-border: var(--border-card);
+            --btn-save-bg: #252525;
+            --btn-save-border: #252525;
+            --btn-save-text: #ffffff;
         }
+
         @media (prefers-color-scheme: light) {
             :root {
                 --bg-primary: #f2f2f7;
@@ -29,122 +46,275 @@
                 --text-muted: #8e8e93;
                 --border-card: #d1d1d6;
                 --shadow-sm: 0 2px 8px rgba(0,0,0,0.02);
+                --shadow-md: 0 6px 20px rgba(0,0,0,0.04);
                 --accent: #5b8def;
+                --search-bg: #ffffff;
+                --search-border: #d1d1d6;
+                --input-bg: #ffffff;
+                --input-border: #d1d1d6;
+                --btn-save-bg: #252525;
+                --btn-save-border: #252525;
+                --btn-save-text: #ffffff;
             }
         }
+
         * { margin:0; padding:0; box-sizing:border-box; }
-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    padding: 20px;
-    -webkit-font-smoothing: antialiased;
-    user-select: none;
-    -webkit-user-select: none;
-}
 
-.top-bar {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 24px;
-}
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            -webkit-font-smoothing: antialiased;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .page-wrapper {
+            width: 100%;
+            max-width: 600px;
+            margin-top: 16px;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        /* 顶部栏（与设置页统一） */
+        .top-bar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
         .back-btn {
-            width: 36px; height: 36px; border-radius: 50%;
-            background: none; border: none; color: var(--text-primary);
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-            transition: opacity 0.2s;
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: transparent;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: background 0.2s;
+            outline: none;
+            flex-shrink: 0;
         }
-        .back-btn:active { opacity: 0.5; }
-        .back-btn svg { width: 22px; height: 22px; }
-        .top-title { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+        .back-btn:hover {
+            background: rgba(128, 128, 128, 0.15);
+        }
+        .back-btn svg {
+            width: 22px;
+            height: 22px;
+        }
 
+        .top-title {
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.2px;
+            line-height: 40px;
+        }
+
+        /* 搜索栏（与设置页统一） */
         .search-bar {
-            margin: 0 16px 8px; display: flex; align-items: center;
-            background: var(--bg-card); border: 1px solid var(--border-card);
-            border-radius: 8px; padding: 0 12px; height: 38px; flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            background: var(--search-bg);
+            border: 1px solid var(--search-border);
+            border-radius: var(--radius-md);
+            padding: 0 12px;
+            height: 38px;
+            gap: 8px;
+            margin-bottom: 6px;
+            box-shadow: var(--shadow-sm);
         }
-        .search-icon {
-            display: flex; align-items: center; margin-right: 8px;
-            color: var(--text-muted); flex-shrink: 0;
-        }
-        .search-icon svg { width: 16px; height: 16px; }
-        .search-bar input {
-            flex:1; background:none; border:none; color:var(--text-primary);
-            font-size:14px; outline:none;
-        }
-        .search-bar input::placeholder { color:var(--text-muted); }
 
-.group-bar {
-    display: flex; gap: 8px; padding: 8px 20px; overflow-x: auto;
-    scrollbar-width: none; -ms-overflow-style: none; flex-shrink: 0;
-    align-items: center;
-}
+        .search-icon {
+            display: flex;
+            align-items: center;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+        .search-icon svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .search-input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            min-width: 0;
+        }
+        .search-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* 分组栏 */
+        .group-bar {
+            display: flex;
+            gap: 8px;
+            padding: 8px 0;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            flex-shrink: 0;
+            align-items: center;
+            margin-bottom: 8px;
+        }
         .group-bar::-webkit-scrollbar { display: none; }
+
         .group-chip {
-            display: flex; align-items: center; gap: 6px;
-            padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border-card);
-            background: var(--bg-card); color: var(--text-secondary); font-size: 13px;
-            font-weight: 500; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border-card);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
             transition: all 0.2s;
         }
         .group-chip.active {
-            color: var(--text-primary); border-color: var(--text-muted);
+            color: var(--text-primary);
+            border-color: var(--text-muted);
             box-shadow: 0 0 0 2px rgba(143,178,200,0.15);
         }
+
         .chip-delete {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 16px; height: 16px; border-radius: 50%; background: transparent;
-            color: var(--danger); font-size: 14px; font-weight: bold; cursor: pointer;
-            transition: transform 0.1s; line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: transparent;
+            color: var(--danger);
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s;
+            line-height: 1;
         }
         .chip-delete:hover { transform: scale(1.2); }
-        .add-group-chip {
-            width: 34px; height: 34px; border-radius: 50%; border: 1px dashed var(--border-card);
-            background: transparent; color: var(--text-muted); font-size: 18px;
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0; transition: all 0.2s;
-        }
-        .add-group-chip:active { border-color: var(--text-muted); color: var(--text-primary); }
 
+        .add-group-chip {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 1px dashed var(--border-card);
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+        .add-group-chip:active {
+            border-color: var(--text-muted);
+            color: var(--text-primary);
+        }
+
+        /* 词条列表容器 */
         .content {
-            flex:1; overflow-y:auto; padding:8px 16px 100px;
-            display:flex; flex-direction:column; gap:10px;
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
+
+        /* 词条卡片（卡片风格统一） */
         .entry-card {
-            background: var(--bg-card); border: 1px solid var(--border-card);
-            border-radius: 10px; padding: 14px 16px; display: flex;
-            flex-direction: column; gap: 8px; box-shadow: var(--shadow-sm);
-            cursor: default; transition: transform 0.15s, background 0.15s;
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: var(--shadow-sm);
+            cursor: default;
+            transition: transform 0.15s, background 0.15s;
         }
-        .entry-card.pinned { border-left: 3px solid var(--accent); }
-        .entry-header { display: flex; justify-content: space-between; align-items: flex-start; }
-        .entry-title { font-size: 16px; font-weight: 600; }
+        .entry-card.pinned {
+            border-left: 3px solid var(--accent);
+        }
+
+        .entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .entry-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
         .entry-content {
-            font-size: 14px; color: var(--text-secondary);
-            white-space: pre-wrap; line-height: 1.5;
-            overflow: hidden; display: -webkit-box;
-            -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+            font-size: 14px;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+            line-height: 1.5;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
         }
+
         .entry-footer {
-            display: flex; justify-content: space-between; align-items: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             border-top: 1px solid var(--border-card);
-            padding-top: 8px; margin-top: 4px;
+            padding-top: 8px;
+            margin-top: 4px;
         }
+
         .entry-tags-text {
-            font-size: 12px; color: var(--text-muted);
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            flex: 1; min-width: 0;
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+            min-width: 0;
         }
+
         .entry-actions {
-            display: flex; gap: 16px; flex-shrink: 0; margin-left: 12px;
+            display: flex;
+            gap: 16px;
+            flex-shrink: 0;
+            margin-left: 12px;
         }
+
         .text-btn {
-            background: none; border: none; cursor: pointer; font-size: 12px;
-            font-weight: 500; padding: 2px 0; color: var(--text-muted);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            padding: 2px 0;
+            color: var(--text-muted);
             transition: color 0.2s;
         }
         .text-btn:active { color: var(--text-primary); }
@@ -152,81 +322,238 @@ body {
         .text-btn.toggle-btn.enabled { color: var(--accent); }
         .text-btn.delete-btn { color: var(--danger); }
 
+        /* FAB */
         .fab {
-            position: fixed; right: 20px; bottom: calc(20px + var(--safe-bottom));
-            width: 48px; height: 48px; border-radius: 50%;
-            background: var(--bg-card); color: var(--text-primary);
+            position: fixed;
+            right: 20px;
+            bottom: calc(20px + var(--safe-bottom));
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            color: var(--text-primary);
             border: 1px solid var(--border-card);
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-            box-shadow: var(--shadow-md); z-index: 10; transition: all 0.2s;
-            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-md);
+            z-index: 10;
+            transition: all 0.2s;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
         }
-        .fab:active { transform: scale(0.95); background: var(--bg-card-hover); }
+        .fab:active {
+            transform: scale(0.95);
+            background: var(--bg-card-hover);
+        }
         .fab svg { width: 24px; height: 24px; }
 
-        .modal-overlay {
-            position: fixed; inset:0; background: rgba(0,0,0,0.4);
-            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-            display: flex; align-items: center; justify-content: center; z-index: 100;
-        }
-        .modal-overlay.hidden { display: none; }
-        .modal-box {
-            background: var(--bg-card); border: 1px solid var(--border-card);
-            border-radius: 14px; padding: 24px; width: 90%; max-width: 400px;
-            display: flex; flex-direction: column; gap: 16px; box-shadow: var(--shadow-md);
-            max-height: 85vh; overflow-y: auto;
-        }
-        .modal-box h3 { font-size: 18px; font-weight: 600; }
-        .field-label {
-            font-size: 12px; color: var(--text-muted);
-            margin-bottom: 2px; font-weight: 500; letter-spacing: 0.3px;
-        }
-        .input-field {
-            width: 100%; padding: 10px 12px; border: 1px solid var(--border-card);
-            border-radius: 8px; background: var(--bg-primary); color: var(--text-primary);
-            font-size: 14px; outline: none;
-        }
-        .input-field:focus { border-color: var(--accent); }
-        textarea.input-field { min-height: 100px; resize: vertical; }
-        .char-count {
-            text-align: right; font-size: 11px; color: var(--text-muted);
-            margin-top: 2px; padding-right: 4px;
+        /* 通用按钮样式（与设置页统一） */
+        .btn-primary,
+        .btn-secondary,
+        .btn-save,
+        .btn-danger {
+            width: 100%;
+            box-sizing: border-box;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-sm);
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s, background 0.2s;
+            outline: none;
+            border: none;
+            text-align: center;
         }
 
-        .group-selector { position: relative; }
-        .group-selector-display {
-            padding: 10px 12px; border: 1px solid var(--border-card);
-            border-radius: 8px; background: var(--bg-primary); color: var(--text-primary);
-            font-size: 14px; cursor: pointer; display: flex; align-items: center;
-            justify-content: space-between;
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
         }
-        .group-dropdown {
-            position: absolute; top: 100%; left: 0; right: 0;
-            margin-top: 4px; background: var(--bg-card); border: 1px solid var(--border-card);
-            border-radius: 8px; z-index: 150; max-height: 200px; overflow-y: auto;
-            display: none; box-shadow: var(--shadow-md);
+        .btn-primary:hover { opacity: 0.85; }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-card);
         }
-        .group-dropdown.show { display: block; }
-        .group-dropdown-item {
-            padding: 10px 12px; cursor: pointer; font-size: 14px;
-            color: var(--text-primary); transition: background 0.15s;
-        }
-        .group-dropdown-item:hover { background: var(--bg-card-hover); }
+        .btn-secondary:hover { background: var(--bg-card-hover); }
 
         .btn-save {
-            background: var(--text-primary); color: var(--bg-primary);
-            border: none; border-radius: 8px;
-            padding: 10px 20px; font-weight: 600; cursor: pointer;
+            background: var(--btn-save-bg);
+            border: 1px solid var(--btn-save-border);
+            color: var(--btn-save-text);
         }
-        .btn-cancel {
-            background: transparent; border: 1px solid var(--border-card);
-            color: var(--text-primary); border-radius: 8px;
-            padding: 10px 20px; font-weight: 500; cursor: pointer;
+        .btn-save:hover { opacity: 0.85; }
+
+        .btn-danger {
+            background: #d32f2f;
+            color: #fff;
         }
-        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+        .btn-danger:hover { opacity: 0.85; }
+
+        /* 模态框内按钮恢复自适应宽度 */
+        .modal-actions .btn-secondary,
+        .modal-actions .btn-save {
+            width: auto;
+            flex: 0 0 auto;
+        }
+
+        /* 模态弹窗（与设置页统一） */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            backdrop-filter: blur(2px);
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-dialog {
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: var(--shadow-md);
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        /* 表单标签与输入框 */
+        .field-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-input:focus {
+            border-color: var(--accent);
+        }
+        textarea.form-input {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .char-count {
+            text-align: right;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+            padding-right: 4px;
+        }
+
+        /* 分组选择器（复用预设选择器风格） */
+        .preset-selector {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 14px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+            user-select: none;
+        }
+        .preset-selector:hover {
+            border-color: var(--accent);
+        }
+        .preset-selector .preset-value {
+            font-weight: 500;
+        }
+        .preset-selector .preset-arrow {
+            width: 16px;
+            height: 16px;
+            color: var(--text-muted);
+            transition: transform 0.2s;
+        }
+        .preset-selector.open .preset-arrow {
+            transform: rotate(180deg);
+        }
+
+        .preset-dropdown {
+            position: fixed;
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-md);
+            z-index: 99999;
+            display: none;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .preset-dropdown.show {
+            display: block;
+        }
+
+        .preset-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-primary);
+            transition: background 0.15s;
+        }
+        .preset-item:hover {
+            background: var(--bg-card-hover);
+        }
+        .preset-item:first-child {
+            border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+        }
+        .preset-item:last-child {
+            border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
     </style>
 </head>
 <body>
+<div class="page-wrapper">
+    <!-- 顶部栏（与设置页完全相同的结构） -->
     <div class="top-bar">
         <button class="back-btn" id="backBtn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -236,6 +563,7 @@ body {
         <span class="top-title">世界书</span>
     </div>
 
+    <!-- 搜索栏（统一风格，无按钮） -->
     <div class="search-bar">
         <span class="search-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -243,65 +571,71 @@ body {
                 <line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
         </span>
-        <input type="text" id="searchInput" placeholder="搜索词条..." oninput="renderEntries()">
+        <input type="text" class="search-input" id="searchInput" placeholder="搜索词条..." oninput="renderEntries()">
     </div>
 
+    <!-- 分组栏 -->
     <div class="group-bar" id="groupBar"></div>
 
+    <!-- 词条列表 -->
     <div class="content" id="entryList"></div>
+</div>
 
-    <button class="fab" id="addEntryBtn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-    </button>
+<!-- 添加词条 FAB -->
+<button class="fab" id="addEntryBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+</button>
 
-    <div class="modal-overlay hidden" id="groupModal">
-        <div class="modal-box">
-            <h3 id="groupModalTitle">新建分组</h3>
-            <div>
-                <div class="field-label">分组名称</div>
-                <input class="input-field" id="groupNameInput" placeholder="例如：世界观">
-            </div>
-            <div class="modal-actions">
-                <button class="btn-cancel" onclick="closeGroupModal()">取消</button>
-                <button class="btn-save" id="saveGroupBtn">保存</button>
-            </div>
+<!-- 分组编辑弹窗 -->
+<div class="modal-overlay" id="groupModal">
+    <div class="modal-dialog">
+        <div class="modal-title" id="groupModalTitle">新建分组</div>
+        <div>
+            <div class="field-label">分组名称</div>
+            <input class="form-input" id="groupNameInput" placeholder="例如：世界观">
+        </div>
+        <div class="modal-actions">
+            <button class="btn-secondary" onclick="closeGroupModal()">取消</button>
+            <button class="btn-save" id="saveGroupBtn">保存</button>
         </div>
     </div>
+</div>
 
-    <div class="modal-overlay hidden" id="entryModal">
-        <div class="modal-box">
-            <h3 id="entryModalTitle">新词条</h3>
-            <div>
-                <div class="field-label">词条标题</div>
-                <input class="input-field" id="entryTitle" placeholder="标题">
+<!-- 词条编辑弹窗 -->
+<div class="modal-overlay" id="entryModal">
+    <div class="modal-dialog">
+        <div class="modal-title" id="entryModalTitle">新词条</div>
+        <div>
+            <div class="field-label">词条标题</div>
+            <input class="form-input" id="entryTitle" placeholder="标题">
+        </div>
+        <div>
+            <div class="field-label">所属分组</div>
+            <div class="preset-selector" id="groupSelector">
+                <span class="preset-value" id="groupDisplayText">默认分组</span>
+                <svg class="preset-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="6 9 12 15 18 9"/>
+                </svg>
             </div>
-            <div>
-                <div class="field-label">所属分组</div>
-                <div class="group-selector" id="groupSelector">
-                    <div class="group-selector-display" id="groupDisplay">
-                        <span id="groupDisplayText">默认分组</span>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-                    </div>
-                    <div class="group-dropdown" id="groupDropdown"></div>
-                </div>
-            </div>
-            <div>
-                <div class="field-label">正文内容</div>
-                <textarea class="input-field" id="entryContent" placeholder="描述这个世界…"></textarea>
-                <div class="char-count" id="charCount">共 0 字</div>
-            </div>
-            <div>
-                <div class="field-label">标签（用逗号分隔）</div>
-                <input class="input-field" id="entryTags" placeholder="例如：种族, 地理">
-            </div>
-            <div class="modal-actions">
-                <button class="btn-cancel" onclick="closeEntryModal()">取消</button>
-                <button class="btn-save" id="saveEntryBtn">保存</button>
-            </div>
+            <div class="preset-dropdown" id="groupDropdown"></div>
+        </div>
+        <div>
+            <div class="field-label">正文内容</div>
+            <textarea class="form-input" id="entryContent" placeholder="描述这个世界…"></textarea>
+            <div class="char-count" id="charCount">共 0 字</div>
+        </div>
+        <div>
+            <div class="field-label">标签（用逗号分隔）</div>
+            <input class="form-input" id="entryTags" placeholder="例如：种族, 地理">
+        </div>
+        <div class="modal-actions">
+            <button class="btn-secondary" onclick="closeEntryModal()">取消</button>
+            <button class="btn-save" id="saveEntryBtn">保存</button>
         </div>
     </div>
+</div>
 
 <script src="db.js"></script>
 <script>
@@ -312,14 +646,12 @@ body {
     let editingEntryId = null;
     let selectedGroupId = '__default__';
 
-    // ========== 分组管理（独立存储） ==========
+    // ========== 分组管理 ==========
     async function loadGroups() {
-        // 从 settings 读取分组列表
         const saved = await MuyeDB.get('settings', 'worldbook_groups');
         if (saved && Array.isArray(saved.value)) {
             groups = saved.value;
         } else {
-            // 首次使用：从现有词条中提取分组信息，保存为独立列表
             const allEntries = await MuyeDB.getAll('worldbook');
             const groupMap = new Map();
             (allEntries || []).forEach(e => {
@@ -354,7 +686,6 @@ body {
             <div class="add-group-chip" onclick="openAddGroup()">+</div>
         `;
 
-        // 重新绑定删除事件
         bar.querySelectorAll('.chip-delete').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -373,7 +704,7 @@ body {
         editingGroupId = null;
         document.getElementById('groupModalTitle').textContent = '新建分组';
         document.getElementById('groupNameInput').value = '';
-        document.getElementById('groupModal').classList.remove('hidden');
+        document.getElementById('groupModal').classList.add('active');
     }
 
     function openEditGroup(groupId) {
@@ -382,11 +713,11 @@ body {
         editingGroupId = groupId;
         document.getElementById('groupModalTitle').textContent = '编辑分组';
         document.getElementById('groupNameInput').value = group.name;
-        document.getElementById('groupModal').classList.remove('hidden');
+        document.getElementById('groupModal').classList.add('active');
     }
 
     function closeGroupModal() {
-        document.getElementById('groupModal').classList.add('hidden');
+        document.getElementById('groupModal').classList.remove('active');
         editingGroupId = null;
     }
 
@@ -396,7 +727,6 @@ body {
         if (editingGroupId) {
             const group = groups.find(g => g.id === editingGroupId);
             if (group) group.name = name;
-            // 同步更新该分组下所有词条的 groupName
             const allEntries = await MuyeDB.getAll('worldbook');
             for (const e of (allEntries || [])) {
                 if (e.groupId === editingGroupId) {
@@ -409,7 +739,6 @@ body {
             groups.push({ id: newId, name });
             activeGroupId = newId;
         }
-        // 保存分组列表到 settings
         await MuyeDB.put('settings', { id: 'worldbook_groups', value: groups });
         closeGroupModal();
         await loadEntries();
@@ -419,14 +748,12 @@ body {
     async function deleteGroup(groupId) {
         if (groupId === '__default__') return;
         if (!confirm('删除分组将会同时删除该分组下的所有词条，确定吗？')) return;
-        // 删除该分组下的所有词条
         const allEntries = await MuyeDB.getAll('worldbook');
         for (const e of (allEntries || [])) {
             if (e.groupId === groupId) {
                 await MuyeDB.remove('worldbook', e.id);
             }
         }
-        // 从分组列表中移除
         groups = groups.filter(g => g.id !== groupId);
         await MuyeDB.put('settings', { id: 'worldbook_groups', value: groups });
         if (activeGroupId === groupId) {
@@ -440,11 +767,11 @@ body {
     async function loadEntries() {
         const all = await MuyeDB.getAll('worldbook');
         entries = (all || []).filter(e => (e.groupId || '__default__') === activeGroupId)
-                           .sort((a,b) => {
-                               if (a.pinned && !b.pinned) return -1;
-                               if (!a.pinned && b.pinned) return 1;
-                               return b.createdAt - a.createdAt;
-                           });
+            .sort((a,b) => {
+                if (a.pinned && !b.pinned) return -1;
+                if (!a.pinned && b.pinned) return 1;
+                return b.createdAt - a.createdAt;
+            });
         renderEntries();
     }
 
@@ -514,41 +841,60 @@ body {
         await loadEntries();
     }
 
-    // ========== 弹窗内分组下拉 ==========
+    // ========== 弹窗内分组下拉（统一为预设选择器样式） ==========
     function renderGroupDropdown() {
         const dropdown = document.getElementById('groupDropdown');
         dropdown.innerHTML = groups.map(g => `
-            <div class="group-dropdown-item" data-gid="${g.id}">${esc(g.name)}</div>
+            <div class="preset-item" data-gid="${g.id}">${esc(g.name)}</div>
         `).join('');
-        dropdown.querySelectorAll('.group-dropdown-item').forEach(item => {
+        dropdown.querySelectorAll('.preset-item').forEach(item => {
             item.addEventListener('click', (e) => {
                 e.stopPropagation();
                 selectedGroupId = item.dataset.gid;
                 const group = groups.find(g => g.id === selectedGroupId);
                 document.getElementById('groupDisplayText').textContent = group ? group.name : '默认分组';
                 dropdown.classList.remove('show');
+                document.getElementById('groupSelector').classList.remove('open');
             });
         });
     }
 
     function openGroupDropdown() {
         const dropdown = document.getElementById('groupDropdown');
-        dropdown.classList.toggle('show');
+        const selector = document.getElementById('groupSelector');
         renderGroupDropdown();
+        const rect = selector.getBoundingClientRect();
+        dropdown.style.top = (rect.bottom + 4) + 'px';
+        dropdown.style.left = rect.left + 'px';
+        dropdown.style.width = rect.width + 'px';
+        dropdown.classList.add('show');
+        selector.classList.add('open');
+        if (dropdown.parentNode !== document.body) {
+            document.body.appendChild(dropdown);
+        }
     }
 
-    document.getElementById('groupDisplay').addEventListener('click', (e) => {
+    document.getElementById('groupSelector').addEventListener('click', (e) => {
         e.stopPropagation();
-        openGroupDropdown();
-    });
-    document.addEventListener('click', (e) => {
         const dropdown = document.getElementById('groupDropdown');
-        if (dropdown && !e.target.closest('#groupSelector')) {
+        if (dropdown.classList.contains('show')) {
             dropdown.classList.remove('show');
+            document.getElementById('groupSelector').classList.remove('open');
+        } else {
+            openGroupDropdown();
         }
     });
 
-    // ========== 词条弹窗 + 字数统计 ==========
+    document.addEventListener('click', (e) => {
+        const dropdown = document.getElementById('groupDropdown');
+        const selector = document.getElementById('groupSelector');
+        if (dropdown && !selector.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.remove('show');
+            selector.classList.remove('open');
+        }
+    });
+
+    // 字数统计
     const entryContentTextarea = document.getElementById('entryContent');
     const charCountDisplay = document.getElementById('charCount');
     entryContentTextarea.addEventListener('input', () => {
@@ -566,7 +912,7 @@ body {
         selectedGroupId = activeGroupId;
         const group = groups.find(g => g.id === selectedGroupId) || { name: '默认分组' };
         document.getElementById('groupDisplayText').textContent = group.name;
-        document.getElementById('entryModal').classList.remove('hidden');
+        document.getElementById('entryModal').classList.add('active');
     }
 
     function openEditEntry(id) {
@@ -581,11 +927,11 @@ body {
         selectedGroupId = entry.groupId || '__default__';
         const group = groups.find(g => g.id === selectedGroupId) || { name: '默认分组' };
         document.getElementById('groupDisplayText').textContent = group.name;
-        document.getElementById('entryModal').classList.remove('hidden');
+        document.getElementById('entryModal').classList.add('active');
     }
 
     function closeEntryModal() {
-        document.getElementById('entryModal').classList.add('hidden');
+        document.getElementById('entryModal').classList.remove('active');
         editingEntryId = null;
     }
 
@@ -632,14 +978,15 @@ body {
     document.getElementById('saveGroupBtn').addEventListener('click', saveGroup);
     document.getElementById('entryModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeEntryModal(); });
     document.getElementById('groupModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeGroupModal(); });
-document.getElementById('backBtn').addEventListener('click', function(e) {
+
+    document.getElementById('backBtn').addEventListener('click', function(e) {
         e.preventDefault();
         if (document.referrer && document.referrer.includes(location.host)) {
             history.back();
         } else {
             location.href = 'more.html';
         }
-});
+    });
 
     loadGroups();
 </script>
