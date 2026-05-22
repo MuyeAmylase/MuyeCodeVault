@@ -556,15 +556,20 @@
             margin: 0 auto;        /* 居中显示 */
             padding: 8px 0 40px;
         }
-        .memo-card {
-            background: var(--memo-bg);
-            border-radius: 10px;
-            border: 1px solid var(--memo-border);
-            overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            margin-bottom: 16px;
-        }
+.memo-card {
+    background: var(--memo-bg);
+    border-radius: 10px;
+    border: 1px solid var(--memo-border);
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    margin-bottom: 16px;
+    width: 100%;
+    min-width: 100%;        /* 打破 flex 的 min-width: auto */
+    box-sizing: border-box;
+    flex-shrink: 0;         /* 禁止弹性收缩 */
+    align-self: stretch;    /* 交叉轴拉伸（保险） */
+}
         .memo-card:last-child { margin-bottom: 0; }
         .memo-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
         .memo-card-header { background: var(--memo-header-bg); padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
@@ -730,6 +735,56 @@
             -webkit-tap-highlight-color: transparent;
             bottom: calc(36px + var(--safe-bottom));
         }
+.export-html-btn {
+    position: fixed;
+    right: 24px;
+    bottom: 36px;
+    padding: 10px 20px;
+    border-radius: 28px;
+    background: var(--fab-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--fab-border);
+    color: var(--fab-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: var(--shadow-lg);
+    transition: all var(--transition-normal);
+    z-index: 210;
+    outline: none;
+    font-family: inherit;
+}
+.export-html-btn:hover {
+    background: var(--fab-hover-bg);
+    border-color: var(--fab-hover-border);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px rgba(0,0,0,0.15);
+}
+.export-html-btn:active {
+    transform: scale(0.96);
+}
+.export-html-btn svg {
+    width: 18px;
+    height: 18px;
+    pointer-events: none;
+}
+/* 移动端微调 */
+@media (max-width: 768px) {
+    .export-html-btn {
+        right: 16px;
+        bottom: 28px;
+        padding: 8px 16px;
+        font-size: 12px;
+    }
+    .export-html-btn svg {
+        width: 16px;
+        height: 16px;
+    }
+}
         .fab-add-item:hover {
             transform: translateY(-3px) scale(1.04);
             box-shadow: 0 14px 40px rgba(0,0,0,0.12);
@@ -1425,7 +1480,16 @@
         </div>
         <iframe class="preview-iframe" id="previewIframe" 
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"></iframe>
+<button class="export-html-btn" id="exportHtmlBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        导出为HTML文件
+</button>
     </div>
+
 
     <!-- ==================== 管理分组覆盖层 ==================== -->
     <div class="manage-overlay hidden" id="manageOverlay">
@@ -3372,6 +3436,28 @@ document.addEventListener('DOMContentLoaded', function() {
     groupNameInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveGroup(); } });
     itemNameInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveItem(); } });
 
+const exportHtmlBtn = $('#exportHtmlBtn');
+exportHtmlBtn.addEventListener('click', () => {
+    const htmlContent = previewIframe.srcdoc || previewIframe.src;
+    if (!htmlContent || htmlContent === 'about:blank') {
+        showToast('没有可导出的内容');
+        return;
+    }
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    // 使用当前时间生成文件名，也可以从条目名称中获取（若需要可自行扩展）
+    const now = new Date();
+    const timestamp = now.toISOString().slice(0, 19).replace(/:/g, '-');
+    a.download = `export_${timestamp}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('已导出为 HTML 文件');
+});
+
     // 页面关闭前强制保存
     window.addEventListener('beforeunload', () => {
         if (appData) {
@@ -3390,5 +3476,6 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 </body>
 </html>
+
 
 
