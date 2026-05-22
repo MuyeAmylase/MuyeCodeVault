@@ -171,7 +171,7 @@
         .settings-list {
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 8px;
         }
 
         .settings-item {
@@ -681,6 +681,11 @@
                 </div>
             </div>
             <div class="form-group">
+                <label class="form-label">Temperature (0–2)</label>
+                <input type="number" class="form-input" id="apiTemperature" placeholder="0.7" value="0.7" step="0.1" min="0" max="2">
+                <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">值越高回答越随机，越低越确定</p>
+            </div>
+            <div class="form-group">
                 <label class="form-label">System Prompt（可选）</label>
                 <textarea class="form-input" id="apiSystemPrompt" placeholder="你是一个有用的助手..."></textarea>
             </div>
@@ -812,6 +817,7 @@
                 apiKey: '',
                 apiModel: 'gpt-3.5-turbo',
                 apiSystemPrompt: '',
+                apiTemperature: 0.7,
                 currentPreset: '默认预设'
             };
             return Object.assign(defaultSettings, settings);
@@ -958,39 +964,95 @@
                         baseUrl: 'https://api.openai.com/v1',
                         apiKey: '',
                         model: 'gpt-3.5-turbo',
-                        systemPrompt: ''
+                        temperature: 0.7
                     }
                 });
             }
             renderPresetDropdown();
         }
 
-async function savePresets() {
-    await MuyeDB.put('settings', { id: 'api_presets', value: presets });
+        async function savePresets() {
+            await MuyeDB.put('settings', { id: 'api_presets', value: presets });
+        }
+
+function renderPresetDropdown() {
+    presetDropdown.innerHTML = '';
+    if (presets.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'preset-item';
+        empty.textContent = '暂无预设';
+        empty.style.color = 'var(--text-muted)';
+        empty.style.pointerEvents = 'none';
+        presetDropdown.appendChild(empty);
+        return;
+    }
+    presets.forEach(p => {
+        const item = document.createElement('div');
+        item.className = 'preset-item';
+        // 让条目内部变成水平排列，保证不换行
+        item.style.display = 'flex';
+        item.style.alignItems = 'center';
+        
+        // 左侧名称文字
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = p.name;
+        item.appendChild(nameSpan);
+        
+        // 右侧删除按钮（默认预设不显示）
+        if (p.name !== '默认预设') {
+            const delBtn = document.createElement('button');
+            delBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>`;
+            delBtn.style.cssText = `
+                border: none;
+                background: none;
+                padding: 0;
+                color: #e74c3c;
+                cursor: pointer;
+                margin-left: auto;
+                display: flex;
+                align-items: center;
+                opacity: 0.7;
+            `;
+            delBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deletePreset(p.name);
+            });
+            item.appendChild(delBtn);
+        }
+        
+        // 点击条目选择预设（排除删除按钮）
+        item.addEventListener('click', (e) => {
+            if (e.target.closest('.delete-preset-btn')) return;
+            selectPreset(p.name);
+        });
+        
+        presetDropdown.appendChild(item);
+    });
 }
 
-        function renderPresetDropdown() {
-            presetDropdown.innerHTML = '';
-            if (presets.length === 0) {
-                const empty = document.createElement('div');
-                empty.className = 'preset-item';
-                empty.textContent = '暂无预设';
-                empty.style.color = 'var(--text-muted)';
-                empty.style.pointerEvents = 'none';
-                presetDropdown.appendChild(empty);
-                return;
-            }
-            presets.forEach(p => {
-                const item = document.createElement('div');
-                item.className = 'preset-item';
-                item.textContent = p.name;
-                item.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    selectPreset(p.name);
-                });
-                presetDropdown.appendChild(item);
-            });
-        }
+async function deletePreset(name) {
+    if (name === '默认预设') {
+        alert('不能删除默认预设');
+        return;
+    }
+    if (!confirm(`确定删除预设“${name}”？此操作不可恢复。`)) return;
+
+    // 从内存数组中移除
+    presets = presets.filter(p => p.name !== name);
+
+    // 如果删除的是当前使用的预设，自动切回默认预设
+    if (currentPresetName === name) {
+        selectPreset('默认预设');
+    }
+
+    // 保存到数据库
+    await savePresets();
+    // 刷新下拉列表
+    renderPresetDropdown();
+}
 
         function selectPreset(name) {
             const preset = presets.find(p => p.name === name);
@@ -1001,7 +1063,8 @@ async function savePresets() {
             document.getElementById('apiBaseUrl').value = preset.config.baseUrl || '';
             document.getElementById('apiKey').value = preset.config.apiKey || '';
             document.getElementById('apiModel').value = preset.config.model || '';
-            document.getElementById('apiSystemPrompt').value = preset.config.systemPrompt || '';
+            document.getElementById('apiTemperature').value = preset.config.temperature ?? 0.7;
+            // 系统提示词不动
             settingsState.currentPreset = name;
         }
 
@@ -1010,20 +1073,18 @@ async function savePresets() {
             presetSelector.classList.remove('open');
         }
 
-function openPresetDropdown() {
-    renderPresetDropdown();
-    const rect = presetSelector.getBoundingClientRect();
-    const dropdown = presetDropdown;
-    dropdown.style.top = (rect.bottom + 4) + 'px';
-    dropdown.style.left = rect.left + 'px';
-    dropdown.style.width = rect.width + 'px';
-    dropdown.classList.add('show');
-    presetSelector.classList.add('open');
-    // 把下拉菜单移到 body 下，避免父容器裁剪
-    if (dropdown.parentNode !== document.body) {
-        document.body.appendChild(dropdown);
-    }
-}
+        function openPresetDropdown() {
+            renderPresetDropdown();
+            const rect = presetSelector.getBoundingClientRect();
+            presetDropdown.style.top = (rect.bottom + 4) + 'px';
+            presetDropdown.style.left = rect.left + 'px';
+            presetDropdown.style.width = rect.width + 'px';
+            presetDropdown.classList.add('show');
+            presetSelector.classList.add('open');
+            if (presetDropdown.parentNode !== document.body) {
+                document.body.appendChild(presetDropdown);
+            }
+        }
 
         presetSelector.addEventListener('click', function(e) {
             e.stopPropagation();
@@ -1044,13 +1105,18 @@ function openPresetDropdown() {
                 baseUrl: document.getElementById('apiBaseUrl').value.trim(),
                 apiKey: document.getElementById('apiKey').value.trim(),
                 model: document.getElementById('apiModel').value.trim(),
-                systemPrompt: document.getElementById('apiSystemPrompt').value
+                temperature: parseFloat(document.getElementById('apiTemperature').value) || 0.7
             };
-            settingsState = { ...settingsState, ...apiConfig };
+            const systemPrompt = document.getElementById('apiSystemPrompt').value;
+
+            // 全局设置：含系统提示词
+            settingsState = { ...settingsState, ...apiConfig, systemPrompt };
             await saveSettings(settingsState);
+
+            // 更新当前预设（不含系统提示词）
             const preset = presets.find(p => p.name === currentPresetName);
             if (preset) {
-                preset.config = apiConfig;
+                preset.config = { ...preset.config, ...apiConfig };
                 await savePresets();
             }
             alert('设置已保存');
@@ -1065,50 +1131,41 @@ function openPresetDropdown() {
             presetModal.classList.remove('active');
         });
 
-confirmPresetBtn.addEventListener('click', async () => {
-    const name = presetNameInput.value.trim();
-    if (!name) {
-        alert('请输入预设名称');
-        return;
-    }
+        confirmPresetBtn.addEventListener('click', async () => {
+            const name = presetNameInput.value.trim();
+            if (!name) { alert('请输入预设名称'); return; }
 
-    // 检查重名（本地内存和数据库双保险）
-    const exists = presets.some(p => p.name === name);
-    if (exists) {
-        alert('预设名称已存在');
-        return;
-    }
+            const exists = presets.some(p => p.name === name);
+            if (exists) { alert('预设名称已存在'); return; }
 
-    const config = {
-        baseUrl: document.getElementById('apiBaseUrl').value.trim(),
-        apiKey: document.getElementById('apiKey').value.trim(),
-        model: document.getElementById('apiModel').value.trim(),
-        systemPrompt: document.getElementById('apiSystemPrompt').value
-    };
+            const apiConfig = {
+                baseUrl: document.getElementById('apiBaseUrl').value.trim(),
+                apiKey: document.getElementById('apiKey').value.trim(),
+                model: document.getElementById('apiModel').value.trim(),
+                temperature: parseFloat(document.getElementById('apiTemperature').value) || 0.7
+            };
+            const systemPrompt = document.getElementById('apiSystemPrompt').value;
 
-    // 先更新本地数组
-    presets.push({ name, config });
-    
-    // 等待数据库写入完成
-    try {
-        await savePresets();
-    } catch (e) {
-        // 如果写入失败，把刚 push 的条目移除，避免内存与数据库不一致
-        presets.pop();
-        alert('保存失败：' + e.message);
-        return;
-    }
+            presets.push({ name, config: apiConfig });
 
-    // 写入成功后更新 UI
-    currentPresetName = name;
-    presetValue.textContent = name;
-    presetModal.classList.remove('active');
-    
-    // 重新渲染下拉列表（此时数据库已是新数据）
-    renderPresetDropdown();
-    
-    alert(`预设“${name}”已保存`);
-});
+            try {
+                await savePresets();
+            } catch (e) {
+                presets.pop();
+                alert('保存失败：' + e.message);
+                return;
+            }
+
+            // 系统提示词单独存全局设置
+            settingsState.systemPrompt = systemPrompt;
+            await saveSettings(settingsState);
+
+            currentPresetName = name;
+            presetValue.textContent = name;
+            presetModal.classList.remove('active');
+            renderPresetDropdown();
+            alert(`预设“${name}”已保存`);
+        });
 
         presetModal.addEventListener('click', (e) => {
             if (e.target === presetModal) presetModal.classList.remove('active');
@@ -1149,20 +1206,19 @@ confirmPresetBtn.addEventListener('click', async () => {
             cvGroupSelector.classList.remove('open');
         }
 
-function openCvGroupDropdown() {
-    loadCodeVaultGroupsIntoSelector().then(() => {
-        const rect = cvGroupSelector.getBoundingClientRect();
-        const dropdown = cvGroupDropdown;
-        dropdown.style.top = (rect.bottom + 4) + 'px';
-        dropdown.style.left = rect.left + 'px';
-        dropdown.style.width = rect.width + 'px';
-        cvGroupDropdown.classList.add('show');
-        cvGroupSelector.classList.add('open');
-        if (dropdown.parentNode !== document.body) {
-            document.body.appendChild(dropdown);
+        function openCvGroupDropdown() {
+            loadCodeVaultGroupsIntoSelector().then(() => {
+                const rect = cvGroupSelector.getBoundingClientRect();
+                cvGroupDropdown.style.top = (rect.bottom + 4) + 'px';
+                cvGroupDropdown.style.left = rect.left + 'px';
+                cvGroupDropdown.style.width = rect.width + 'px';
+                cvGroupDropdown.classList.add('show');
+                cvGroupSelector.classList.add('open');
+                if (cvGroupDropdown.parentNode !== document.body) {
+                    document.body.appendChild(cvGroupDropdown);
+                }
+            });
         }
-    });
-}
 
         codevaultToggle.addEventListener('click', () => codevaultToggle.classList.toggle('on'));
         widgetToggle.addEventListener('click', () => widgetToggle.classList.toggle('on'));
@@ -1243,26 +1299,25 @@ function openCvGroupDropdown() {
             }
         });
 
-document.getElementById('clearAllBtn').addEventListener('click', async () => {
-    if (confirm('确定清空所有 MuyeChat 数据？此操作不可恢复！')) {
-        // 先关闭 MuyeDB 可能持有的连接
-        if (window.MuyeDB && MuyeDB.close) {
-            MuyeDB.close();
-        }
-        
-        const req = indexedDB.deleteDatabase('MuyeChat7403DB');
-        req.onsuccess = () => {
-            alert('所有数据已清空');
-            location.reload();
-        };
-        req.onerror = () => {
-            alert('删除失败，请关闭所有相关页面后重试');
-        };
-        req.onblocked = () => {
-            alert('数据库被占用，请关闭所有 MuyeChat 标签页，然后手动刷新本页面即可完成清空。');
-        };
-    }
-});
+        document.getElementById('clearAllBtn').addEventListener('click', async () => {
+            if (confirm('确定清空所有 MuyeChat 数据？此操作不可恢复！')) {
+                // 关闭数据库连接
+                if (window.MuyeDB && MuyeDB.close) {
+                    MuyeDB.close();
+                }
+                const req = indexedDB.deleteDatabase('MuyeChat7403DB');
+                req.onsuccess = () => {
+                    alert('所有数据已清空');
+                    location.reload();
+                };
+                req.onerror = () => {
+                    alert('删除失败，请关闭所有相关页面后重试');
+                };
+                req.onblocked = () => {
+                    alert('数据库被占用，请关闭所有 MuyeChat 标签页，然后手动刷新本页面即可完成清空。');
+                };
+            }
+        });
 
         // ---- 拉取模型列表 ----
         document.getElementById('fetchModelsBtn').addEventListener('click', async () => {
@@ -1329,6 +1384,7 @@ document.getElementById('clearAllBtn').addEventListener('click', async () => {
             document.getElementById('apiBaseUrl').value = settingsState.apiBaseUrl || 'https://api.openai.com/v1';
             document.getElementById('apiKey').value = settingsState.apiKey || '';
             document.getElementById('apiModel').value = settingsState.apiModel || 'gpt-3.5-turbo';
+            document.getElementById('apiTemperature').value = settingsState.apiTemperature ?? 0.7;
             document.getElementById('apiSystemPrompt').value = settingsState.apiSystemPrompt || '';
 
             const savedPresetName = settingsState.currentPreset || '默认预设';
@@ -1341,7 +1397,7 @@ document.getElementById('clearAllBtn').addEventListener('click', async () => {
             codeVaultGroups = await getCodeVaultGroups();
         }
 
-        // 全局点击监听：点击空白处关闭所有下拉
+        // 全局点击监听：关闭所有下拉
         document.addEventListener('click', function(e) {
             if (!presetSelector.contains(e.target) && !presetDropdown.contains(e.target)) {
                 closePresetDropdown();
@@ -1356,4 +1412,4 @@ document.getElementById('clearAllBtn').addEventListener('click', async () => {
 </script>
 
 </body>
-                    </html>
+</html>
