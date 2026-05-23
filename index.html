@@ -1287,6 +1287,44 @@
     border: none;
     cursor: pointer;
 }
+
+
+/* ========== 九宫格图片 ========== */
+.memo-images-grid {
+    display: grid;
+    gap: 4px;
+    margin-top: 10px;
+}
+.memo-images-grid img {
+    width: 100%;
+    aspect-ratio: 1 / 1;   /* 强制每个图片格子为正方形 */
+    object-fit: cover;
+    border-radius: 4px;
+}
+.memo-images-grid.cols-1 { grid-template-columns: 1fr; }
+.memo-images-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+.memo-images-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+.memo-images-grid.cols-4 { grid-template-columns: 1fr 1fr; }
+.memo-images-grid.cols-5,
+.memo-images-grid.cols-6 { grid-template-columns: 1fr 1fr 1fr; }
+.memo-images-grid.cols-7,
+.memo-images-grid.cols-8,
+.memo-images-grid.cols-9 { grid-template-columns: 1fr 1fr 1fr; }
+
+.remove-image-btn {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+}
     </style>
 </head>
 
@@ -1452,18 +1490,27 @@
             <div class="form-group" id="itemHtmlGroup"><label for="itemCodeInput">HTML 代码</label><textarea id="itemCodeInput" placeholder="粘贴 HTML 代码..."></textarea>
                 <div style="margin-top:8px;"><button class="upload-btn" id="uploadFileBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>上传 HTML 文件</button><input type="file" id="fileInput" accept=".html,.htm,.txt" style="display:none;"></div>
             </div>
-            <div class="form-group" id="itemTextGroup" style="display:none;">
-                <label for="itemTextInput">文字内容</label>
-                <textarea id="itemTextInput" class="text-content-area" placeholder="输入纯文字内容（可为空）..."></textarea>
-                <div style="margin-top:8px;">
-                    <button class="upload-btn" id="memoImageUploadBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>上传图片</button>
-                    <input type="file" id="memoImageFileInput" accept="image/*" style="display:none;">
-                    <span class="action-btn" id="clearMemoImageBtn" style="margin-left:12px; cursor:pointer;">清除图片</span>
-                </div>
-                <div id="memoImagePreview" style="margin-top:8px; display:none;">
-                    <img id="memoImagePreviewImg" style="max-width:100%; max-height:120px; border-radius:6px; border:1px solid var(--border-card);" alt="预览">
-                </div>
-            </div>
+<div class="form-group" id="itemTextGroup" style="display:none;">
+    <label for="itemTextInput">文字内容</label>
+    <textarea id="itemTextInput" class="text-content-area" placeholder="输入纯文字内容（可为空）..."></textarea>
+    <div style="margin-top:8px;">
+        <label>图片（最多9张）</label>
+        <div id="memoImagesPreview" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px;"></div>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <button class="upload-btn" id="memoMultiImageUploadBtn" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                </svg>
+                添加图片
+            </button>
+            <span class="action-btn" id="clearAllMemoImagesBtn" style="cursor:pointer;">清空全部</span>
+            <span class="hint" id="memoImageCountHint">0/9</span>
+        </div>
+        <input type="file" id="memoMultiImageFileInput" accept="image/*" multiple style="display:none;">
+    </div>
+</div>
             <div class="modal-actions"><button class="btn btn-secondary" id="cancelItemBtn">取消</button><button class="btn btn-primary" id="confirmItemBtn">添加条目</button></div>
         </div>
     </div>
@@ -1609,13 +1656,14 @@
     <div class="toast" id="toast"></div>
 
 <!-- 这里是 </body> 之前，script 标签将从此处开始 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 (function() {
     "use strict";
 
     // ==================== IndexedDB 增强封装 ====================
     const DB_NAME = 'MuyeCodeVaultDB';
-    const DB_VERSION = 1;
+    const DB_VERSION = 2;
     const STORE_NAME = 'appData';
     const DATA_KEY = 'globalData';
 
@@ -1624,8 +1672,22 @@
             const request = indexedDB.open(DB_NAME, DB_VERSION);
             request.onupgradeneeded = (e) => {
                 const db = e.target.result;
-                if (!db.objectStoreNames.contains(STORE_NAME)) {
-                    db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                const oldVersion = e.oldVersion;
+
+                if (oldVersion < 1) {
+        // 首次创建
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                    }
+                }
+                if (oldVersion < 2) {
+        // 创建 images 表
+                    if (!db.objectStoreNames.contains('images')) {
+                        db.createObjectStore('images', { keyPath: 'id' });
+                    }
+        // 迁移旧数据？可以在 init() 中手动处理，因为 onupgradeneeded 中不能异步读写
+        // 这里我们暂不处理，第一次启动时 init 会调用 loadData，如果发现图片是 data URL 而不是 ID，
+        // 就在保存时自动转换，旧数据也会被逐步转换。
                 }
             };
             request.onsuccess = () => resolve(request.result);
@@ -1635,47 +1697,127 @@
     }
 
     // 带重试的数据加载（使用后自动关闭数据库连接）
-    async function loadData(retries = 3) {
-        for (let i = 0; i < retries; i++) {
-            try {
-                const db = await openDB();
-                return new Promise((resolve, reject) => {
-                    const tx = db.transaction(STORE_NAME, 'readonly');
-                    const store = tx.objectStore(STORE_NAME);
-                    const getReq = store.get(DATA_KEY);
-                    getReq.onsuccess = () => {
-                        const result = getReq.result;
-                        resolve(result ? result.data : null);
-                    };
-                    getReq.onerror = () => reject(getReq.error);
-                    tx.oncomplete = () => { db.close(); };
+async function loadData(retries = 3) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const db = await openDB();
+            // 读取主数据
+            const mainData = await new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const getReq = store.get(DATA_KEY);
+                getReq.onsuccess = () => {
+                    const result = getReq.result;
+                    resolve(result ? result.data : null);
+                };
+                getReq.onerror = () => reject(getReq.error);
+                tx.oncomplete = () => { /* db 还不能关，后面还要读图片 */ };
+            });
+
+if (!mainData) {
+    db.close();          // ⬅️ 关闭数据库连接
+    return null;
+}
+
+            // 收集所有需要读取的图片 ID
+            const imageIds = [];
+            mainData.groups.forEach(group => {
+                if (group.contentType === 'text' && group.items) {
+                    group.items.forEach(item => {
+                        if (item.images && item.images.length) {
+                            imageIds.push(...item.images);
+                        }
+                    });
+                }
+            });
+
+            // 读取图片数据
+            const imageMap = new Map();
+            if (imageIds.length > 0) {
+                await new Promise((resolve, reject) => {
+                    const tx = db.transaction('images', 'readonly');
+                    const store = tx.objectStore('images');
+                    let count = 0;
+                    imageIds.forEach(id => {
+                        const req = store.get(id);
+                        req.onsuccess = () => {
+                            if (req.result) imageMap.set(id, req.result.data);
+                            count++;
+                            if (count === imageIds.length) resolve();
+                        };
+                        req.onerror = () => reject(req.error);
+                    });
                 });
-            } catch (e) {
-                if (i === retries - 1) throw e;
-                await new Promise(r => setTimeout(r, 200));
             }
+
+            // 把 ID 替换回 data URL
+            mainData.groups.forEach(group => {
+                if (group.contentType === 'text' && group.items) {
+                    group.items.forEach(item => {
+                        if (item.images && item.images.length) {
+                            item.images = item.images.map(id => imageMap.get(id) || '');
+                        }
+                    });
+                }
+            });
+
+            db.close();
+            return mainData;
+        } catch (e) {
+            if (i === retries - 1) throw e;
+            await new Promise(r => setTimeout(r, 200));
         }
     }
+}
 
     // 带重试和事务持久化的数据保存（使用后自动关闭数据库连接）
-    async function saveData(data, retries = 3) {
-        for (let i = 0; i < retries; i++) {
-            try {
-                const db = await openDB();
-                return new Promise((resolve, reject) => {
-                    const tx = db.transaction(STORE_NAME, 'readwrite');
-                    const store = tx.objectStore(STORE_NAME);
-                    store.put({ id: DATA_KEY, data: data });
-                    tx.oncomplete = () => { db.close(); resolve(); };
-                    tx.onerror = () => reject(tx.error);
-                    tx.onabort = () => reject(new Error('事务中止'));
-                });
-            } catch (e) {
-                if (i === retries - 1) throw e;
-                await new Promise(r => setTimeout(r, 200));
-            }
+async function saveData(data, retries = 3) {
+    // 深拷贝，避免污染原对象
+    const clonedData = JSON.parse(JSON.stringify(data));
+    const imageEntries = [];  // 要存入 images 表的数据
+
+    // 遍历所有 text 类型的条目，把 images dataURL 替换为 ID
+    clonedData.groups.forEach(group => {
+        if (group.contentType === 'text' && group.items) {
+            group.items.forEach(item => {
+                if (item.images && item.images.length) {
+                    const newImageIds = [];
+                    item.images.forEach((dataUrl, idx) => {
+                        // 生成图片 ID：img_条目ID_序号
+                        const imgId = 'img_' + item.id + '_' + idx;
+                        imageEntries.push({ id: imgId, data: dataUrl });
+                        newImageIds.push(imgId);
+                    });
+                    item.images = newImageIds;
+                }
+            });
+        }
+    });
+
+    for (let i = 0; i < retries; i++) {
+        try {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction([STORE_NAME, 'images'], 'readwrite');
+                const mainStore = tx.objectStore(STORE_NAME);
+                const imageStore = tx.objectStore('images');
+
+                // 存主数据（此时图片已经是 ID 数组）
+                mainStore.put({ id: DATA_KEY, data: clonedData });
+
+                // 存所有图片
+                imageEntries.forEach(entry => imageStore.put(entry));
+
+                tx.oncomplete = () => { db.close(); resolve(); };
+                tx.onerror = () => reject(tx.error);
+                tx.onabort = () => reject(new Error('事务中止'));
+            });
+        } catch (e) {
+            if (i === retries - 1) throw e;
+            await new Promise(r => setTimeout(r, 200));
         }
     }
+}
 
     // 自动保存防抖（每 2 秒检查一次变化）
     let autoSaveTimer = null;
@@ -1783,8 +1925,6 @@
     const itemTagsInput = $('#itemTagsInput'), itemCodeInput = $('#itemCodeInput'), itemTextInput = $('#itemTextInput');
     const confirmItemBtn = $('#confirmItemBtn'), cancelItemBtn = $('#cancelItemBtn'), addItemTitle = $('#addItemTitle');
     const itemDescGroup = $('#itemDescGroup'), itemUrlGroup = $('#itemUrlGroup'), itemHtmlGroup = $('#itemHtmlGroup'), itemTextGroup = $('#itemTextGroup');
-    const memoImageUploadBtn = $('#memoImageUploadBtn'), memoImageFileInput = $('#memoImageFileInput');
-    const clearMemoImageBtn = $('#clearMemoImageBtn'), memoImagePreview = $('#memoImagePreview'), memoImagePreviewImg = $('#memoImagePreviewImg');
     const descCharCount = $('#descCharCount');
 
     const profileOverlay = $('#profileOverlay'), profileBackBtn = $('#profileBackBtn');
@@ -1807,7 +1947,7 @@
 
     let selectedGroupColor = '#5b8def', tempAvatarImage = '';
     let editingGroupId = null, editingItemId = null, editingItemGroupId = null;
-    let tempMemoImage = '';
+    let tempMemoImages = [];
     let tempProfileAvatar = '';
     let toastTimer = null, confirmCallback = null;
     let previewHideTimer = null;
@@ -2333,7 +2473,13 @@ function renderContent() {
         items.forEach(item => {
             const createdAt = item.createdAt || '';
             const tagsHTML = (item.tags||[]).map(t => `<span class="item-tag">${escapeHTML(t)}</span>`).join('');
-            const imageHTML = item.imageData ? `<img class="memo-image" src="${escapeHTML(item.imageData)}" alt="图片">` : '';
+            let imageHTML = '';
+            if (item.images && item.images.length) {
+                const count = item.images.length;
+                imageHTML = `<div class="memo-images-grid cols-${Math.min(count, 9)}">${item.images.map(src => `<img src="${escapeHTML(src)}" alt="图片">`).join('')}</div>`;
+            } else if (item.imageData) {
+                imageHTML = `<div class="memo-images-grid cols-1"><img src="${escapeHTML(item.imageData)}" alt="图片"></div>`;
+            }
             const profile = appData.profile;
             const avatarContent = (profile.avatarImage && isValidImageURL(profile.avatarImage))
                 ? `<img src="${escapeHTML(profile.avatarImage)}" alt="头像">`
@@ -2635,9 +2781,8 @@ function renderContent() {
         itemHtmlGroup.style.display = ct==='html'?'':'none';
         itemTextGroup.style.display = ct==='text'?'':'none';
         itemCodeInput.value = ''; itemTextInput.value = ''; itemUrlInput.value = ''; itemDescInput.value = '';
-        tempMemoImage = '';
-        memoImagePreview.style.display = 'none';
-        memoImagePreviewImg.src = '';
+        tempMemoImages = [];
+        renderMemoImagesPreview();
         if (descCharCount) {
             descCharCount.textContent = '0/150';
             descCharCount.style.color = 'var(--text-muted)';
@@ -2669,15 +2814,18 @@ function renderContent() {
             }
         } else {
             itemTextInput.value = item.htmlCode||'';
-            if (item.imageData) {
-                tempMemoImage = item.imageData;
-                memoImagePreviewImg.src = tempMemoImage;
-                memoImagePreview.style.display = 'block';
+            if (item.images && item.images.length) {
+                tempMemoImages = [...item.images];
+            } else if (item.imageData) {
+                tempMemoImages = [item.imageData];
+            } else {
+                tempMemoImages = [];
             }
+            renderMemoImagesPreview();
         }
         addItemModal.classList.remove('hidden'); setTimeout(()=>itemNameInput.focus(),150);
     }
-    function closeItemModal() { addItemModal.classList.add('hidden'); editingItemId = null; editingItemGroupId = null; tempMemoImage = ''; }
+    function closeItemModal() { addItemModal.classList.add('hidden'); editingItemId = null; editingItemGroupId = null; tempMemoImages = []; }
 
     itemDescInput.addEventListener('input', function() {
         if (descCharCount) {
@@ -2687,71 +2835,105 @@ function renderContent() {
         }
     });
 
-    memoImageUploadBtn.addEventListener('click', () => memoImageFileInput.click());
-    memoImageFileInput.addEventListener('change', async function() {
-        const file = this.files[0]; if (!file) return;
-        try {
-            const compressed = await compressImage(file);
-            tempMemoImage = compressed;
-            memoImagePreviewImg.src = compressed;
-            memoImagePreview.style.display = 'block';
-        } catch(e) { showToast('图片处理失败'); }
-        this.value = '';
-    });
-    // === 字体大小滑块实时更新 ===
-    if ($('#profileFontSizeSlider')) {
-        $('#profileFontSizeSlider').addEventListener('input', function() {
-            $('#profileFontSizeValue').textContent = this.value + 'px';
-        });
-    }
-    clearMemoImageBtn.addEventListener('click', () => {
-        tempMemoImage = '';
-        memoImagePreview.style.display = 'none';
-        memoImagePreviewImg.src = '';
-    });
+// 多图上传
+$('#memoMultiImageUploadBtn').addEventListener('click', () => {
+    $('#memoMultiImageFileInput').click();
+});
 
-    async function saveItem() {
-        const name = itemNameInput.value.trim(); if (!name) { showToast('请输入名称'); itemNameInput.focus(); return; }
-        const tagsRaw = itemTagsInput.value.trim();
-        const tags = tagsRaw ? tagsRaw.split(/[,，]+/).map(t=>t.trim()).filter(t=>t) : [];
-        const group = editingItemGroupId ? appData.groups.find(g=>g.id===editingItemGroupId) : appData.groups.find(g=>g.id===activeGroupId);
-        if (!group) return;
-        let htmlCode = '', description = '', imageData = null;
-        if (group.contentType==='html') {
-            htmlCode = itemCodeInput.value.trim(); if (!htmlCode) { showToast('请输入HTML代码'); itemCodeInput.focus(); return; }
-            description = itemDescInput.value.trim();
-        } else if (group.contentType==='link') {
-            htmlCode = itemUrlInput.value.trim(); if (!htmlCode) { showToast('请输入链接'); itemUrlInput.focus(); return; }
-            description = itemDescInput.value.trim();
-        } else {
-            htmlCode = itemTextInput.value.trim();
-            imageData = tempMemoImage;
-        }
-        if (editingItemId) {
-            const item = (group.items||[]).find(i=>i.id===editingItemId);
-            if (item) {
-                Object.assign(item, { name, description, tags, htmlCode });
-                if (group.contentType === 'text') item.imageData = imageData;
-            }
-        } else {
-            const newItem = { id: generateId(), name, description, tags, htmlCode, pinned: false };
-            if (!newItem.createdAt) {
-                newItem.createdAt = new Date().toLocaleString('zh-CN', { hour12: false });
-            }
-            if (group.contentType === 'text') {
-                newItem.createdAt = new Date().toLocaleString('zh-CN', { hour12: false });
-                newItem.imageData = imageData;
-            }
-            if (!group.items) group.items = [];
-            group.items.push(newItem);
-        }
-        await saveData(appData);
-        lastSavedData = JSON.stringify(appData);
-        closeItemModal();
-        renderContent();
-        updateProfileUI();
-        showToast(editingItemId ? '条目已更新' : '条目已添加');
+$('#memoMultiImageFileInput').addEventListener('change', async function() {
+    const files = Array.from(this.files);
+    if (tempMemoImages.length >= 9) {
+        showToast('最多9张图片');
+        return;
     }
+    const remain = 9 - tempMemoImages.length;
+    const processFiles = files.slice(0, remain);
+    for (const file of processFiles) {
+        try {
+            const compressed = await compressImage(file, 800, 0.7);
+            tempMemoImages.push(compressed);
+        } catch(e) {}
+    }
+    renderMemoImagesPreview();
+    this.value = '';
+});
+
+$('#clearAllMemoImagesBtn').addEventListener('click', () => {
+    tempMemoImages = [];
+    renderMemoImagesPreview();
+});
+
+// 多图预览函数（放在任意位置，比如 compressImage 函数下方）
+function renderMemoImagesPreview() {
+    const preview = document.getElementById('memoImagesPreview');
+    const hint = document.getElementById('memoImageCountHint');
+    if (!preview) return;
+    preview.innerHTML = tempMemoImages.map((src, idx) =>
+        `<div style="position:relative; width:60px; height:60px; border-radius:6px; overflow:hidden; border:1px solid var(--border-card);">
+            <img src="${src}" style="width:100%; height:100%; object-fit:cover;">
+            <button class="remove-image-btn" data-idx="${idx}">×</button>
+        </div>`
+    ).join('');
+    hint.textContent = `${tempMemoImages.length}/9`;
+
+    preview.querySelectorAll('.remove-image-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const idx = parseInt(btn.dataset.idx);
+            tempMemoImages.splice(idx, 1);
+            renderMemoImagesPreview();
+        });
+    });
+}
+async function saveItem() {
+    const name = itemNameInput.value.trim();
+    if (!name) { showToast('请输入名称'); itemNameInput.focus(); return; }
+    const tagsRaw = itemTagsInput.value.trim();
+    const tags = tagsRaw ? tagsRaw.split(/[,，]+/).map(t => t.trim()).filter(t => t) : [];
+    const group = editingItemGroupId ? appData.groups.find(g => g.id === editingItemGroupId) : appData.groups.find(g => g.id === activeGroupId);
+    if (!group) return;
+    let htmlCode = '', description = '';
+    if (group.contentType === 'html') {
+        htmlCode = itemCodeInput.value.trim();
+        if (!htmlCode) { showToast('请输入HTML代码'); itemCodeInput.focus(); return; }
+        description = itemDescInput.value.trim();
+    } else if (group.contentType === 'link') {
+        htmlCode = itemUrlInput.value.trim();
+        if (!htmlCode) { showToast('请输入链接'); itemUrlInput.focus(); return; }
+        description = itemDescInput.value.trim();
+    } else {
+        htmlCode = itemTextInput.value.trim();
+    }
+    if (editingItemId) {
+        const item = (group.items || []).find(i => i.id === editingItemId);
+        if (item) {
+            Object.assign(item, { name, description, tags, htmlCode });
+            if (group.contentType === 'text') item.images = [...tempMemoImages];
+        }
+    } else {
+        const newItem = { id: generateId(), name, description, tags, htmlCode, pinned: false };
+        if (!newItem.createdAt) {
+            newItem.createdAt = new Date().toLocaleString('zh-CN', { hour12: false });
+        }
+        if (group.contentType === 'text') {
+            newItem.createdAt = new Date().toLocaleString('zh-CN', { hour12: false });
+            newItem.images = [...tempMemoImages];
+        }
+        if (!group.items) group.items = [];
+        group.items.push(newItem);
+    }
+    await saveData(appData);
+    lastSavedData = JSON.stringify(appData);
+
+    // 清空搜索，确保新条目可见
+    currentSearchKeyword = '';
+    searchInput.value = '';
+    searchClearBtn.style.display = 'none';
+
+    closeItemModal();
+    renderContent();
+    updateProfileUI();
+    showToast(editingItemId ? '条目已更新' : '条目已添加');
+}
 
 // ==================== 移动条目功能 ====================
 let movingItemId = null;
@@ -3045,9 +3227,10 @@ if (cleanUnusedDataBtn) {
         // 定义需要保留的字段白名单
         const profileKeys = ['name', 'bio', 'avatarColor', 'avatarImage', 'fontSize'];
         const groupKeys = ['id', 'avatarColor', 'avatarType', 'avatarImage', 'name', 'englishPhrase', 'tags', 'contentType', 'isPreset', 'items', 'pinned', 'customSorts', 'sortOrder'];
-        const itemKeys = ['id', 'name', 'description', 'tags', 'htmlCode', 'pinned', 'imageData', 'createdAt'];
+        const itemKeys = ['id', 'name', 'description', 'tags', 'htmlCode', 'pinned', 'imageData', 'images', 'createdAt'];
 
         let cleanedCount = 0;
+        let orphanRemovedCount = 0;
 
         // 清理 profile 多余字段
         for (let key of Object.keys(appData.profile)) {
@@ -3077,12 +3260,77 @@ if (cleanUnusedDataBtn) {
             }
         });
 
-        if (cleanedCount === 0) {
-            showToast('没有发现无用数据');
-        } else {
+        if (cleanedCount > 0) {
             await saveData(appData);
             lastSavedData = JSON.stringify(appData);
-            showToast(`已清理 ${cleanedCount} 个无用字段`);
+        }
+
+        // ---- 清理孤儿图片（修正版） ----
+        try {
+            const db = await openDB();
+
+            // 重新从数据库读取主数据（此时图片字段是 ID 数组）
+            const storedMain = await new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.get(DATA_KEY);
+                req.onsuccess = () => resolve(req.result ? req.result.data : null);
+                req.onerror = () => reject(req.error);
+            });
+
+            // 收集所有被引用的图片 ID
+            const referencedIds = new Set();
+            if (storedMain) {
+                storedMain.groups.forEach(group => {
+                    if (group.contentType === 'text' && group.items) {
+                        group.items.forEach(item => {
+                            if (item.images && item.images.length) {
+                                item.images.forEach(id => referencedIds.add(id));
+                            }
+                        });
+                    }
+                });
+            }
+
+            // 删除 images 表中不在引用集合中的图片
+            const tx2 = db.transaction('images', 'readwrite');
+            const imageStore = tx2.objectStore('images');
+            const cursorReq = imageStore.openCursor();
+            const deletePromises = [];
+
+            cursorReq.onsuccess = (event) => {
+                const cursor = event.target.result;
+                if (cursor) {
+                    if (!referencedIds.has(cursor.key)) {
+                        deletePromises.push(new Promise((resolve, reject) => {
+                            const delReq = cursor.delete();
+                            delReq.onsuccess = () => resolve();
+                            delReq.onerror = () => reject(delReq.error);
+                        }));
+                        orphanRemovedCount++;
+                    }
+                    cursor.continue();
+                }
+            };
+
+            await new Promise((resolve, reject) => {
+                tx2.oncomplete = () => resolve();
+                tx2.onerror = () => reject(tx2.error);
+            });
+            await Promise.all(deletePromises);
+
+            db.close();
+        } catch (e) {
+            console.warn('清理无用图片失败：', e);
+        }
+
+        const totalRemoved = cleanedCount + orphanRemovedCount;
+        if (totalRemoved === 0) {
+            showToast('没有发现无用数据');
+        } else {
+            let msg = `已清理 ${cleanedCount} 个无用字段`;
+            if (orphanRemovedCount > 0) msg += `、${orphanRemovedCount} 张无用图片`;
+            showToast(msg);
         }
     });
 }
@@ -3118,44 +3366,58 @@ if (clearAllDataBtn) {
 }
 
     // 导入数据
-    importDataBtn.addEventListener('click', () => importFileInput.click());
-    importFileInput.addEventListener('change', async function() {
-        const file = this.files[0];
-        if (!file) return;
-        try {
+importDataBtn.addEventListener('click', () => importFileInput.click());
+importFileInput.addEventListener('change', async function() {
+    const file = this.files[0];
+    if (!file) return;
+    try {
+        let importedData;
+        if (file.name.endsWith('.zip')) {
+            // 处理 ZIP 导入
+            const zip = await JSZip.loadAsync(file);
+            const jsonFile = zip.file('codevault_data.json');
+            if (!jsonFile) throw new Error('ZIP 中未找到数据文件');
+            const text = await jsonFile.async('text');
+            importedData = JSON.parse(text);
+            // 如果有独立的 images 文件夹，也可以从中恢复图片（但 JSON 里可能已经包含 base64，所以可跳过）
+        } else {
+            // 普通 JSON 导入
             const text = await new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = e => resolve(e.target.result);
                 reader.onerror = reject;
                 reader.readAsText(file);
             });
-            const imported = JSON.parse(text);
-            if (!imported.groups || !Array.isArray(imported.groups)) {
-                throw new Error('数据格式无效');
-            }
-            if (!confirm('导入将覆盖当前全部数据，确定继续吗？')) return;
-            appData = imported;
-            if (!appData.profile) appData.profile = { name:'用户', bio:'', avatarColor:'#5b8def', avatarImage:'' };
-            appData.groups.forEach((g, idx) => {
-                if (!g.id) g.id = 'imported_' + idx + '_' + Date.now();
-                if (!g.items) g.items = [];
-                if (!g.contentType) g.contentType = 'html';
-                if (g.pinned === undefined) g.pinned = false;
-                if (g.customSorts === undefined) g.customSorts = [];
-                if (g.sortOrder === undefined) g.sortOrder = 'default';
-            });
-            activeGroupId = '__home__';
-            localStorage.removeItem('codevault_active_v3');
-            await saveData(appData);
-            lastSavedData = JSON.stringify(appData);
-            renderAll();
-            updateProfileUI();
-            showToast('数据导入成功');
-        } catch(e) {
-            showToast('导入失败：' + e.message);
+            importedData = JSON.parse(text);
         }
-        this.value = '';
-    });
+
+        if (!importedData.groups || !Array.isArray(importedData.groups)) {
+            throw new Error('数据格式无效');
+        }
+        if (!confirm('导入将覆盖当前全部数据，确定继续吗？')) return;
+        appData = importedData;
+        // 补全缺失字段
+        if (!appData.profile) appData.profile = { name:'用户', bio:'', avatarColor:'#5b8def', avatarImage:'' };
+        appData.groups.forEach((g, idx) => {
+            if (!g.id) g.id = 'imported_' + idx + '_' + Date.now();
+            if (!g.items) g.items = [];
+            if (!g.contentType) g.contentType = 'html';
+            if (g.pinned === undefined) g.pinned = false;
+            if (g.customSorts === undefined) g.customSorts = [];
+            if (g.sortOrder === undefined) g.sortOrder = 'default';
+        });
+        activeGroupId = '__home__';
+        localStorage.removeItem('codevault_active_v3');
+        await saveData(appData);   // saveData 会自动分离图片
+        lastSavedData = JSON.stringify(appData);
+        renderAll();
+        updateProfileUI();
+        showToast('数据导入成功');
+    } catch(e) {
+        showToast('导入失败：' + e.message);
+    }
+    this.value = '';
+});
 
 // 迁移旧数据库数据到新数据库
 $('#migrateDataBtn').addEventListener('click', async () => {
@@ -3238,17 +3500,44 @@ $('#migrateDataBtn').addEventListener('click', async () => {
 });
 
     // 导出数据
-    exportDataBtn.addEventListener('click', async () => {
-        const dataStr = JSON.stringify(appData, null, 2);
-        const blob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `codevault_backup_${new Date().toISOString().slice(0,10)}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-        showToast('导出成功');
+exportDataBtn.addEventListener('click', async () => {
+    // 先加载完整数据（包含图片 data URL）
+    const fullData = JSON.parse(JSON.stringify(appData));
+    // 把 images ID 替换回真正的 data URL（因为当前 appData 中的 images 可能已经是 ID）
+    // 实际上 appData 在内存中是带有 data URL 的（我们在 loadData 后恢复的），所以直接使用 appData 即可
+    const dataStr = JSON.stringify(fullData, null, 2);
+    const zip = new JSZip();
+    zip.file('codevault_data.json', dataStr);
+
+    // 也可以把每张图片单独导出（可选）
+    const imgFolder = zip.folder('images');
+    fullData.groups.forEach(group => {
+        if (group.contentType === 'text' && group.items) {
+            group.items.forEach((item, itemIndex) => {
+                if (item.images && item.images.length) {
+                    item.images.forEach((dataUrl, imgIndex) => {
+                        // 提取 base64 数据部分
+                        const matches = dataUrl.match(/^data:image\/(png|jpeg|webp);base64,(.*)$/);
+                        if (matches) {
+                            const ext = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+                            const base64Data = matches[2];
+                            imgFolder.file(`${item.id}_${imgIndex}.${ext}`, base64Data, { base64: true });
+                        }
+                    });
+                }
+            });
+        }
     });
+
+    const content = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(content);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `codevault_backup_${new Date().toISOString().slice(0, 10)}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('导出成功（ZIP）');
+});
 
     function generateId() { return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2,8); }
 
