@@ -1902,6 +1902,7 @@ async function saveData(data, retries = 3) {
     let currentCustomSortId = null;
     let isCustomSortMode = false;
     let dragSrcIndex = null;
+let currentPreviewItem = null;   // 新增：记录当前预览的条目
 
     const $ = (sel) => document.querySelector(sel);
 
@@ -2580,6 +2581,7 @@ function renderContent() {
     function openPreview(group, itemId) {
         const item = (group.items||[]).find(i => i.id === itemId);
         if (!item) return;
+        currentPreviewItem = item;   // ← 新增这一行
         if (group.contentType === 'link') {
             const url = item.htmlCode?.trim();
             if (url) {
@@ -2608,6 +2610,7 @@ function renderContent() {
         previewOverlay.classList.add('hidden');
         previewIframe.srcdoc = ''; previewIframe.src = 'about:blank';
         document.body.style.overflow = '';
+        currentPreviewItem = null;   // ← 新增这一行
         if (previewHideTimer) clearTimeout(previewHideTimer);
         $('#previewTopBar').classList.remove('hidden-control');
     }
@@ -3736,10 +3739,17 @@ exportHtmlBtn.addEventListener('click', () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    // 使用当前时间生成文件名，也可以从条目名称中获取（若需要可自行扩展）
-    const now = new Date();
-    const timestamp = now.toISOString().slice(0, 19).replace(/:/g, '-');
-    a.download = `export_${timestamp}.html`;
+
+    // ---------- 修改开始 ----------
+    let filename = 'export.html';
+    if (currentPreviewItem && currentPreviewItem.name) {
+        // 去除文件名中不允许的字符
+        let safeName = currentPreviewItem.name.replace(/[\/\\:*?"<>|]/g, '_').trim();
+        if (safeName) filename = safeName + '.html';
+    }
+    a.download = filename;
+    // ---------- 修改结束 ----------
+
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
