@@ -1,0 +1,3027 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>表情包工作台</title>
+    <style>
+        :root {
+            --bg: #1a1a1a;
+            --surface: #252525;
+            --surface-light: #2e2e2e;
+            --surface-lighter: #353535;
+            --text: #e0e0e0;
+            --text-secondary: #999;
+            --text-tertiary: #777;
+            --border: #3a3a3a;
+            --border-light: #444;
+            --border-subtle: #2a2a2a;
+            --black: #252525;
+            --white: #ffffff;
+            --btn-outline-bg: #ffffff;
+            --btn-outline-text: #252525;
+            --btn-outline-border: #252525;
+            --btn-primary-bg: #252525;
+            --btn-primary-text: #ffffff;
+            --input-bg: transparent;
+            --input-border: #3a3a3a;
+            --input-focus-border: #888;
+            --modal-overlay-bg: rgba(0, 0, 0, 0.7);
+            --toast-bg: #333;
+            --toast-text: #fff;
+            --img-wrap-bg: #1e1e1e;
+            --img-wrap-border: #2e2e2e;
+            --preview-item-border: #2a2a2a;
+            --preview-item-hover: rgba(255, 255, 255, 0.015);
+            --dropdown-bg: #2e2e2e;
+            --dropdown-hover: #3a3a3a;
+            --dropdown-selected: #383838;
+            --menu-btn-bg: #2e2e2e;
+            --menu-btn-border: #444;
+            --menu-btn-hover-bg: #333;
+            --menu-btn-hover-border: #666;
+            --menu-btn-active-bg: #2a2a2a;
+            --code-bg: #2a2a2a;
+            --code-text: #ccc;
+            --help-strong: #ddd;
+            --help-step-title: #ddd;
+            --radius: 8px;
+            --transition: 0.2s ease;
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'Menlo', monospace;
+            --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            --shadow-modal: 0 12px 48px rgba(0, 0, 0, 0.7);
+            --shadow-app: 0 4px 32px rgba(0, 0, 0, 0.5);
+            --shadow-toast: 0 4px 16px rgba(0, 0, 0, 0.5);
+
+            /* 仓库相关变量 */
+            --danger: #e55353;
+            --danger-hover: #d43f3f;
+            --danger-text: #fff;
+            --warehouse-item-bg: var(--surface);
+            --warehouse-item-border: var(--border-subtle);
+            --warehouse-item-hover: var(--preview-item-hover);
+            --batch-bar-bg: var(--surface-light);
+            --batch-bar-border: var(--border-subtle);
+        }
+
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg: #f2f2f7;
+                --surface: #ffffff;
+                --surface-light: #f5f5f5;
+                --surface-lighter: #ebebeb;
+                --text: #1a1a1a;
+                --text-secondary: #6b6b6b;
+                --text-tertiary: #999;
+                --border: #d1d1d6;
+                --border-light: #c6c6c8;
+                --border-subtle: #e5e5ea;
+                --black: #1a1a1a;
+                --white: #ffffff;
+                --btn-outline-bg: #ffffff;
+                --btn-outline-text: #1a1a1a;
+                --btn-outline-border: #1a1a1a;
+                --btn-primary-bg: #1a1a1a;
+                --btn-primary-text: #ffffff;
+                --input-bg: transparent;
+                --input-border: #c6c6c8;
+                --input-focus-border: #555;
+                --modal-overlay-bg: rgba(0, 0, 0, 0.4);
+                --toast-bg: #333;
+                --toast-text: #fff;
+                --img-wrap-bg: #f0f0f0;
+                --img-wrap-border: #d1d1d6;
+                --preview-item-border: #e5e5ea;
+                --preview-item-hover: rgba(0, 0, 0, 0.02);
+                --dropdown-bg: #ffffff;
+                --dropdown-hover: #f0f0f0;
+                --dropdown-selected: #e8e8e8;
+                --menu-btn-bg: #f5f5f5;
+                --menu-btn-border: #c6c6c8;
+                --menu-btn-hover-bg: #ebebeb;
+                --menu-btn-hover-border: #999;
+                --menu-btn-active-bg: #e0e0e0;
+                --code-bg: #e8e8e8;
+                --code-text: #333;
+                --help-strong: #1a1a1a;
+                --help-step-title: #1a1a1a;
+                --shadow-modal: 0 8px 40px rgba(0, 0, 0, 0.15);
+                --shadow-app: 0 2px 20px rgba(0, 0, 0, 0.08);
+                --shadow-toast: 0 4px 12px rgba(0, 0, 0, 0.2);
+
+                --danger: #d32f2f;
+                --danger-hover: #b71c1c;
+                --danger-text: #fff;
+                --warehouse-item-bg: #fff;
+                --warehouse-item-border: #e5e5ea;
+                --warehouse-item-hover: rgba(0,0,0,0.02);
+                --batch-bar-bg: #f5f5f5;
+                --batch-bar-border: #e5e5ea;
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: var(--font-sans);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            transition: background-color 0.3s ease;
+        }
+
+        @media (prefers-color-scheme: light) {
+            body {
+                background-color: #e8e8ed;
+            }
+        }
+
+        .app-container {
+            width: 100%;
+            min-height: 100vh;
+            background: var(--bg);
+            padding: 28px 32px 32px;
+            position: relative;
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+            border-radius: 0;
+            box-shadow: none;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 16px;
+            flex-wrap: nowrap;
+            gap: 10px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .header-left {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+            transition: color 0.3s ease;
+        }
+        .header-right {
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .btn-outline {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 18px;
+            border: 1.5px solid var(--btn-outline-border);
+            background: var(--btn-outline-bg);
+            color: var(--btn-outline-text);
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+            white-space: nowrap;
+            user-select: none;
+            gap: 5px;
+        }
+        .btn-outline:hover {
+            background: #f0f0f0;
+            border-color: #1a1a1a;
+        }
+        @media (prefers-color-scheme: light) {
+            .btn-outline:hover {
+                background: #f5f5f5;
+                border-color: #000;
+            }
+        }
+        .btn-outline:active {
+            background: #e0e0e0;
+            transform: scale(0.97);
+        }
+
+        .divider-hidden {
+            height: 0;
+            border: none;
+            margin: 0;
+            opacity: 0;
+        }
+
+        .row-preview-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 0 10px;
+            flex-shrink: 0;
+        }
+        .row-preview-header .label-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+            letter-spacing: 0.02em;
+            transition: color 0.3s ease;
+        }
+
+        .btn-immersive {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 16px;
+            background: #252525;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            font-family: var(--font-sans);
+            white-space: nowrap;
+            user-select: none;
+            transition: opacity 0.2s ease, transform 0.15s ease;
+        }
+        .btn-immersive:hover {
+            opacity: 0.85;
+        }
+        .btn-immersive:active {
+            opacity: 0.7;
+            transform: scale(0.97);
+        }
+        .btn-immersive.visible {
+            display: inline-flex;
+        }
+
+        @media (prefers-color-scheme: light) {
+            .btn-immersive {
+                background: #1a1a1a;
+                color: #ffffff;
+            }
+        }
+
+        .preview-box {
+            min-height: 420px;
+            max-height: 450px;
+            overflow-y: auto;
+            border: none;
+            background: transparent;
+            padding: 4px 0;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            position: relative;
+        }
+        .preview-box::-webkit-scrollbar {
+            display: none;
+        }
+        .preview-empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 380px;
+            color: var(--text-tertiary);
+            font-size: 0.9rem;
+            letter-spacing: 0.03em;
+            text-align: center;
+            user-select: none;
+            transition: color 0.3s ease;
+        }
+        .preview-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 4px;
+            border-bottom: 1px solid var(--preview-item-border);
+            transition: background var(--transition), border-color 0.3s ease;
+        }
+        .preview-item:last-child {
+            border-bottom: none;
+        }
+        .preview-item:hover {
+            background: var(--preview-item-hover);
+        }
+        .preview-item .btn-remove {
+            flex-shrink: 0;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 50%;
+            color: var(--text-tertiary);
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all var(--transition);
+            line-height: 1;
+            padding: 0;
+            margin-right: 2px;
+            user-select: none;
+        }
+        .preview-item .btn-remove:hover {
+            color: #e55353;
+            background: rgba(229, 83, 83, 0.1);
+            border-color: rgba(229, 83, 83, 0.3);
+        }
+        .preview-img-wrap {
+            flex-shrink: 0;
+            width: 68px;
+            height: 68px;
+            border-radius: 6px;
+            overflow: hidden;
+            background: var(--img-wrap-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--img-wrap-border);
+            transition: background 0.3s ease, border-color 0.3s ease;
+            position: relative;
+        }
+        .preview-img-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+        .preview-img-wrap .img-placeholder {
+            color: #555;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .preview-inputs {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 0;
+        }
+        .input-underline {
+            border: none;
+            border-bottom: 1.5px solid var(--input-border);
+            border-radius: 0;
+            background: var(--input-bg);
+            color: var(--text);
+            padding: 8px 2px 7px;
+            font-size: 0.875rem;
+            font-family: var(--font-sans);
+            letter-spacing: 0.01em;
+            transition: border-color var(--transition), color 0.3s ease;
+            width: 100%;
+            outline: none;
+        }
+        .input-underline:focus {
+            border-bottom-color: var(--input-focus-border);
+        }
+        .input-underline::placeholder {
+            color: #888;
+            font-size: 0.8rem;
+        }
+        @media (prefers-color-scheme: light) {
+            .input-underline::placeholder {
+                color: #aaa;
+            }
+        }
+        .input-underline.input-desc {
+            font-weight: 500;
+        }
+        .input-underline.input-url {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+        }
+
+        .row-upload {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0 6px;
+            flex-shrink: 0;
+        }
+        .row-upload-left {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 10px 22px;
+            border: none;
+            background: var(--btn-primary-bg);
+            color: var(--btn-primary-text);
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+            white-space: nowrap;
+            user-select: none;
+        }
+        .btn-primary:hover {
+            opacity: 0.88;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+        }
+        .btn-primary:active {
+            opacity: 0.75;
+            transform: scale(0.97);
+        }
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+            filter: grayscale(30%);
+        }
+        .btn-primary svg {
+            flex-shrink: 0;
+        }
+
+        .row-convert-label {
+            padding: 16px 0 4px;
+            flex-shrink: 0;
+        }
+        .row-convert-label .label-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+            letter-spacing: 0.02em;
+            transition: color 0.3s ease;
+        }
+
+        .row-export {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 4px 0 0;
+            flex-shrink: 0;
+        }
+        .row-export .menu-wrapper {
+            flex: 1;
+            max-width: 320px;
+        }
+        .row-export .menu-btn {
+            width: 100%;
+            min-width: auto;
+        }
+        .row-export .menu-dropdown {
+            right: auto;
+            left: 0;
+            min-width: 100%;
+            max-height: 100px;
+        }
+
+        .source-format-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            flex-wrap: nowrap;
+            gap: 10px;
+        }
+        .source-format-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+        }
+        .menu-wrapper {
+            position: relative;
+            z-index: 10;
+        }
+        .menu-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border: 1.5px solid var(--menu-btn-border);
+            background: var(--menu-btn-bg);
+            color: var(--text);
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+            white-space: nowrap;
+            user-select: none;
+            min-width: 200px;
+            justify-content: space-between;
+        }
+        .menu-btn:hover {
+            border-color: var(--menu-btn-hover-border);
+            background: var(--menu-btn-hover-bg);
+        }
+        .menu-btn:active {
+            background: var(--menu-btn-active-bg);
+        }
+        .menu-btn .menu-btn-text {
+            flex: 1;
+            text-align: left;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .menu-btn .arrow-icon {
+            flex-shrink: 0;
+            transition: transform var(--transition);
+        }
+        .menu-btn.open .arrow-icon {
+            transform: rotate(180deg);
+        }
+        .menu-dropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            min-width: 280px;
+            max-height: 100px;
+            overflow-y: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            background: var(--dropdown-bg);
+            border: 1.5px solid var(--border-light);
+            border-radius: var(--radius);
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+            display: none;
+            z-index: 20;
+            animation: fadeInDown 0.18s ease;
+            transition: background 0.3s ease, border-color 0.3s ease;
+        }
+        .menu-dropdown::-webkit-scrollbar {
+            display: none;
+        }
+        .menu-dropdown.active {
+            display: block;
+        }
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .menu-dropdown-item {
+            padding: 11px 16px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--text);
+            transition: all var(--transition);
+            letter-spacing: 0.01em;
+            font-family: var(--font-mono);
+            border-bottom: 1px solid var(--border-subtle);
+            white-space: nowrap;
+        }
+        .menu-dropdown-item:last-child {
+            border-bottom: none;
+        }
+        .menu-dropdown-item:hover {
+            background: var(--dropdown-hover);
+            color: var(--text);
+        }
+        .menu-dropdown-item.selected {
+            background: var(--dropdown-selected);
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--modal-overlay-bg);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease;
+            transition: background 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .modal-overlay.hidden {
+            display: none;
+        }
+        .modal-dialog {
+            background: var(--surface);
+            border-radius: 14px;
+            width: 92%;
+            max-width: 680px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-modal);
+            animation: slideUp 0.22s ease;
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 22px 14px;
+            border-bottom: 1px solid var(--border-subtle);
+            flex-shrink: 0;
+            transition: border-color 0.3s ease;
+        }
+        .modal-header .modal-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: 0.02em;
+            transition: color 0.3s ease;
+        }
+        .modal-header .btn-return {
+            font-size: 0.85rem;
+            color: #888;
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-family: var(--font-sans);
+            letter-spacing: 0.02em;
+            transition: color var(--transition);
+            padding: 4px 8px;
+            user-select: none;
+        }
+        .modal-header .btn-return:hover {
+            color: #bbb;
+        }
+        @media (prefers-color-scheme: light) {
+            .modal-header .btn-return {
+                color: #999;
+            }
+            .modal-header .btn-return:hover {
+                color: #555;
+            }
+        }
+        .modal-header .btn-return.hidden-btn {
+            visibility: hidden;
+            pointer-events: none;
+        }
+        .modal-body {
+            padding: 18px 22px 20px;
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .modal-body .textarea-full {
+            width: 100%;
+            min-height: 280px;
+            padding: 14px 16px;
+            border: 1.5px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 0.85rem;
+            font-family: var(--font-mono);
+            line-height: 1.6;
+            resize: vertical;
+            outline: none;
+            letter-spacing: 0.01em;
+            transition: all var(--transition);
+        }
+        .modal-body .textarea-full:focus {
+            border-color: #666;
+        }
+        .modal-body .textarea-full::placeholder {
+            color: #888;
+            font-family: var(--font-sans);
+            font-size: 0.82rem;
+        }
+        @media (prefers-color-scheme: light) {
+            .modal-body .textarea-full::placeholder {
+                color: #aaa;
+            }
+        }
+        .modal-body .hint-text {
+            font-size: 0.78rem;
+            color: var(--text-tertiary);
+            letter-spacing: 0.02em;
+            line-height: 1.5;
+            margin-top: -8px;
+            transition: color 0.3s ease;
+        }
+        .modal-footer-row {
+            display: flex;
+            justify-content: flex-end;
+            padding: 4px 0 0;
+            gap: 10px;
+        }
+        .btn-copy-outline {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 10px 22px;
+            border: 1.5px solid var(--black);
+            background: var(--white);
+            color: var(--black);
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+            white-space: nowrap;
+            user-select: none;
+        }
+        .btn-copy-outline:hover {
+            background: #f5f5f5;
+            border-color: #1a1a1a;
+        }
+        .btn-copy-outline:active {
+            background: #e8e8e8;
+            transform: scale(0.97);
+        }
+        .btn-copy-outline.copied {
+            background: #e8ffe8;
+            border-color: #4caf50;
+            color: #2e7d32;
+        }
+        .btn-copy-outline.agreed-btn {
+            background: #d0d0d0;
+            border-color: #888;
+            color: #555;
+            cursor: default;
+            pointer-events: none;
+            font-weight: 500;
+        }
+        @media (prefers-color-scheme: light) {
+            .btn-copy-outline.agreed-btn {
+                background: #e0e0e0;
+                border-color: #aaa;
+                color: #777;
+            }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--toast-bg);
+            color: var(--toast-text);
+            padding: 10px 22px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            letter-spacing: 0.02em;
+            z-index: 200;
+            transition: transform 0.3s ease;
+            pointer-events: none;
+            box-shadow: var(--shadow-toast);
+        }
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+        .toast.success {
+            background: #2e7d32;
+        }
+
+        .help-content {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            line-height: 1.8;
+            letter-spacing: 0.02em;
+            transition: color 0.3s ease;
+        }
+        .help-content strong {
+            color: var(--help-strong);
+            font-weight: 600;
+        }
+        .help-content code {
+            background: var(--code-bg);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            color: var(--code-text);
+        }
+        .help-content .step {
+            margin-bottom: 14px;
+        }
+        .help-content .step-title {
+            color: var(--help-step-title);
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .help-content ul {
+            padding-left: 20px;
+            margin: 6px 0;
+        }
+        .help-content li {
+            margin-bottom: 4px;
+        }
+
+        .disclaimer-content {
+            color: var(--text-secondary);
+            font-size: 0.84rem;
+            line-height: 1.75;
+            letter-spacing: 0.02em;
+            transition: color 0.3s ease;
+        }
+        .disclaimer-content h3 {
+            color: var(--text);
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+        .disclaimer-content p {
+            margin-bottom: 10px;
+        }
+        .disclaimer-content ol {
+            padding-left: 22px;
+            margin: 6px 0 12px;
+        }
+        .disclaimer-content ol li {
+            margin-bottom: 6px;
+        }
+        .disclaimer-divider {
+            border: none;
+            border-top: 1px solid var(--border-subtle);
+            margin: 6px 0;
+            transition: border-color 0.3s ease;
+        }
+
+        /* ===== 沉浸式预览全屏页 ===== */
+        #modalImmersive {
+            position: fixed;
+            inset: 0;
+            z-index: 500; /* 高于仓库页 */
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            transition: background 0.3s ease;
+            display: none;
+        }
+        #modalImmersive.active {
+            display: flex;
+        }
+        .immersive-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border-subtle);
+            flex-shrink: 0;
+            background: var(--bg);
+            transition: background 0.3s ease, border-color 0.3s ease;
+        }
+        .immersive-header .btn-back {
+            font-size: 0.8rem;
+            color: #888;
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-family: var(--font-sans);
+            letter-spacing: 0.02em;
+            user-select: none;
+            transition: color var(--transition);
+            padding: 4px 8px;
+        }
+        .immersive-header .btn-back:hover {
+            color: #bbb;
+        }
+        @media (prefers-color-scheme: light) {
+            .immersive-header .btn-back {
+                color: #999;
+            }
+            .immersive-header .btn-back:hover {
+                color: #555;
+            }
+        }
+        .immersive-header .immersive-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: 0.02em;
+            transition: color 0.3s ease;
+        }
+        .immersive-grid {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            align-content: start;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .immersive-grid::-webkit-scrollbar {
+            display: none;
+        }
+        .immersive-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            max-width: 160px;
+            margin: 0 auto;
+        }
+        .immersive-card .card-img {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            background: var(--img-wrap-bg);
+            border-radius: 6px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--img-wrap-border);
+            transition: background 0.3s ease, border-color 0.3s ease;
+        }
+        .immersive-card .card-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+        .immersive-card .card-name {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-align: center;
+            word-break: break-all;
+            line-height: 1.2;
+            max-width: 100%;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            transition: color 0.3s ease;
+        }
+
+        /* ===== 仓库界面 ===== */
+        #modalWarehouse {
+            position: fixed;
+            inset: 0;
+            z-index: 400;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            transition: background 0.3s ease;
+            display: none;
+        }
+        #modalWarehouse.active {
+            display: flex;
+        }
+        .warehouse-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border-subtle);
+            flex-shrink: 0;
+            background: var(--bg);
+            transition: background 0.3s ease, border-color 0.3s ease;
+        }
+        .warehouse-header .btn-back {
+            font-size: 0.85rem;
+            color: #888;
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-family: var(--font-sans);
+            letter-spacing: 0.02em;
+            user-select: none;
+            padding: 4px 8px;
+        }
+        .warehouse-header .btn-back:hover {
+            color: #bbb;
+        }
+        .warehouse-header .warehouse-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: 0.02em;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .hamburger-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.4rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            line-height: 1;
+            transition: color var(--transition);
+            position: relative;
+        }
+        .hamburger-btn:hover {
+            color: var(--text);
+        }
+        .hamburger-dropdown {
+            position: absolute;
+            top: calc(100% + 4px);
+            right: 0;
+            min-width: 160px;
+            background: var(--dropdown-bg);
+            border: 1.5px solid var(--border-light);
+            border-radius: var(--radius);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            display: none;
+            z-index: 30;
+            flex-direction: column;
+            transition: background 0.3s ease, border-color 0.3s ease;
+        }
+        .hamburger-dropdown.active {
+            display: flex;
+        }
+        .hamburger-dropdown-item {
+            padding: 10px 16px;
+            font-size: 0.85rem;
+            color: var(--text);
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-subtle);
+            transition: background var(--transition);
+            user-select: none;
+            white-space: nowrap;
+        }
+        .hamburger-dropdown-item:last-child {
+            border-bottom: none;
+        }
+        .hamburger-dropdown-item:hover {
+            background: var(--dropdown-hover);
+        }
+        .hamburger-dropdown-item.danger-item {
+            color: var(--danger);
+        }
+
+        .warehouse-batch-bar {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 16px;
+            background: var(--batch-bar-bg);
+            border-bottom: 1px solid var(--batch-bar-border);
+            flex-shrink: 0;
+        }
+        .warehouse-batch-bar.active {
+            display: flex;
+        }
+        .batch-selected-count {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .batch-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .batch-actions .btn-batch {
+            font-size: 0.85rem;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--text);
+            transition: all var(--transition);
+        }
+        .batch-actions .btn-batch:hover {
+            background: var(--dropdown-hover);
+        }
+        .batch-actions .btn-batch.danger {
+            background: var(--danger);
+            color: var(--danger-text);
+        }
+        .batch-actions .btn-batch.danger:hover {
+            background: var(--danger-hover);
+        }
+
+        .warehouse-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .warehouse-list::-webkit-scrollbar {
+            display: none;
+        }
+
+        .warehouse-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            background: var(--warehouse-item-bg);
+            border: 1px solid var(--warehouse-item-border);
+            border-radius: var(--radius);
+            transition: background var(--transition), border-color 0.3s ease;
+        }
+        .warehouse-item:hover {
+            background: var(--warehouse-item-hover);
+        }
+        .warehouse-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .warehouse-item-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 4px;
+            word-break: break-word;
+        }
+        .warehouse-item-count {
+            font-size: 0.78rem;
+            color: var(--text-tertiary);
+        }
+        .warehouse-item-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+            margin-left: 16px;
+        }
+        .warehouse-item-actions .btn-action {
+            font-size: 0.8rem;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 4px 0;
+            transition: color var(--transition);
+            font-family: var(--font-sans);
+            letter-spacing: 0.02em;
+        }
+        .btn-action.edit,
+        .btn-action.preview,
+        .btn-action.import-workbench {
+            color: var(--text-secondary);
+        }
+        .btn-action.edit:hover,
+        .btn-action.preview:hover,
+        .btn-action.import-workbench:hover {
+            color: var(--text);
+        }
+        .btn-action.delete-group {
+            color: var(--danger);
+        }
+        .btn-action.delete-group:hover {
+            color: var(--danger-hover);
+            text-decoration: underline;
+        }
+
+        .warehouse-item .batch-checkbox {
+            margin-right: 12px;
+            flex-shrink: 0;
+            display: none;
+            width: 18px;
+            height: 18px;
+            accent-color: var(--btn-primary-bg);
+        }
+        .warehouse-item.batch-mode .batch-checkbox {
+            display: block;
+        }
+        .warehouse-item.batch-mode .warehouse-item-actions {
+            display: none;
+        }
+
+        .warehouse-footer {
+            flex-shrink: 0;
+            padding: 10px 16px;
+            text-align: center;
+            border-top: 1px solid var(--border-subtle);
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+            background: var(--bg);
+            transition: background 0.3s ease;
+        }
+
+        /* 批量管理退出按钮 */
+        .btn-exit-batch {
+            padding: 4px 12px;
+            border: 1.5px solid var(--border-light);
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-family: var(--font-sans);
+            transition: all var(--transition);
+            white-space: nowrap;
+        }
+        .btn-exit-batch:hover {
+            background: var(--dropdown-hover);
+            border-color: var(--menu-btn-hover-border);
+        }
+
+        /* 统一输入框样式（用于保存仓库和芽芽机命名） */
+        .input-box {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1.5px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 0.85rem;
+            font-family: var(--font-sans);
+            outline: none;
+            transition: all var(--transition);
+        }
+        .input-box:focus {
+            border-color: #666;
+        }
+        .input-box::placeholder {
+            color: #888;
+            font-size: 0.8rem;
+        }
+
+        /* 保存至仓库弹窗及命名弹窗复用模态框结构 */
+        #modalSaveWarehouse .modal-body,
+        #modalNameExport .modal-body {
+            gap: 12px;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .input-group label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* 响应式：移动端 */
+        @media (max-width: 600px) {
+            .immersive-grid {
+                gap: 8px;
+                padding: 8px;
+            }
+            .immersive-card {
+                max-width: 100%;
+            }
+            .immersive-card .card-name {
+                font-size: 0.6rem;
+            }
+
+            .app-container {
+                padding: 16px 14px 20px;
+            }
+            .header {
+                flex-wrap: nowrap;
+                gap: 6px;
+            }
+            .header-left {
+                font-size: 1rem;
+            }
+            .header-right {
+                gap: 4px;
+            }
+            .btn-outline {
+                padding: 6px 10px;
+                font-size: 0.72rem;
+            }
+            .menu-btn {
+                padding: 7px 10px;
+                font-size: 0.78rem;
+                min-width: 160px;
+            }
+            .menu-dropdown {
+                min-width: 220px;
+                right: -10px;
+                max-height: 85px;
+            }
+            .preview-box {
+                min-height: 340px;
+                max-height: 450px;
+            }
+            .preview-item {
+                gap: 8px;
+                padding: 8px 2px;
+            }
+            .preview-item .btn-remove {
+                width: 16px;
+                height: 16px;
+                font-size: 0.65rem;
+            }
+            .preview-img-wrap {
+                width: 50px;
+                height: 50px;
+                border-radius: 4px;
+            }
+            .input-underline {
+                font-size: 0.78rem;
+                padding: 6px 1px 5px;
+            }
+            .row-export {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            .row-export .menu-wrapper {
+                max-width: 100%;
+                flex: auto;
+            }
+            .modal-dialog {
+                width: 96%;
+                max-width: 96%;
+                border-radius: 10px;
+            }
+            .modal-header {
+                padding: 14px 16px 10px;
+            }
+            .modal-body {
+                padding: 12px 14px 16px;
+            }
+            .modal-body .textarea-full {
+                min-height: 200px;
+                font-size: 0.8rem;
+            }
+            .source-format-row {
+                flex-wrap: nowrap;
+                gap: 6px;
+            }
+
+            .warehouse-item {
+                flex-wrap: wrap;
+                gap: 8px;
+                padding: 10px 12px;
+            }
+            .warehouse-item-actions {
+                gap: 8px;
+                margin-left: 0;
+                width: 100%;
+                justify-content: flex-end;
+            }
+            .warehouse-item-info {
+                width: 100%;
+            }
+            .hamburger-dropdown {
+                right: -8px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <div class="header">
+            <span class="header-left">表情包工作台</span>
+            <div class="header-right">
+                <button class="btn-outline" id="btnHelp" title="使用说明">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    使用说明
+                </button>
+                <button class="btn-outline" id="btnDeclare" title="声明">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="3"/>
+                        <line x1="9" y1="9" x2="15" y2="9"/>
+                        <line x1="9" y1="13" x2="15" y2="13"/>
+                        <line x1="9" y1="17" x2="12" y2="17"/>
+                    </svg>
+                    声明
+                </button>
+            </div>
+        </div>
+
+        <hr class="divider-hidden">
+
+        <div class="row-preview-header">
+            <span class="label-text">表情包预览 <span id="currentSourceLabel" style="display:none;">（当前源格式：<span id="currentSourceName"></span>）</span></span>
+            <button class="btn-immersive" id="btnImmersivePreview">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <path d="M3 9h18"/>
+                    <path d="M9 21V9"/>
+                </svg>
+                沉浸式预览
+            </button>
+        </div>
+
+        <div class="preview-box" id="previewBox">
+            <div class="preview-empty" id="previewEmpty">
+                请点击下方「上传」按钮<br>粘贴表情包数据进行解析
+            </div>
+        </div>
+
+        <div class="row-upload">
+            <div class="row-upload-left">
+                <button class="btn-primary" id="btnUpload">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    上传
+                </button>
+                <button class="btn-outline" id="btnSaveToWarehouse">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    保存至仓库
+                </button>
+            </div>
+            <button class="btn-primary" id="btnMyWarehouse">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                    <line x1="12" y1="22.08" x2="12" y2="12"/>
+                </svg>
+                我的仓库
+            </button>
+        </div>
+
+        <div class="row-convert-label">
+            <span class="label-text">请选择转换的目标格式</span>
+        </div>
+
+        <div class="row-export">
+            <div class="menu-wrapper" id="menuWrapperTarget">
+                <button class="menu-btn" id="btnMenuTarget" title="选择导出格式">
+                    <span class="menu-btn-text" id="menuBtnTextTarget">[描述]：[URL]</span>
+                    <svg class="arrow-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </button>
+                <div class="menu-dropdown" id="dropdownTarget"></div>
+            </div>
+            <button class="btn-primary" id="btnExport">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                导出
+            </button>
+        </div>
+    </div>
+
+    <!-- 弹窗：上传解析 -->
+    <div class="modal-overlay hidden" id="modalUpload">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <span class="modal-title">上传表情包数据</span>
+                <button class="btn-return" id="btnReturnUpload">返回</button>
+            </div>
+            <div class="modal-body">
+                <div class="source-format-row">
+                    <span class="source-format-label">检测原格式</span>
+                    <div class="menu-wrapper" id="menuWrapperSource">
+                        <button class="menu-btn" id="btnMenuSource" title="选择解析格式（可手动更改）">
+                            <span class="menu-btn-text" id="menuBtnTextSource">[描述]：[URL]</span>
+                            <svg class="arrow-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="6 9 12 15 18 9"/>
+                            </svg>
+                        </button>
+                        <div class="menu-dropdown" id="dropdownSource"></div>
+                    </div>
+                </div>
+                <textarea class="textarea-full" id="textareaUpload"></textarea>
+                <p class="hint-text">提示：工具会自动分析粘贴内容并匹配最可能的源格式。您也可以手动在下拉菜单中更改。支持 Ctrl+Enter 快速解析。</p>
+                <div class="modal-footer-row">
+                    <button class="btn-primary" id="btnParse">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"/>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                        解析
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 弹窗：导出（含芽芽机 JSON 和文本导出） -->
+    <div class="modal-overlay hidden" id="modalExport">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <span class="modal-title">导出表情包数据</span>
+                <button class="btn-return" id="btnReturnExport">返回</button>
+            </div>
+            <div class="modal-body">
+                <p class="hint-text" style="margin-top:0;margin-bottom:8px;">方式一：导出对应的 JSON 文件</p>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+                    <button class="btn-outline" id="btnExportYaya" style="border-radius:8px;">芽芽机</button>
+                </div>
+
+                <p class="hint-text" style="margin-top:0;margin-bottom:8px;">方式二：导出可复制的文本</p>
+                <textarea class="textarea-full" id="textareaExport" placeholder="转换后的格式将显示在此处..."></textarea>
+                <p class="hint-text">您可以在上方编辑框中直接修改内容，修改后点击「一键复制」即可。支持 Ctrl+Enter 快速复制。</p>
+                <div class="modal-footer-row">
+                    <button class="btn-copy-outline" id="btnCopy">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                        一键复制
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 弹窗：使用说明 -->
+    <div class="modal-overlay hidden" id="modalHelp">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <span class="modal-title">使用说明</span>
+                <button class="btn-return" id="btnReturnHelp">返回</button>
+            </div>
+            <div class="modal-body help-content">
+                <div class="step">
+                    <div class="step-title">📥 第一步：粘贴数据（自动检测格式）</div>
+                    <p>点击「上传」按钮，在弹出的窗口中粘贴表情包数据。工具会<strong>自动分析内容并匹配最可能的源格式</strong>，您也可以手动在下拉菜单中调整。</p>
+                    <p>请尽量<strong>一行一个表情包</strong>，例如：</p>
+                    <p><code>微笑表情--https://example.com/smile.png</code></p>
+                    <p>即使未严格换行，只要包含URL即可被识别。</p>
+                </div>
+                <div class="step">
+                    <div class="step-title">🔍 第二步：预览与微调</div>
+                    <p>点击「解析」后，所有识别到的表情包会显示在主界面的预览框中。左侧为图片缩略图，右侧为<strong>可编辑的描述与URL输入框</strong>。每个表情包左侧的 <strong>×</strong> 按钮可以删除该条目。</p>
+                    <p>您可以直接在输入框中修改描述或URL，所有改动都会在导出时生效。</p>
+                </div>
+                <div class="step">
+                    <div class="step-title">🎯 第三步：选择目标格式并导出</div>
+                    <p>在「请选择转换的目标格式」下方选择<strong>您希望转换成的格式</strong>。支持五种常用格式：</p>
+                    <ul>
+                        <li><code>描述--URL</code></li>
+                        <li><code>描述：URL</code>（中文冒号）</li>
+                        <li><code>描述:URL</code>（英文冒号）</li>
+                        <li><code>URL</code>（仅链接）</li>
+                        <li><code>描述 URL</code>（空格分隔）</li>
+                    </ul>
+                    <p>点击「导出」，在弹出的窗口中可再次编辑，确认后点击「一键复制」即可。</p>
+                </div>
+                <div class="step">
+                    <div class="step-title">💡 小贴士</div>
+                    <ul>
+                        <li>自动检测的源格式如果不准确，可手动更改后再点解析。</li>
+                        <li>弹窗内的文本框均支持 <code>Ctrl+Enter</code> 快速触发解析或复制。</li>
+                        <li>本工具完全在浏览器本地运行，不会上传您的任何数据。</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 免责声明弹窗（仅声明，无开发者的话） -->
+    <div class="modal-overlay hidden" id="modalDisclaimerForce">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <span class="modal-title" id="disclaimerForceTitle">免责声明</span>
+                <button class="btn-return" id="btnReturnDisclaimerForce">返回</button>
+            </div>
+            <div class="modal-body">
+                <div class="disclaimer-content">
+                    <p>本工具是一款免费的表情包描述与URL格式转换工具，旨在帮助用户将不同格式的表情包数据互相转换。</p>
+                    <p>使用者需自行将表情包图片上传至图床获取链接，本工具仅对描述文本与链接的组合方式进行重组，不提供图片存储、上传或任何内容服务。<strong>所有URL指向的内容及表情包本身均来源于使用者自行获取，与开发者无关。</strong></p>
+                    <p><strong>本工具按"现状"提供，开发者已尽合理努力修复已知缺陷，但不对工具的可用性、准确性及无故障运行作任何明示或暗示的保证。</strong></p>
+                    <p>使用本工具即表示您已充分阅读、理解并同意以下条款：</p>
+                    <ol>
+                        <li>本工具仅供合法用途，禁止用于传播违法、侵权、骚扰等不当内容。</li>
+                        <li><strong>如果导入的不是自己整理的表情包，使用者必须事先征得原始整理者的明确许可。将他人整理的表情包数据通过本工具转换格式后传播，属于二改二传行为，同样须取得授权。未经授权擅自使用、转换格式并传播他人数据均构成侵权，开发者对此不承担任何责任。</strong></li>
+                        <li><strong>表情包素材可能受第三方著作权保护，请确保您使用的图片已获得合法授权。</strong></li>
+                        <li>开发者不对因使用本工具而产生的任何直接或间接损失承担责任。</li>
+                        <li>本工具不收集、不上传您的任何数据，所有转换操作均在您本地浏览器中完成。</li>
+                        <li>开发者保留随时修改本声明的权利。</li>
+                    </ol>
+                    <p>如您不同意上述条款，请停止使用本工具。</p>
+                </div>
+                <div class="modal-footer-row" id="disclaimerFooterRow"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 保存至仓库弹窗 -->
+    <div class="modal-overlay hidden" id="modalSaveWarehouse">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <span class="modal-title">保存至仓库</span>
+                <button class="btn-return" id="btnReturnSaveWarehouse">返回</button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label for="inputGroupName">请输入分组名称</label>
+                    <input type="text" id="inputGroupName" class="input-box" placeholder="例如：日常摸鱼">
+                </div>
+                <div class="modal-footer-row">
+                    <button class="btn-primary" id="btnConfirmSaveGroup">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 芽芽机命名导出弹窗 -->
+    <div class="modal-overlay hidden" id="modalNameExport">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <span class="modal-title">导出芽芽机 JSON</span>
+                <button class="btn-return" id="btnReturnNameExport">返回</button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label for="inputExportName">文件命名（将替换“我的表情”）</label>
+                    <input type="text" id="inputExportName" class="input-box" placeholder="我的表情">
+                </div>
+                <div class="modal-footer-row">
+                    <button class="btn-primary" id="btnConfirmNameExport">确认导出</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 沉浸式预览全屏页 -->
+    <div id="modalImmersive">
+        <div class="immersive-header">
+            <button class="btn-back" id="btnBackFromImmersive">返回</button>
+            <span class="immersive-title">表情包预览</span>
+        </div>
+        <div class="immersive-grid" id="immersiveGrid"></div>
+    </div>
+
+    <!-- 我的仓库全屏界面 -->
+    <div id="modalWarehouse">
+        <div class="warehouse-header">
+            <button class="btn-back" id="btnBackFromWarehouse">返回</button>
+            <span class="warehouse-title">我的仓库</span>
+            <div style="position:relative;">
+                <button class="hamburger-btn" id="btnHamburger">☰</button>
+                <div class="hamburger-dropdown" id="hamburgerDropdown">
+                    <div class="hamburger-dropdown-item" id="menuFileImport">文件导入</div>
+                    <div class="hamburger-dropdown-item" id="menuBatchManage">批量管理</div>
+                    <div class="hamburger-dropdown-item" id="menuExportAll">全部导出</div>
+                    <div class="hamburger-dropdown-item danger-item" id="menuClearCache">清空缓存</div>
+                </div>
+            </div>
+        </div>
+        <div class="warehouse-batch-bar" id="warehouseBatchBar">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <button class="btn-exit-batch" id="btnExitBatch">退出</button>
+                <span class="batch-selected-count" id="batchSelectedCount">已选择 0 项</span>
+            </div>
+            <div class="batch-actions">
+                <button class="btn-batch" id="btnBatchExport">导出</button>
+                <button class="btn-batch danger" id="btnBatchDelete">删除</button>
+            </div>
+        </div>
+        <div class="warehouse-list" id="warehouseList">
+            <!-- 动态生成分组条目 -->
+        </div>
+        <div class="warehouse-footer" id="warehouseFooter">
+            存储空间：计算中...
+        </div>
+    </div>
+
+    <!-- 自定义格式弹窗 -->
+    <div class="modal-overlay hidden" id="modalCustomFormat">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <span class="modal-title">新增自定义格式</span>
+                <button class="btn-return" id="btnReturnCustomFormat">取消</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom:12px;">
+                    <label style="display:block;font-size:0.85rem;color:var(--text-secondary);margin-bottom:6px;">分隔符</label>
+                    <input type="text" id="inputCustomSeparator" class="input-underline" placeholder="例如：##、||、→" style="width:100%;">
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="display:block;font-size:0.85rem;color:var(--text-secondary);margin-bottom:6px;">描述位置</label>
+                    <div class="menu-wrapper" id="menuWrapperDescPos" style="width:100%;">
+                        <button class="menu-btn" id="btnMenuDescPos" style="width:100%;min-width:auto;">
+                            <span class="menu-btn-text" id="menuBtnTextDescPos">描述在前，URL在后</span>
+                            <svg class="arrow-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="6 9 12 15 18 9"/>
+                            </svg>
+                        </button>
+                        <div class="menu-dropdown" id="dropdownDescPos" style="min-width:100%;"></div>
+                    </div>
+                </div>
+                <div class="modal-footer-row">
+                    <button class="btn-primary" id="btnConfirmCustomFormat">确认新增</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+
+<script src="db.js"></script>
+<script>
+(function() {
+    // ========== 常量与状态 ==========
+    const STORAGE_KEY = 'emote_tool_disclaimer_agreed_v2'; // 保留（免责声明相关）
+
+    const FORMATS = [
+        { id: 'format1', label: '[描述]--[URL]', descLabel: '描述在分隔符前，后跟 -- 和URL' },
+        { id: 'format2', label: '[描述]：[URL]', descLabel: '描述在分隔符前，后跟中文冒号和URL' },
+        { id: 'format3', label: '[描述]:[URL]', descLabel: '描述在分隔符前，后跟英文冒号和URL' },
+        { id: 'format4', label: '[URL]', descLabel: '仅URL，无描述' },
+        { id: 'format5', label: '[描述] [URL]', descLabel: '描述在分隔符前，空格分隔，后跟URL' },
+    ];
+    const DEFAULT_FORMAT_ID = 'format2';
+
+    let customFormats = [];
+    let sourceFormatId = DEFAULT_FORMAT_ID;
+    let targetFormatId = DEFAULT_FORMAT_ID;
+    let sourceFormatManuallySet = false;
+    let emotes = [];
+    let disclaimerAgreed = false;
+    let inputDebounceTimer = null;
+    let pendingCustomTarget = null;
+    let descPositionId = 'before';
+
+    // 仓库状态
+    let warehouseBatchMode = false;
+    let selectedGroupIds = new Set();
+
+    // IndexedDB 相关代码已移至 db.js
+    // openDB, getStore, loadAllGroups, addGroup, updateGroup, deleteGroup, deleteMultipleGroups,
+    // clearAllData, getStorageEstimate, formatBytes 均由 db.js 提供
+    // DB_NAME, DB_VERSION, STORE_NAME, db 变量也定义在 db.js 中
+
+    // ========== 工具函数 ==========
+    // (formatBytes 已移至 db.js)
+
+    function getAllFormats() {
+        return FORMATS.concat(customFormats);
+    }
+
+    function updateSourceLabel() {
+        const allFormats = getAllFormats();
+        const fmt = allFormats.find(f => f.id === sourceFormatId);
+        if (fmt) {
+            currentSourceName.textContent = fmt.label;
+            currentSourceLabel.style.display = '';
+        } else {
+            currentSourceLabel.style.display = 'none';
+        }
+    }
+
+    function updateImmersiveBtnVisibility() {
+        btnImmersivePreview.classList.toggle('visible', emotes.length > 0);
+    }
+
+    function openModal(modal) {
+        if (modal === modalImmersive || modal === modalWarehouse) {
+            modal.classList.add('active');
+        } else {
+            modal.classList.remove('hidden');
+        }
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal(modal) {
+        if (modal === modalImmersive || modal === modalWarehouse) {
+            modal.classList.remove('active');
+        } else {
+            modal.classList.add('hidden');
+        }
+        document.body.style.overflow = '';
+    }
+
+    let toastTimer;
+    function showToast(message, type) {
+        clearTimeout(toastTimer);
+        toast.textContent = message;
+        toast.className = 'toast ' + (type || '');
+        toast.classList.add('show');
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    // ========== DOM 元素 ==========
+    const previewBox = document.getElementById('previewBox');
+    const btnUpload = document.getElementById('btnUpload');
+    const btnExport = document.getElementById('btnExport');
+    const btnParse = document.getElementById('btnParse');
+    const btnCopy = document.getElementById('btnCopy');
+    const textareaUpload = document.getElementById('textareaUpload');
+    const textareaExport = document.getElementById('textareaExport');
+    const toast = document.getElementById('toast');
+
+    const btnMenuSource = document.getElementById('btnMenuSource');
+    const menuBtnTextSource = document.getElementById('menuBtnTextSource');
+    const dropdownSource = document.getElementById('dropdownSource');
+    const menuWrapperSource = document.getElementById('menuWrapperSource');
+
+    const btnMenuTarget = document.getElementById('btnMenuTarget');
+    const menuBtnTextTarget = document.getElementById('menuBtnTextTarget');
+    const dropdownTarget = document.getElementById('dropdownTarget');
+    const menuWrapperTarget = document.getElementById('menuWrapperTarget');
+
+    const modalUpload = document.getElementById('modalUpload');
+    const modalExport = document.getElementById('modalExport');
+    const modalHelp = document.getElementById('modalHelp');
+    const modalDisclaimerForce = document.getElementById('modalDisclaimerForce');
+    const modalImmersive = document.getElementById('modalImmersive');
+    const modalWarehouse = document.getElementById('modalWarehouse');
+    const modalCustomFormat = document.getElementById('modalCustomFormat');
+    const modalSaveWarehouse = document.getElementById('modalSaveWarehouse');
+    const modalNameExport = document.getElementById('modalNameExport');
+
+    const disclaimerForceTitle = document.getElementById('disclaimerForceTitle');
+    const disclaimerFooterRow = document.getElementById('disclaimerFooterRow');
+    const btnReturnDisclaimerForce = document.getElementById('btnReturnDisclaimerForce');
+
+    const currentSourceLabel = document.getElementById('currentSourceLabel');
+    const currentSourceName = document.getElementById('currentSourceName');
+
+    const btnImmersivePreview = document.getElementById('btnImmersivePreview');
+    const immersiveGrid = document.getElementById('immersiveGrid');
+    const btnBackFromImmersive = document.getElementById('btnBackFromImmersive');
+
+    const inputCustomSeparator = document.getElementById('inputCustomSeparator');
+    const btnConfirmCustomFormat = document.getElementById('btnConfirmCustomFormat');
+    const btnReturnCustomFormat = document.getElementById('btnReturnCustomFormat');
+
+    const menuWrapperDescPos = document.getElementById('menuWrapperDescPos');
+    const btnMenuDescPos = document.getElementById('btnMenuDescPos');
+    const menuBtnTextDescPos = document.getElementById('menuBtnTextDescPos');
+    const dropdownDescPos = document.getElementById('dropdownDescPos');
+
+    const btnExportYaya = document.getElementById('btnExportYaya');
+
+    const btnSaveToWarehouse = document.getElementById('btnSaveToWarehouse');
+    const btnMyWarehouse = document.getElementById('btnMyWarehouse');
+    const btnReturnSaveWarehouse = document.getElementById('btnReturnSaveWarehouse');
+    const inputGroupName = document.getElementById('inputGroupName');
+    const btnConfirmSaveGroup = document.getElementById('btnConfirmSaveGroup');
+
+    const btnReturnNameExport = document.getElementById('btnReturnNameExport');
+    const inputExportName = document.getElementById('inputExportName');
+    const btnConfirmNameExport = document.getElementById('btnConfirmNameExport');
+
+    const btnBackFromWarehouse = document.getElementById('btnBackFromWarehouse');
+    const warehouseList = document.getElementById('warehouseList');
+    const warehouseFooter = document.getElementById('warehouseFooter');
+    const warehouseBatchBar = document.getElementById('warehouseBatchBar');
+    const batchSelectedCount = document.getElementById('batchSelectedCount');
+    const btnBatchExport = document.getElementById('btnBatchExport');
+    const btnBatchDelete = document.getElementById('btnBatchDelete');
+    const btnHamburger = document.getElementById('btnHamburger');
+    const hamburgerDropdown = document.getElementById('hamburgerDropdown');
+    const menuFileImport = document.getElementById('menuFileImport');
+    const menuBatchManage = document.getElementById('menuBatchManage');
+    const menuExportAll = document.getElementById('menuExportAll');
+    const menuClearCache = document.getElementById('menuClearCache');
+    const btnExitBatch = document.getElementById('btnExitBatch');
+
+    const btnReturnHelp = document.getElementById('btnReturnHelp');
+    const btnHelp = document.getElementById('btnHelp');
+    const btnDeclare = document.getElementById('btnDeclare');
+
+    // ========== 原有菜单与下拉逻辑 ==========
+    function buildDropdownItems(container, currentFormatId, onSelect, isSource) {
+        container.innerHTML = '';
+        const allFormats = getAllFormats();
+        allFormats.forEach(fmt => {
+            const item = document.createElement('div');
+            item.className = 'menu-dropdown-item';
+            if (fmt.id === currentFormatId) item.classList.add('selected');
+            item.textContent = fmt.label;
+            item.addEventListener('click', () => {
+                onSelect(fmt.id);
+                container.classList.remove('active');
+                const btn = container.parentElement.querySelector('.menu-btn');
+                if (btn) btn.classList.remove('open');
+            });
+            container.appendChild(item);
+        });
+
+        if (customFormats.length > 0) {
+            const divider = document.createElement('div');
+            divider.style.borderTop = '1px solid var(--border-subtle)';
+            divider.style.margin = '4px 0';
+            container.appendChild(divider);
+        }
+
+        const addBtn = document.createElement('div');
+        addBtn.className = 'menu-dropdown-item';
+        addBtn.textContent = '+ 新增格式';
+        addBtn.style.fontWeight = '600';
+        addBtn.addEventListener('click', () => {
+            container.classList.remove('active');
+            const btn = container.parentElement.querySelector('.menu-btn');
+            if (btn) btn.classList.remove('open');
+            pendingCustomTarget = isSource ? 'source' : 'target';
+            openCustomFormatModal();
+        });
+        container.appendChild(addBtn);
+    }
+
+    function updateMenuUI(wrapper, btnTextEl, formatId) {
+        const allFormats = getAllFormats();
+        const fmt = allFormats.find(f => f.id === formatId);
+        if (fmt) btnTextEl.textContent = fmt.label;
+        const dropdown = wrapper.querySelector('.menu-dropdown');
+        if (!dropdown) return;
+        const items = dropdown.querySelectorAll('.menu-dropdown-item');
+        items.forEach(item => {
+            item.classList.remove('selected');
+            if (item.textContent === fmt.label) item.classList.add('selected');
+        });
+    }
+
+    function initSourceMenu() {
+        buildDropdownItems(dropdownSource, sourceFormatId, (id) => {
+            sourceFormatId = id;
+            sourceFormatManuallySet = true;
+            updateMenuUI(menuWrapperSource, menuBtnTextSource, sourceFormatId);
+            updateSourceLabel();
+        }, true);
+        updateMenuUI(menuWrapperSource, menuBtnTextSource, sourceFormatId);
+        btnMenuSource.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = dropdownSource.classList.contains('active');
+            document.querySelectorAll('.menu-dropdown.active').forEach(d => d.classList.remove('active'));
+            document.querySelectorAll('.menu-btn.open').forEach(b => b.classList.remove('open'));
+            if (!isOpen) {
+                buildDropdownItems(dropdownSource, sourceFormatId, (id) => {
+                    sourceFormatId = id;
+                    sourceFormatManuallySet = true;
+                    updateMenuUI(menuWrapperSource, menuBtnTextSource, sourceFormatId);
+                    updateSourceLabel();
+                }, true);
+                dropdownSource.classList.add('active');
+                btnMenuSource.classList.add('open');
+            }
+        });
+    }
+
+    function initTargetMenu() {
+        buildDropdownItems(dropdownTarget, targetFormatId, (id) => {
+            targetFormatId = id;
+            updateMenuUI(menuWrapperTarget, menuBtnTextTarget, targetFormatId);
+        }, false);
+        updateMenuUI(menuWrapperTarget, menuBtnTextTarget, targetFormatId);
+        btnMenuTarget.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = dropdownTarget.classList.contains('active');
+            document.querySelectorAll('.menu-dropdown.active').forEach(d => d.classList.remove('active'));
+            document.querySelectorAll('.menu-btn.open').forEach(b => b.classList.remove('open'));
+            if (!isOpen) {
+                buildDropdownItems(dropdownTarget, targetFormatId, (id) => {
+                    targetFormatId = id;
+                    updateMenuUI(menuWrapperTarget, menuBtnTextTarget, targetFormatId);
+                }, false);
+                dropdownTarget.classList.add('active');
+                btnMenuTarget.classList.add('open');
+            }
+        });
+    }
+
+    function initDescPosMenu() {
+        const options = [
+            { id: 'before', label: '描述在前，URL在后' },
+            { id: 'after', label: 'URL在前，描述在后' }
+        ];
+        function renderDescPosDropdown() {
+            dropdownDescPos.innerHTML = '';
+            options.forEach(opt => {
+                const item = document.createElement('div');
+                item.className = 'menu-dropdown-item';
+                if (opt.id === descPositionId) item.classList.add('selected');
+                item.textContent = opt.label;
+                item.addEventListener('click', () => {
+                    descPositionId = opt.id;
+                    menuBtnTextDescPos.textContent = opt.label;
+                    dropdownDescPos.classList.remove('active');
+                    btnMenuDescPos.classList.remove('open');
+                });
+                dropdownDescPos.appendChild(item);
+            });
+        }
+        renderDescPosDropdown();
+        btnMenuDescPos.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = dropdownDescPos.classList.contains('active');
+            document.querySelectorAll('.menu-dropdown.active').forEach(d => d.classList.remove('active'));
+            document.querySelectorAll('.menu-btn.open').forEach(b => b.classList.remove('open'));
+            if (!isOpen) {
+                renderDescPosDropdown();
+                dropdownDescPos.classList.add('active');
+                btnMenuDescPos.classList.add('open');
+            }
+        });
+        menuBtnTextDescPos.textContent = '描述在前，URL在后';
+    }
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.menu-wrapper')) {
+            document.querySelectorAll('.menu-dropdown.active').forEach(d => d.classList.remove('active'));
+            document.querySelectorAll('.menu-btn.open').forEach(b => b.classList.remove('open'));
+        }
+        // 关闭汉堡菜单
+        if (!e.target.closest('#btnHamburger') && !e.target.closest('#hamburgerDropdown')) {
+            hamburgerDropdown.classList.remove('active');
+        }
+    });
+
+    // ========== 自定义格式弹窗 ==========
+    function openCustomFormatModal() {
+        inputCustomSeparator.value = '';
+        descPositionId = 'before';
+        menuBtnTextDescPos.textContent = '描述在前，URL在后';
+        openModal(modalCustomFormat);
+        setTimeout(() => inputCustomSeparator.focus(), 150);
+    }
+
+    btnReturnCustomFormat.addEventListener('click', () => closeModal(modalCustomFormat));
+
+    btnConfirmCustomFormat.addEventListener('click', () => {
+        const separator = inputCustomSeparator.value;
+        const label = descPositionId === 'after'
+            ? (separator === '' ? '[URL][描述]' : `[URL]${separator}[描述]`)
+            : (separator === '' ? '[描述][URL]' : `[描述]${separator}[URL]`);
+
+        const newFormat = {
+            id: 'custom_' + Date.now(),
+            label,
+            separator,
+            descPosition: descPositionId
+        };
+
+        customFormats.push(newFormat);
+
+        if (pendingCustomTarget === 'source' || !pendingCustomTarget) {
+            sourceFormatId = newFormat.id;
+            sourceFormatManuallySet = true;
+            updateMenuUI(menuWrapperSource, menuBtnTextSource, sourceFormatId);
+            updateSourceLabel();
+        } else {
+            targetFormatId = newFormat.id;
+            updateMenuUI(menuWrapperTarget, menuBtnTextTarget, targetFormatId);
+        }
+
+        closeModal(modalCustomFormat);
+        showToast('自定义格式已添加', 'success');
+    });
+
+    // ========== 核心解析函数 ==========
+    function extractAllURLs(text) {
+        const urlRegex = /https?:\/\/[^\s<>"']+/gi;
+        const matches = text.match(urlRegex) || [];
+        const seen = new Set();
+        const unique = [];
+        matches.forEach(url => {
+            let cleanUrl = url.replace(/[.,;:!?》】）)\]}"']+$/, '');
+            if (!seen.has(cleanUrl)) {
+                seen.add(cleanUrl);
+                unique.push(cleanUrl);
+            }
+        });
+        return unique;
+    }
+
+    function parseByFormat(text, formatId) {
+        const allFormats = getAllFormats();
+        const fmt = allFormats.find(f => f.id === formatId);
+        if (!fmt) return [];
+
+        const results = [];
+        const lines = text.split(/\r?\n/);
+        const usedGlobal = new Set();
+
+        if (fmt.id.startsWith('format')) {
+            for (const rawLine of lines) {
+                const line = rawLine.trim();
+                if (!line) continue;
+                const urlRegex = /https?:\/\/[^\s<>"']+/gi;
+                const urlMatches = [];
+                let match;
+                while ((match = urlRegex.exec(line)) !== null) {
+                    let cleanUrl = match[0].replace(/[.,;:!?》】）)\]}"']+$/, '');
+                    urlMatches.push({ url: cleanUrl, index: match.index });
+                }
+                if (urlMatches.length === 0) continue;
+
+                if (formatId === 'format4') {
+                    for (const item of urlMatches) {
+                        if (!usedGlobal.has(item.url)) {
+                            usedGlobal.add(item.url);
+                            results.push({ description: '', url: item.url });
+                        }
+                    }
+                } else {
+                    let lastEnd = 0;
+                    for (let i = 0; i < urlMatches.length; i++) {
+                        const currUrl = urlMatches[i].url;
+                        const urlStart = urlMatches[i].index;
+                        const segment = line.substring(lastEnd, urlStart);
+                        let desc = '';
+                        if (formatId === 'format1') {
+                            const sepIdx = segment.lastIndexOf('--');
+                            if (sepIdx !== -1) desc = segment.substring(0, sepIdx).trim();
+                        } else if (formatId === 'format2') {
+                            const sepIdx = segment.lastIndexOf('：');
+                            if (sepIdx !== -1) desc = segment.substring(0, sepIdx).trim();
+                        } else if (formatId === 'format3') {
+                            const sepIdx = segment.lastIndexOf(':');
+                            if (sepIdx !== -1) desc = segment.substring(0, sepIdx).trim();
+                        } else if (formatId === 'format5') {
+                            const sepIdx = segment.lastIndexOf(' ');
+                            if (sepIdx !== -1) desc = segment.substring(0, sepIdx).trim();
+                        }
+                        if (!usedGlobal.has(currUrl)) {
+                            usedGlobal.add(currUrl);
+                            results.push({ description: desc, url: currUrl });
+                        }
+                        lastEnd = urlStart + currUrl.length;
+                    }
+                }
+            }
+
+            if (results.length === 0) {
+                const allURLs = extractAllURLs(text);
+                if (allURLs.length > 0) {
+                    if (formatId === 'format4') {
+                        allURLs.forEach(url => {
+                            if (!usedGlobal.has(url)) {
+                                usedGlobal.add(url);
+                                results.push({ description: '', url });
+                            }
+                        });
+                    } else {
+                        for (const url of allURLs) {
+                            if (usedGlobal.has(url)) continue;
+                            const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                            let desc = '';
+                            if (formatId === 'format1') {
+                                const regex = new RegExp('(.*?)--\\s*' + escapedUrl);
+                                const m = text.match(regex);
+                                if (m) desc = m[1].trim();
+                            } else if (formatId === 'format2') {
+                                const regex = new RegExp('(.*?)[：]\\s*' + escapedUrl);
+                                const m = text.match(regex);
+                                if (m) desc = m[1].trim();
+                            } else if (formatId === 'format3') {
+                                const regex = new RegExp('(.*?)\\s*:\\s*' + escapedUrl);
+                                const m = text.match(regex);
+                                if (m) desc = m[1].trim();
+                            } else if (formatId === 'format5') {
+                                const regex = new RegExp('(.*?)\\s+' + escapedUrl);
+                                const m = text.match(regex);
+                                if (m) desc = m[1].trim();
+                            }
+                            usedGlobal.add(url);
+                            results.push({ description: desc, url });
+                        }
+                    }
+                }
+            }
+        } else {
+            const separator = fmt.separator;
+            const descAfter = fmt.descPosition === 'after';
+
+            for (const rawLine of lines) {
+                const line = rawLine.trim();
+                if (!line) continue;
+                const urlRegex = /https?:\/\/[^\s<>"']+/gi;
+                const urlMatches = [];
+                let match;
+                while ((match = urlRegex.exec(line)) !== null) {
+                    let cleanUrl = match[0].replace(/[.,;:!?》】）)\]}"']+$/, '');
+                    urlMatches.push({ url: cleanUrl, index: match.index });
+                }
+                if (urlMatches.length === 0) continue;
+
+                for (const item of urlMatches) {
+                    const url = item.url;
+                    if (usedGlobal.has(url)) continue;
+                    let desc = '';
+
+                    if (separator === '') {
+                        if (descAfter) {
+                            const urlEnd = item.index + url.length;
+                            desc = line.substring(urlEnd).trim();
+                        } else {
+                            desc = line.substring(0, item.index).trim();
+                        }
+                    } else {
+                        if (descAfter) {
+                            const urlEnd = item.index + url.length;
+                            const afterText = line.substring(urlEnd);
+                            const sepIdx = afterText.indexOf(separator);
+                            if (sepIdx !== -1) {
+                                desc = afterText.substring(sepIdx + separator.length).trim();
+                            } else {
+                                desc = afterText.trim();
+                            }
+                        } else {
+                            const beforeText = line.substring(0, item.index);
+                            const sepIdx = beforeText.lastIndexOf(separator);
+                            if (sepIdx !== -1) {
+                                desc = beforeText.substring(sepIdx + separator.length).trim();
+                            } else {
+                                desc = beforeText.trim();
+                            }
+                        }
+                    }
+
+                    usedGlobal.add(url);
+                    results.push({ description: desc, url });
+                }
+            }
+        }
+
+        return results;
+    }
+
+    function detectFormat(text) {
+        if (!text.trim()) return DEFAULT_FORMAT_ID;
+        const urlCount = extractAllURLs(text).length;
+        if (urlCount === 0) return DEFAULT_FORMAT_ID;
+
+        let bestFormatId = DEFAULT_FORMAT_ID;
+        let bestScore = -1;
+
+        FORMATS.forEach(fmt => {
+            const parsed = parseByFormat(text, fmt.id);
+            const entryCount = parsed.length;
+            const nonEmptyDesc = parsed.filter(e => e.description && e.description.trim().length > 0).length;
+            const score = entryCount * 2 + nonEmptyDesc;
+            if (score > bestScore) {
+                bestScore = score;
+                bestFormatId = fmt.id;
+            }
+        });
+
+        if (bestFormatId !== 'format4') {
+            const parsedBest = parseByFormat(text, bestFormatId);
+            const parsed4 = parseByFormat(text, 'format4');
+            if (parsed4.length >= parsedBest.length && parsedBest.every(e => !e.description || e.description.trim() === '')) {
+                return 'format4';
+            }
+        }
+        return bestFormatId;
+    }
+
+    function applyDetectedFormat(text) {
+        const detectedId = detectFormat(text);
+        sourceFormatId = detectedId;
+        updateMenuUI(menuWrapperSource, menuBtnTextSource, sourceFormatId);
+        updateSourceLabel();
+    }
+
+    textareaUpload.addEventListener('input', function() {
+        if (!sourceFormatManuallySet) {
+            clearTimeout(inputDebounceTimer);
+            inputDebounceTimer = setTimeout(() => {
+                applyDetectedFormat(textareaUpload.value);
+            }, 300);
+        }
+    });
+
+    // ========== 导出函数 ==========
+    function convertEmotesToFormat(emotesList, formatId) {
+        const allFormats = getAllFormats();
+        const fmt = allFormats.find(f => f.id === formatId);
+        if (!fmt) return '';
+
+        const lines = [];
+        for (const emote of emotesList) {
+            const desc = emote.description || '';
+            const url = emote.url || '';
+            if (!url) continue;
+
+            if (fmt.id.startsWith('format')) {
+                switch (fmt.id) {
+                    case 'format1': lines.push(`${desc}--${url}`); break;
+                    case 'format2': lines.push(`${desc}：${url}`); break;
+                    case 'format3': lines.push(`${desc}:${url}`); break;
+                    case 'format4': lines.push(url); break;
+                    case 'format5': lines.push(`${desc} ${url}`); break;
+                    default: lines.push(`${desc}：${url}`);
+                }
+            } else {
+                if (fmt.descPosition === 'after') {
+                    lines.push(`${url}${fmt.separator}${desc}`);
+                } else {
+                    lines.push(`${desc}${fmt.separator}${url}`);
+                }
+            }
+        }
+        return lines.join('\n');
+    }
+
+    function exportYayaJSON(name = '我的表情') {
+        syncEmotesFromPreview();
+        if (emotes.length === 0) {
+            showToast('没有可导出的表情包', '');
+            return;
+        }
+        const now = Date.now();
+        const stickers = emotes.map((emote, index) => ({
+            url: emote.url,
+            description: emote.description || '',
+            created_at: now + index
+        }));
+        const json = {
+            name: name,
+            stickers: stickers,
+            id: 1
+        };
+        const jsonStr = JSON.stringify(json, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${name}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('JSON 文件已下载', 'success');
+    }
+
+    // ========== 预览与编辑 ==========
+    function deleteEmoteAtIndex(index) {
+        if (index >= 0 && index < emotes.length) {
+            emotes.splice(index, 1);
+            renderPreview(emotes);
+            updateSourceLabel();
+            updateImmersiveBtnVisibility();
+        }
+    }
+
+    function renderPreview(emotesList) {
+        previewBox.innerHTML = '';
+        if (emotesList.length === 0) {
+            previewBox.innerHTML = '<div class="preview-empty">请点击下方「上传」按钮<br>粘贴表情包数据进行解析</div>';
+            return;
+        }
+        emotesList.forEach((emote, index) => {
+            const item = document.createElement('div');
+            item.className = 'preview-item';
+            item.setAttribute('data-index', index);
+
+            const btnRemove = document.createElement('button');
+            btnRemove.className = 'btn-remove';
+            btnRemove.innerHTML = '&#10005;';
+            btnRemove.title = '删除此表情包';
+            btnRemove.addEventListener('click', () => deleteEmoteAtIndex(index));
+
+            const imgWrap = document.createElement('div');
+            imgWrap.className = 'preview-img-wrap';
+            const img = document.createElement('img');
+            img.src = emote.url;
+            img.alt = emote.description || '表情包';
+            img.referrerPolicy = 'no-referrer';
+            img.loading = 'lazy';
+            img.onerror = function() {
+                this.style.display = 'none';
+                const existing = imgWrap.querySelector('.img-placeholder');
+                if (existing) existing.remove();
+                const placeholder = document.createElement('div');
+                placeholder.className = 'img-placeholder';
+                placeholder.innerHTML = `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
+                imgWrap.appendChild(placeholder);
+            };
+            imgWrap.appendChild(img);
+
+            const inputsWrap = document.createElement('div');
+            inputsWrap.className = 'preview-inputs';
+            const inputDesc = document.createElement('input');
+            inputDesc.type = 'text';
+            inputDesc.className = 'input-underline input-desc';
+            inputDesc.value = emote.description || '';
+            inputDesc.placeholder = '描述';
+            inputDesc.addEventListener('input', function() { emotes[index].description = this.value; });
+            const inputURL = document.createElement('input');
+            inputURL.type = 'text';
+            inputURL.className = 'input-underline input-url';
+            inputURL.value = emote.url || '';
+            inputURL.placeholder = 'URL';
+            inputURL.addEventListener('input', function() {
+                emotes[index].url = this.value;
+                const imgEl = item.querySelector('img');
+                if (imgEl) {
+                    imgEl.src = this.value;
+                    imgEl.style.display = '';
+                    const ph = item.querySelector('.img-placeholder');
+                    if (ph) ph.remove();
+                }
+            });
+            inputsWrap.appendChild(inputDesc);
+            inputsWrap.appendChild(inputURL);
+            item.appendChild(btnRemove);
+            item.appendChild(imgWrap);
+            item.appendChild(inputsWrap);
+            previewBox.appendChild(item);
+        });
+        previewBox.scrollTop = 0;
+    }
+
+    function syncEmotesFromPreview() {
+        const items = previewBox.querySelectorAll('.preview-item');
+        items.forEach(item => {
+            const idx = parseInt(item.getAttribute('data-index'));
+            if (isNaN(idx) || idx < 0 || idx >= emotes.length) return;
+            const descInput = item.querySelector('.input-desc');
+            const urlInput = item.querySelector('.input-url');
+            if (descInput) emotes[idx].description = descInput.value;
+            if (urlInput) emotes[idx].url = urlInput.value;
+        });
+    }
+
+    function renderImmersiveGrid(emotesList) {
+        immersiveGrid.innerHTML = '';
+        if (emotesList.length === 0) {
+            immersiveGrid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-tertiary);padding:40px;">暂无表情包</div>';
+            return;
+        }
+        emotesList.forEach(emote => {
+            const card = document.createElement('div');
+            card.className = 'immersive-card';
+
+            const imgWrap = document.createElement('div');
+            imgWrap.className = 'card-img';
+            const img = document.createElement('img');
+            img.src = emote.url;
+            img.alt = emote.description || '表情包';
+            img.referrerPolicy = 'no-referrer';
+            img.loading = 'lazy';
+            img.onerror = function() {
+                this.style.display = 'none';
+                const existing = imgWrap.querySelector('.img-placeholder');
+                if (existing) existing.remove();
+                const placeholder = document.createElement('div');
+                placeholder.className = 'img-placeholder';
+                placeholder.innerHTML = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
+                imgWrap.appendChild(placeholder);
+            };
+            imgWrap.appendChild(img);
+
+            const nameEl = document.createElement('div');
+            nameEl.className = 'card-name';
+            nameEl.textContent = emote.description || '无描述';
+
+            card.appendChild(imgWrap);
+            card.appendChild(nameEl);
+            immersiveGrid.appendChild(card);
+        });
+    }
+
+    // ========== 仓库界面渲染 ==========
+    async function renderWarehouse() {
+        const groups = await loadAllGroups(); // loadAllGroups 由 db.js 提供
+        warehouseList.innerHTML = '';
+        if (groups.length === 0) {
+            warehouseList.innerHTML = '<div style="text-align:center;color:var(--text-tertiary);padding:40px;">仓库是空的<br>可以通过主界面「保存至仓库」添加分组</div>';
+        } else {
+            groups.forEach(group => {
+                const item = document.createElement('div');
+                item.className = 'warehouse-item';
+                if (warehouseBatchMode) item.classList.add('batch-mode');
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'batch-checkbox';
+                checkbox.checked = selectedGroupIds.has(group.id);
+                checkbox.addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        selectedGroupIds.add(group.id);
+                    } else {
+                        selectedGroupIds.delete(group.id);
+                    }
+                    updateBatchBar();
+                });
+
+                const info = document.createElement('div');
+                info.className = 'warehouse-item-info';
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'warehouse-item-name';
+                nameDiv.textContent = group.name;
+                const countDiv = document.createElement('div');
+                countDiv.className = 'warehouse-item-count';
+                countDiv.textContent = `共 ${group.emotes.length} 个表情`;
+                info.appendChild(nameDiv);
+                info.appendChild(countDiv);
+
+                const actions = document.createElement('div');
+                actions.className = 'warehouse-item-actions';
+
+                const btnEdit = document.createElement('button');
+                btnEdit.className = 'btn-action edit';
+                btnEdit.textContent = '编辑';
+                btnEdit.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const newName = prompt('修改分组名称', group.name);
+                    if (newName && newName.trim() !== '' && newName.trim() !== group.name) {
+                        group.name = newName.trim();
+                        await updateGroup(group); // updateGroup 由 db.js 提供
+                        renderWarehouse();
+                        updateStorageFooter();
+                        showToast('分组名称已更新', 'success');
+                    }
+                });
+
+                const btnPreview = document.createElement('button');
+                btnPreview.className = 'btn-action preview';
+                btnPreview.textContent = '预览';
+                btnPreview.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    renderImmersiveGrid(group.emotes);
+                    openModal(modalImmersive);
+                });
+
+                const btnImport = document.createElement('button');
+                btnImport.className = 'btn-action import-workbench';
+                btnImport.textContent = '导入至工作台';
+                btnImport.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const existingUrls = new Set(emotes.map(e => e.url));
+                    const newEmotes = group.emotes.filter(e => !existingUrls.has(e.url));
+                    emotes = emotes.concat(newEmotes);
+                    renderPreview(emotes);
+                    updateSourceLabel();
+                    updateImmersiveBtnVisibility();
+                    closeModal(modalWarehouse);
+                    showToast(`已导入 ${newEmotes.length} 个表情`, 'success');
+                });
+
+                const btnDelete = document.createElement('button');
+                btnDelete.className = 'btn-action delete-group';
+                btnDelete.textContent = '删除';
+                btnDelete.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (confirm(`确定删除分组「${group.name}」吗？此操作不可撤销。`)) {
+                        deleteGroup(group.id).then(() => { // deleteGroup 由 db.js 提供
+                            renderWarehouse();
+                            updateStorageFooter();
+                            showToast('分组已删除', 'success');
+                        }).catch(() => showToast('删除失败', ''));
+                    }
+                });
+
+                actions.appendChild(btnEdit);
+                actions.appendChild(btnPreview);
+                actions.appendChild(btnImport);
+                actions.appendChild(btnDelete);
+
+                item.appendChild(checkbox);
+                item.appendChild(info);
+                item.appendChild(actions);
+                warehouseList.appendChild(item);
+            });
+        }
+        updateBatchBar();
+    }
+
+    function updateBatchBar() {
+        if (warehouseBatchMode) {
+            warehouseBatchBar.classList.add('active');
+            batchSelectedCount.textContent = `已选择 ${selectedGroupIds.size} 项`;
+        } else {
+            warehouseBatchBar.classList.remove('active');
+        }
+    }
+
+    async function updateStorageFooter() {
+        const { usage, quota } = await getStorageEstimate(); // getStorageEstimate 由 db.js 提供
+        warehouseFooter.textContent = `存储空间：${formatBytes(usage)} / ${formatBytes(quota)}`; // formatBytes 由 db.js 提供
+    }
+
+    function exitBatchMode() {
+        warehouseBatchMode = false;
+        selectedGroupIds.clear();
+        renderWarehouse();
+    }
+
+    // ========== 按钮事件（原有） ==========
+    btnUpload.addEventListener('click', () => {
+        textareaUpload.value = '';
+        sourceFormatManuallySet = false;
+        updateMenuUI(menuWrapperSource, menuBtnTextSource, sourceFormatId);
+        openModal(modalUpload);
+        setTimeout(() => textareaUpload.focus(), 150);
+    });
+    document.getElementById('btnReturnUpload').addEventListener('click', () => closeModal(modalUpload));
+
+    btnExport.addEventListener('click', () => {
+        if (emotes.length === 0) {
+            showToast('请先上传并解析表情包数据', '');
+            return;
+        }
+        syncEmotesFromPreview();
+        textareaExport.value = convertEmotesToFormat(emotes, targetFormatId);
+        openModal(modalExport);
+        setTimeout(() => textareaExport.focus(), 150);
+    });
+    document.getElementById('btnReturnExport').addEventListener('click', () => closeModal(modalExport));
+
+    btnHelp.addEventListener('click', () => openModal(modalHelp));
+    btnReturnHelp.addEventListener('click', () => closeModal(modalHelp));
+
+    btnDeclare.addEventListener('click', () => {
+        openDisclaimerAsNormal();
+    });
+
+    btnImmersivePreview.addEventListener('click', () => {
+        syncEmotesFromPreview();
+        renderImmersiveGrid(emotes);
+        openModal(modalImmersive);
+    });
+    btnBackFromImmersive.addEventListener('click', () => closeModal(modalImmersive));
+
+    [modalUpload, modalExport, modalHelp, modalCustomFormat, modalSaveWarehouse, modalNameExport].forEach(modal => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal(modal);
+        });
+    });
+
+    modalDisclaimerForce.addEventListener('click', (e) => {
+        if (e.target === modalDisclaimerForce && disclaimerAgreed) {
+            closeModal(modalDisclaimerForce);
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            if (!modalDisclaimerForce.classList.contains('hidden') && disclaimerAgreed) {
+                closeModal(modalDisclaimerForce);
+                return;
+            }
+            if (modalImmersive.classList.contains('active')) {
+                closeModal(modalImmersive);
+                return;
+            }
+            if (modalWarehouse.classList.contains('active')) {
+                closeModal(modalWarehouse);
+                return;
+            }
+            const openModals = [modalUpload, modalExport, modalHelp, modalCustomFormat, modalSaveWarehouse, modalNameExport].filter(m => !m.classList.contains('hidden'));
+            if (openModals.length > 0) closeModal(openModals[openModals.length - 1]);
+        }
+    });
+
+    btnParse.addEventListener('click', () => {
+        const rawText = textareaUpload.value.trim();
+        if (!rawText) {
+            showToast('请先粘贴表情包数据', '');
+            return;
+        }
+        const parsed = parseByFormat(rawText, sourceFormatId);
+        if (parsed.length === 0) {
+            showToast('未能解析到任何表情包，请检查格式和数据', '');
+            return;
+        }
+        const newEmotes = parsed.filter(p => !emotes.some(e => e.url === p.url));
+        const addedCount = newEmotes.length;
+        emotes = emotes.concat(newEmotes);
+        renderPreview(emotes);
+        updateSourceLabel();
+        updateImmersiveBtnVisibility();
+        closeModal(modalUpload);
+        showToast(`成功追加 ${addedCount} 个新表情包（共 ${emotes.length} 个）`, 'success');
+    });
+
+    textareaUpload.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 'Enter') {
+            e.preventDefault();
+            btnParse.click();
+        }
+    });
+
+    btnCopy.addEventListener('click', async () => {
+        const text = textareaExport.value;
+        if (!text.trim()) { showToast('没有可复制的内容', ''); return; }
+        try {
+            await navigator.clipboard.writeText(text);
+            showToast('已复制到剪贴板', 'success');
+            btnCopy.classList.add('copied');
+            setTimeout(() => btnCopy.classList.remove('copied'), 1500);
+        } catch {
+            textareaExport.select();
+            document.execCommand('copy');
+            showToast('已复制到剪贴板', 'success');
+            btnCopy.classList.add('copied');
+            setTimeout(() => btnCopy.classList.remove('copied'), 1500);
+        }
+    });
+
+    textareaExport.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 'Enter') {
+            e.preventDefault();
+            btnCopy.click();
+        }
+    });
+
+    // ========== 芽芽机导出命名弹窗逻辑 ==========
+    btnExportYaya.addEventListener('click', () => {
+        if (emotes.length === 0) {
+            showToast('没有可导出的表情包', '');
+            return;
+        }
+        inputExportName.value = '';
+        openModal(modalNameExport);
+        setTimeout(() => inputExportName.focus(), 150);
+    });
+
+    btnReturnNameExport.addEventListener('click', () => closeModal(modalNameExport));
+
+    btnConfirmNameExport.addEventListener('click', () => {
+        const name = inputExportName.value.trim() || '我的表情';
+        exportYayaJSON(name);
+        closeModal(modalNameExport);
+    });
+
+    // ========== 仓库相关事件 ==========
+    btnSaveToWarehouse.addEventListener('click', () => {
+        syncEmotesFromPreview();
+        if (emotes.length === 0) {
+            showToast('工作台没有表情包，请先上传解析', '');
+            return;
+        }
+        inputGroupName.value = '';
+        openModal(modalSaveWarehouse);
+        setTimeout(() => inputGroupName.focus(), 150);
+    });
+
+    btnReturnSaveWarehouse.addEventListener('click', () => closeModal(modalSaveWarehouse));
+
+    btnConfirmSaveGroup.addEventListener('click', async () => {
+        const name = inputGroupName.value.trim();
+        if (!name) {
+            showToast('请输入分组名称', '');
+            return;
+        }
+        syncEmotesFromPreview();
+        if (emotes.length === 0) {
+            showToast('没有可保存的表情包', '');
+            return;
+        }
+        const newGroup = {
+            id: Date.now().toString(),
+            name: name,
+            emotes: JSON.parse(JSON.stringify(emotes)),
+            createdAt: Date.now()
+        };
+        try {
+            await addGroup(newGroup); // addGroup 由 db.js 提供
+            closeModal(modalSaveWarehouse);
+            showToast(`已保存至仓库，分组名：${name}`, 'success');
+            if (modalWarehouse.classList.contains('active')) {
+                renderWarehouse();
+                updateStorageFooter();
+            }
+        } catch (e) {
+            showToast('保存失败，请重试', '');
+        }
+    });
+
+    btnMyWarehouse.addEventListener('click', async () => {
+        exitBatchMode();
+        await renderWarehouse();
+        await updateStorageFooter();
+        openModal(modalWarehouse);
+    });
+
+    btnBackFromWarehouse.addEventListener('click', () => {
+        closeModal(modalWarehouse);
+        exitBatchMode();
+    });
+
+    btnExitBatch.addEventListener('click', () => {
+        exitBatchMode();
+    });
+
+    btnHamburger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        hamburgerDropdown.classList.toggle('active');
+    });
+
+    menuFileImport.addEventListener('click', () => {
+        hamburgerDropdown.classList.remove('active');
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.json';
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+                if (!data.groups || !Array.isArray(data.groups)) {
+                    throw new Error('格式不正确');
+                }
+                const existingGroups = await loadAllGroups(); // 由 db.js 提供
+                const existingIds = new Set(existingGroups.map(g => g.id));
+                let addedCount = 0;
+                for (const group of data.groups) {
+                    if (!group || typeof group.id !== 'string' || typeof group.name !== 'string' || !Array.isArray(group.emotes)) {
+                        continue;
+                    }
+                    if (!existingIds.has(group.id)) {
+                        await addGroup(group); // 由 db.js 提供
+                        addedCount++;
+                    }
+                }
+                renderWarehouse();
+                updateStorageFooter();
+                showToast(`成功导入 ${addedCount} 个新分组`, 'success');
+            } catch (err) {
+                showToast('文件格式错误或导入失败', '');
+            }
+        });
+        fileInput.click();
+    });
+
+    menuBatchManage.addEventListener('click', () => {
+        hamburgerDropdown.classList.remove('active');
+        warehouseBatchMode = !warehouseBatchMode;
+        if (!warehouseBatchMode) {
+            selectedGroupIds.clear();
+        }
+        renderWarehouse();
+    });
+
+    menuExportAll.addEventListener('click', async () => {
+        hamburgerDropdown.classList.remove('active');
+        const groups = await loadAllGroups(); // 由 db.js 提供
+        if (groups.length === 0) {
+            showToast('仓库为空，无法导出', '');
+            return;
+        }
+        const exportData = { groups: groups };
+        const jsonStr = JSON.stringify(exportData, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `表情包仓库_${new Date().toISOString().slice(0,10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('仓库数据已导出', 'success');
+    });
+
+    menuClearCache.addEventListener('click', () => {
+        hamburgerDropdown.classList.remove('active');
+        if (confirm('确定要清空所有仓库数据吗？此操作不可撤销！')) {
+            clearAllData().then(() => { // clearAllData 由 db.js 提供
+                renderWarehouse();
+                updateStorageFooter();
+                showToast('缓存已清空', 'success');
+            }).catch(() => showToast('清空失败', ''));
+        }
+    });
+
+    btnBatchExport.addEventListener('click', async () => {
+        if (selectedGroupIds.size === 0) {
+            showToast('请先选择分组', '');
+            return;
+        }
+        const allGroups = await loadAllGroups(); // 由 db.js 提供
+        const selectedGroups = allGroups.filter(g => selectedGroupIds.has(g.id));
+        const exportData = { groups: selectedGroups };
+        const jsonStr = JSON.stringify(exportData, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `表情包仓库_${new Date().toISOString().slice(0,10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast(`已导出 ${selectedGroupIds.size} 个分组`, 'success');
+    });
+
+    btnBatchDelete.addEventListener('click', async () => {
+        if (selectedGroupIds.size === 0) {
+            showToast('请先选择分组', '');
+            return;
+        }
+        if (confirm(`确定删除选中的 ${selectedGroupIds.size} 个分组吗？此操作不可撤销。`)) {
+            try {
+                await deleteMultipleGroups(Array.from(selectedGroupIds)); // 由 db.js 提供
+                selectedGroupIds.clear();
+                warehouseBatchMode = false;
+                await renderWarehouse();
+                await updateStorageFooter();
+                showToast('已删除选中分组', 'success');
+            } catch (e) {
+                selectedGroupIds.clear();
+                warehouseBatchMode = false;
+                await renderWarehouse();
+                await updateStorageFooter();
+                showToast('删除失败', '');
+            }
+        }
+    });
+
+    // ========== 声明弹窗 ==========
+    function openDisclaimerAsNormal() {
+        disclaimerForceTitle.textContent = '免责声明';
+        btnReturnDisclaimerForce.classList.remove('hidden-btn');
+        btnReturnDisclaimerForce.disabled = false;
+        disclaimerFooterRow.innerHTML = '';
+        const agreedBtn = document.createElement('button');
+        agreedBtn.className = 'btn-copy-outline agreed-btn';
+        agreedBtn.disabled = true;
+        agreedBtn.textContent = '您已阅读并同意';
+        disclaimerFooterRow.appendChild(agreedBtn);
+        btnReturnDisclaimerForce.onclick = () => closeModal(modalDisclaimerForce);
+        openModal(modalDisclaimerForce);
+    }
+
+    function startDisclaimerCountdown() {
+        const agreeBtn = document.getElementById('btnAgree');
+        if (!agreeBtn) return;
+        agreeBtn.textContent = '我已阅读并同意（5s）';
+        agreeBtn.disabled = true;
+        agreeBtn.classList.remove('agreed-btn');
+        let countdown = 5;
+        if (window.disclaimerTimer) clearInterval(window.disclaimerTimer);
+        window.disclaimerTimer = setInterval(() => {
+            countdown--;
+            if (countdown <= 0) {
+                clearInterval(window.disclaimerTimer);
+                window.disclaimerTimer = null;
+                agreeBtn.textContent = '我已阅读并同意';
+                agreeBtn.disabled = false;
+            } else {
+                agreeBtn.textContent = `我已阅读并同意（${countdown}s）`;
+            }
+        }, 1000);
+    }
+
+    function openDisclaimerForce() {
+        disclaimerForceTitle.textContent = '免责声明';
+        btnReturnDisclaimerForce.classList.add('hidden-btn');
+        btnReturnDisclaimerForce.disabled = true;
+        disclaimerFooterRow.innerHTML = '';
+        const agreeBtn = document.createElement('button');
+        agreeBtn.className = 'btn-copy-outline';
+        agreeBtn.id = 'btnAgree';
+        agreeBtn.disabled = true;
+        agreeBtn.textContent = '我已阅读并同意（5s）';
+        agreeBtn.addEventListener('click', () => {
+            if (window.disclaimerTimer) clearInterval(window.disclaimerTimer);
+            localStorage.setItem(STORAGE_KEY, 'true');
+            disclaimerAgreed = true;
+            closeModal(modalDisclaimerForce);
+            showToast('欢迎使用表情包导入格式转换工具', 'success');
+        });
+        disclaimerFooterRow.appendChild(agreeBtn);
+        startDisclaimerCountdown();
+        openModal(modalDisclaimerForce);
+    }
+
+    // ========== 初始化 ==========
+    async function init() {
+        try {
+            await openDB(); // openDB 由 db.js 提供
+            console.log('IndexedDB 初始化成功');
+        } catch (e) {
+            console.error('IndexedDB 初始化失败，将使用内存模拟（数据不持久）', e);
+            showToast('浏览器不支持本地存储，仓库功能不可用', '');
+        }
+
+        initDescPosMenu();
+        initSourceMenu();
+        initTargetMenu();
+
+        if (localStorage.getItem(STORAGE_KEY) === 'true') {
+            disclaimerAgreed = true;
+        }
+        renderPreview(emotes);
+        updateSourceLabel();
+        updateImmersiveBtnVisibility();
+        if (!disclaimerAgreed) {
+            openDisclaimerForce();
+        }
+    }
+
+    init();
+})();
+</script>
+</body>
+</html>
