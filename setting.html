@@ -1423,58 +1423,51 @@ document.getElementById('importChatFile').addEventListener('change', async (e) =
             }
         });
 
-// ===== 清空无用缓存（只删除旧数据库，不碰当前数据） =====
+// 清空无用缓存（仅删除 MuyeChat7403DB，绝不动当前数据）
 document.getElementById('clearUnusedCacheBtn').addEventListener('click', async () => {
     if (!confirm('将删除旧版数据库 MuyeChat7403DB（如果存在）。\n这不会影响当前任何数据。是否继续？')) return;
-
     try {
-        const dbExists = (name) => new Promise(resolve => {
-            const req = indexedDB.open(name);
+        const exists = await new Promise(resolve => {
+            const req = indexedDB.open('MuyeChat7403DB');
             req.onsuccess = () => { req.result.close(); resolve(true); };
             req.onerror = () => resolve(false);
         });
-
-        if (await dbExists('MuyeChat7403DB')) {
-            await new Promise((resolve, reject) => {
-                const req = indexedDB.deleteDatabase('MuyeChat7403DB');
-                req.onsuccess = resolve;
-                req.onerror = reject;
-                req.onblocked = () => reject(new Error('数据库被占用，请关闭其他 MuyeChat 标签页后重试'));
-            });
-            alert('旧数据库 MuyeChat7403DB 已清理。');
-        } else {
+        if (!exists) {
             alert('未发现旧数据库，无需清理。');
+            return;
         }
+        await new Promise((resolve, reject) => {
+            const req = indexedDB.deleteDatabase('MuyeChat7403DB');
+            req.onsuccess = resolve;
+            req.onerror = reject;
+            req.onblocked = () => reject(new Error('数据库被占用，请关闭其他 MuyeChat 页面后重试'));
+        });
+        alert('旧数据库已清理。');
     } catch (e) {
         alert('清理失败：' + e.message);
     }
 });
 
-        // 清空全部数据（已修正为 MuyeStorageDB）
+// 清空全部数据（先关闭连接再删库，避免阻塞）
 document.getElementById('clearAllBtn').addEventListener('click', async () => {
-    if (!confirm('确定清空所有 MuyeStorage 数据？此操作不可恢复！')) return;
-
+    if (!confirm('确定清空所有 Muye 数据？此操作不可恢复！')) return;
     try {
-        // 1. 先关闭当前数据库连接
+        // 关闭数据库连接
         if (MuyeDB && MuyeDB.closeDB) {
             MuyeDB.closeDB();
         }
-
-        // 2. 删除数据库
+        // 删除数据库
         await new Promise((resolve, reject) => {
             const req = indexedDB.deleteDatabase('MuyeStorageDB');
             req.onsuccess = resolve;
             req.onerror = reject;
-            req.onblocked = () => reject(new Error('数据库被占用，请关闭所有 MuyeStorage 标签页后刷新本页再试'));
+            req.onblocked = () => reject(new Error('数据库被占用，请关闭其他 MuyeCodeVault 页面后重试'));
         });
-
-        // 3. 清除迁移标记
-        localStorage.removeItem('muye_storage_migrated_v1');
-
+        localStorage.removeItem('muye_storage_migrated_v2');
         alert('所有数据已清空');
         location.reload();
     } catch (e) {
-        alert('清空失败：' + e.message + '\n请关闭其他 MuyeChat 页面后重试。');
+        alert('清空失败：' + e.message);
     }
 });
 
