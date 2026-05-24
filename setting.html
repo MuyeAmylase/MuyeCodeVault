@@ -1261,60 +1261,82 @@
         });
 
         // ---- 存储管理 ----
-        // 导出数据
-        document.getElementById('exportChatBtn').addEventListener('click', async () => {
-            try {
-                const allSongs = await MuyeDB.getAll('songs');
-                const allSettings = await MuyeDB.getAll('settings');
-                const exportData = {
-                    songs: allSongs,
-                    settings: allSettings,
-                    exportedAt: new Date().toISOString()
-                };
-                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `muyechat_backup_${new Date().toISOString().slice(0,10)}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-                alert('导出成功');
-            } catch (e) {
-                alert('导出失败：' + e.message);
-            }
-        });
+// ===== 1. 导出全部数据（修复版：自动扫描所有表） =====
+document.getElementById('exportChatBtn').addEventListener('click', async () => {
+    try {
+        // 动态获取数据库中所有表的名称
+        const db = await MuyeDB.openDB();
+        const allStoreNames = Array.from(db.objectStoreNames);
 
-        // 导入数据
-        document.getElementById('importChatBtn').addEventListener('click', () => {
-            document.getElementById('importChatFile').click();
-        });
+        const exportData = {
+            exportedAt: new Date().toISOString()
+        };
 
-        document.getElementById('importChatFile').addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            try {
-                const text = await file.text();
-                const data = JSON.parse(text);
-                if (!data.songs || !Array.isArray(data.songs) || !data.settings || !Array.isArray(data.settings)) {
-                    throw new Error('数据格式无效');
+        // 循环导出每一个表的所有数据
+        for (const storeName of allStoreNames) {
+            const allItems = await MuyeDB.getAll(storeName);
+            exportData[storeName] = allItems;
+        }
+
+        // 生成并下载文件
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `muye_full_backup_${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        alert(`导出成功！包含表：${allStoreNames.join(', ')}`);
+    } catch (e) {
+        alert('导出失败：' + e.message);
+    }
+});
+
+// ===== 2. 导入全部数据（通用版：支持新导出的完整数据） =====
+document.getElementById('importChatBtn').addEventListener('click', () => {
+    document.getElementById('importChatFile').click();
+});
+
+document.getElementById('importChatFile').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+
+        // 简单检测：只要是一个对象就尝试导入
+        if (!data || typeof data !== 'object') {
+            throw new Error('文件格式不正确');
+        }
+
+        if (!confirm('导入将覆盖现有全部数据，确定继续吗？')) return;
+
+        // 获取当前数据库所有表，并清空
+        const db = await MuyeDB.openDB();
+        const storeNames = Array.from(db.objectStoreNames);
+        for (const name of storeNames) {
+            await MuyeDB.clear(name);
+        }
+
+        // 遍历导入数据中的每一个表
+        for (const [storeName, items] of Object.entries(data)) {
+            // 跳过 exportedAt 这样的元数据
+            if (storeName === 'exportedAt') continue;
+            if (Array.isArray(items)) {
+                for (const item of items) {
+                    await MuyeDB.put(storeName, item);
                 }
-                if (!confirm('导入将覆盖现有全部数据，确定继续吗？')) return;
-                await MuyeDB.clear('songs');
-                await MuyeDB.clear('settings');
-                for (const song of data.songs) {
-                    await MuyeDB.put('songs', song);
-                }
-                for (const setting of data.settings) {
-                    await MuyeDB.put('settings', setting);
-                }
-                alert('数据导入成功，即将刷新页面');
-                location.reload();
-            } catch (e) {
-                alert('导入失败：' + e.message);
-            } finally {
-                e.target.value = '';
             }
-        });
+        }
+
+        alert('数据导入成功，即将刷新页面');
+        location.reload();
+    } catch (e) {
+        alert('导入失败：' + e.message);
+    } finally {
+        e.target.value = '';
+    }
+});
 
         // ========== 新增：迁移旧数据 ==========
         document.getElementById('migrateOldDataBtn').addEventListener('click', async () => {
