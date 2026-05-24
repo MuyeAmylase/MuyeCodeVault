@@ -1425,7 +1425,7 @@ document.getElementById('importChatFile').addEventListener('change', async (e) =
 
 // ===== 清空无用缓存（只删除旧数据库，不碰当前数据） =====
 document.getElementById('clearUnusedCacheBtn').addEventListener('click', async () => {
-    if (!confirm('将删除以下旧版数据库残留文件（如果存在）：\n- MuyeChat7403DB\n- EmoteWarehouseDB\n\n这些是旧版本遗留，删除不会影响当前任何数据。是否继续？')) return;
+    if (!confirm('将删除旧版数据库 MuyeChat7403DB（如果存在）。\n这不会影响当前任何数据。是否继续？')) return;
 
     try {
         const dbExists = (name) => new Promise(resolve => {
@@ -1434,45 +1434,49 @@ document.getElementById('clearUnusedCacheBtn').addEventListener('click', async (
             req.onerror = () => resolve(false);
         });
 
-        const oldDBs = [];
-        if (await dbExists('MuyeChat7403DB')) oldDBs.push('MuyeChat7403DB');
-        if (await dbExists('EmoteWarehouseDB')) oldDBs.push('EmoteWarehouseDB');
-
-        if (oldDBs.length === 0) {
-            alert('未发现旧版本数据库，无需清理。');
-            return;
+        if (await dbExists('MuyeChat7403DB')) {
+            await new Promise((resolve, reject) => {
+                const req = indexedDB.deleteDatabase('MuyeChat7403DB');
+                req.onsuccess = resolve;
+                req.onerror = reject;
+                req.onblocked = () => reject(new Error('数据库被占用，请关闭其他 MuyeChat 标签页后重试'));
+            });
+            alert('旧数据库 MuyeChat7403DB 已清理。');
+        } else {
+            alert('未发现旧数据库，无需清理。');
         }
-
-        await Promise.all(oldDBs.map(name => new Promise((resolve, reject) => {
-            const req = indexedDB.deleteDatabase(name);
-            req.onsuccess = resolve;
-            req.onerror = reject;
-            req.onblocked = () => reject(new Error('数据库被占用'));
-        })));
-
-        alert(`已清理 ${oldDBs.length} 个旧数据库残留。`);
     } catch (e) {
-        alert('清理失败：' + e.message + '\n请关闭其他 MuyeChat 页面后重试。');
+        alert('清理失败：' + e.message);
     }
 });
 
         // 清空全部数据（已修正为 MuyeStorageDB）
-        document.getElementById('clearAllBtn').addEventListener('click', async () => {
-            if (confirm('确定清空所有 MuyeChat 数据？此操作不可恢复！')) {
-                const req = indexedDB.deleteDatabase('MuyeStorageDB');
-                req.onsuccess = () => {
-                    localStorage.removeItem('muye_storage_migrated_v1');
-                    alert('所有数据已清空');
-                    location.reload();
-                };
-                req.onerror = () => {
-                    alert('删除失败，请关闭所有相关页面后重试');
-                };
-                req.onblocked = () => {
-                    alert('数据库被占用，请关闭所有 MuyeChat 标签页，然后手动刷新本页面即可完成清空。');
-                };
-            }
+document.getElementById('clearAllBtn').addEventListener('click', async () => {
+    if (!confirm('确定清空所有 MuyeStorage 数据？此操作不可恢复！')) return;
+
+    try {
+        // 1. 先关闭当前数据库连接
+        if (MuyeDB && MuyeDB.closeDB) {
+            MuyeDB.closeDB();
+        }
+
+        // 2. 删除数据库
+        await new Promise((resolve, reject) => {
+            const req = indexedDB.deleteDatabase('MuyeStorageDB');
+            req.onsuccess = resolve;
+            req.onerror = reject;
+            req.onblocked = () => reject(new Error('数据库被占用，请关闭所有 MuyeStorage 标签页后刷新本页再试'));
         });
+
+        // 3. 清除迁移标记
+        localStorage.removeItem('muye_storage_migrated_v1');
+
+        alert('所有数据已清空');
+        location.reload();
+    } catch (e) {
+        alert('清空失败：' + e.message + '\n请关闭其他 MuyeChat 页面后重试。');
+    }
+});
 
         // ---- 拉取模型列表 ----
         document.getElementById('fetchModelsBtn').addEventListener('click', async () => {
