@@ -1731,11 +1731,13 @@
     <div class="toast" id="toast"></div>
 
 
-<script src="db.js"></script>
 <script>
 (function() {
     // ========== 常量与状态 ==========
-    const STORAGE_KEY = 'emote_tool_disclaimer_agreed_v2'; // 保留（免责声明相关）
+    const STORAGE_KEY = 'emote_tool_disclaimer_agreed_v2';
+    const DB_NAME = 'EmoteWarehouseDB';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'groups';
 
     const FORMATS = [
         { id: 'format1', label: '[描述]--[URL]', descLabel: '描述在分隔符前，后跟 -- 和URL' },
@@ -1760,13 +1762,110 @@
     let warehouseBatchMode = false;
     let selectedGroupIds = new Set();
 
-    // IndexedDB 相关代码已移至 db.js
-    // openDB, getStore, loadAllGroups, addGroup, updateGroup, deleteGroup, deleteMultipleGroups,
-    // clearAllData, getStorageEstimate, formatBytes 均由 db.js 提供
-    // DB_NAME, DB_VERSION, STORE_NAME, db 变量也定义在 db.js 中
+    // ========== IndexedDB 封装 ==========
+    let db = null;
+
+    function openDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+            request.onupgradeneeded = (event) => {
+                const database = event.target.result;
+                if (!database.objectStoreNames.contains(STORE_NAME)) {
+                    const store = database.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                    store.createIndex('name', 'name', { unique: false });
+                    store.createIndex('createdAt', 'createdAt', { unique: false });
+                }
+            };
+            request.onsuccess = (event) => {
+                db = event.target.result;
+                resolve(db);
+            };
+            request.onerror = (event) => {
+                reject(event.target.error);
+            };
+        });
+    }
+
+    function getStore(mode = 'readonly') {
+        const tx = db.transaction(STORE_NAME, mode);
+        return tx.objectStore(STORE_NAME);
+    }
+
+    async function loadAllGroups() {
+        return new Promise((resolve, reject) => {
+            const store = getStore();
+            const request = store.getAll();
+            request.onsuccess = () => resolve(request.result || []);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async function addGroup(group) {
+        return new Promise((resolve, reject) => {
+            const store = getStore('readwrite');
+            const request = store.add(group);
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async function updateGroup(group) {
+        return new Promise((resolve, reject) => {
+            const store = getStore('readwrite');
+            const request = store.put(group);
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async function deleteGroup(id) {
+        return new Promise((resolve, reject) => {
+            const store = getStore('readwrite');
+            const request = store.delete(id);
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async function deleteMultipleGroups(ids) {
+        const store = getStore('readwrite');
+        for (const id of ids) {
+            store.delete(id);
+        }
+        return new Promise((resolve, reject) => {
+            store.transaction.oncomplete = resolve;
+            store.transaction.onerror = reject;
+        });
+    }
+
+    async function clearAllData() {
+        return new Promise((resolve, reject) => {
+            const store = getStore('readwrite');
+            const request = store.clear();
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async function getStorageEstimate() {
+        if (navigator.storage && navigator.storage.estimate) {
+            const estimate = await navigator.storage.estimate();
+            return {
+                usage: estimate.usage || 0,
+                quota: estimate.quota || 0
+            };
+        }
+        return { usage: 0, quota: 0 };
+    }
 
     // ========== 工具函数 ==========
-    // (formatBytes 已移至 db.js)
+    function formatBytes(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
 
     function getAllFormats() {
         return FORMATS.concat(customFormats);
@@ -2111,6 +2210,7 @@
             for (const rawLine of lines) {
                 const line = rawLine.trim();
                 if (!line) continue;
+                // 每个循环创建新的正则对象，lastIndex 自动归零，无需手动重置
                 const urlRegex = /https?:\/\/[^\s<>"']+/gi;
                 const urlMatches = [];
                 let match;
@@ -2489,7 +2589,7 @@
 
     // ========== 仓库界面渲染 ==========
     async function renderWarehouse() {
-        const groups = await loadAllGroups(); // loadAllGroups 由 db.js 提供
+        const groups = await loadAllGroups();
         warehouseList.innerHTML = '';
         if (groups.length === 0) {
             warehouseList.innerHTML = '<div style="text-align:center;color:var(--text-tertiary);padding:40px;">仓库是空的<br>可以通过主界面「保存至仓库」添加分组</div>';
@@ -2499,6 +2599,7 @@
                 item.className = 'warehouse-item';
                 if (warehouseBatchMode) item.classList.add('batch-mode');
 
+                // 复选框
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.className = 'batch-checkbox';
@@ -2512,6 +2613,7 @@
                     updateBatchBar();
                 });
 
+                // 信息区
                 const info = document.createElement('div');
                 info.className = 'warehouse-item-info';
                 const nameDiv = document.createElement('div');
@@ -2523,9 +2625,11 @@
                 info.appendChild(nameDiv);
                 info.appendChild(countDiv);
 
+                // 操作按钮
                 const actions = document.createElement('div');
                 actions.className = 'warehouse-item-actions';
 
+                // 编辑按钮
                 const btnEdit = document.createElement('button');
                 btnEdit.className = 'btn-action edit';
                 btnEdit.textContent = '编辑';
@@ -2534,7 +2638,7 @@
                     const newName = prompt('修改分组名称', group.name);
                     if (newName && newName.trim() !== '' && newName.trim() !== group.name) {
                         group.name = newName.trim();
-                        await updateGroup(group); // updateGroup 由 db.js 提供
+                        await updateGroup(group);
                         renderWarehouse();
                         updateStorageFooter();
                         showToast('分组名称已更新', 'success');
@@ -2555,6 +2659,7 @@
                 btnImport.textContent = '导入至工作台';
                 btnImport.addEventListener('click', (e) => {
                     e.stopPropagation();
+                    // 去重追加到 emotes
                     const existingUrls = new Set(emotes.map(e => e.url));
                     const newEmotes = group.emotes.filter(e => !existingUrls.has(e.url));
                     emotes = emotes.concat(newEmotes);
@@ -2571,7 +2676,7 @@
                 btnDelete.addEventListener('click', (e) => {
                     e.stopPropagation();
                     if (confirm(`确定删除分组「${group.name}」吗？此操作不可撤销。`)) {
-                        deleteGroup(group.id).then(() => { // deleteGroup 由 db.js 提供
+                        deleteGroup(group.id).then(() => {
                             renderWarehouse();
                             updateStorageFooter();
                             showToast('分组已删除', 'success');
@@ -2603,8 +2708,8 @@
     }
 
     async function updateStorageFooter() {
-        const { usage, quota } = await getStorageEstimate(); // getStorageEstimate 由 db.js 提供
-        warehouseFooter.textContent = `存储空间：${formatBytes(usage)} / ${formatBytes(quota)}`; // formatBytes 由 db.js 提供
+        const { usage, quota } = await getStorageEstimate();
+        warehouseFooter.textContent = `存储空间：${formatBytes(usage)} / ${formatBytes(quota)}`;
     }
 
     function exitBatchMode() {
@@ -2752,6 +2857,7 @@
     });
 
     // ========== 仓库相关事件 ==========
+    // 保存至仓库
     btnSaveToWarehouse.addEventListener('click', () => {
         syncEmotesFromPreview();
         if (emotes.length === 0) {
@@ -2779,13 +2885,14 @@
         const newGroup = {
             id: Date.now().toString(),
             name: name,
-            emotes: JSON.parse(JSON.stringify(emotes)),
+            emotes: JSON.parse(JSON.stringify(emotes)), // 深拷贝
             createdAt: Date.now()
         };
         try {
-            await addGroup(newGroup); // addGroup 由 db.js 提供
+            await addGroup(newGroup);
             closeModal(modalSaveWarehouse);
             showToast(`已保存至仓库，分组名：${name}`, 'success');
+            // 更新仓库界面如果打开的话
             if (modalWarehouse.classList.contains('active')) {
                 renderWarehouse();
                 updateStorageFooter();
@@ -2795,6 +2902,7 @@
         }
     });
 
+    // 我的仓库按钮
     btnMyWarehouse.addEventListener('click', async () => {
         exitBatchMode();
         await renderWarehouse();
@@ -2807,15 +2915,18 @@
         exitBatchMode();
     });
 
+    // 退出批量模式按钮
     btnExitBatch.addEventListener('click', () => {
         exitBatchMode();
     });
 
+    // 汉堡菜单
     btnHamburger.addEventListener('click', (e) => {
         e.stopPropagation();
         hamburgerDropdown.classList.toggle('active');
     });
 
+    // FIX: 文件导入增加结构校验，确保每个分组包含必要字段
     menuFileImport.addEventListener('click', () => {
         hamburgerDropdown.classList.remove('active');
         const fileInput = document.createElement('input');
@@ -2830,15 +2941,16 @@
                 if (!data.groups || !Array.isArray(data.groups)) {
                     throw new Error('格式不正确');
                 }
-                const existingGroups = await loadAllGroups(); // 由 db.js 提供
+                const existingGroups = await loadAllGroups();
                 const existingIds = new Set(existingGroups.map(g => g.id));
                 let addedCount = 0;
                 for (const group of data.groups) {
+                    // 校验每个分组对象的结构
                     if (!group || typeof group.id !== 'string' || typeof group.name !== 'string' || !Array.isArray(group.emotes)) {
-                        continue;
+                        continue; // 跳过无效分组
                     }
                     if (!existingIds.has(group.id)) {
-                        await addGroup(group); // 由 db.js 提供
+                        await addGroup(group);
                         addedCount++;
                     }
                 }
@@ -2863,7 +2975,7 @@
 
     menuExportAll.addEventListener('click', async () => {
         hamburgerDropdown.classList.remove('active');
-        const groups = await loadAllGroups(); // 由 db.js 提供
+        const groups = await loadAllGroups();
         if (groups.length === 0) {
             showToast('仓库为空，无法导出', '');
             return;
@@ -2885,7 +2997,7 @@
     menuClearCache.addEventListener('click', () => {
         hamburgerDropdown.classList.remove('active');
         if (confirm('确定要清空所有仓库数据吗？此操作不可撤销！')) {
-            clearAllData().then(() => { // clearAllData 由 db.js 提供
+            clearAllData().then(() => {
                 renderWarehouse();
                 updateStorageFooter();
                 showToast('缓存已清空', 'success');
@@ -2893,12 +3005,13 @@
         }
     });
 
+    // 批量操作按钮
     btnBatchExport.addEventListener('click', async () => {
         if (selectedGroupIds.size === 0) {
             showToast('请先选择分组', '');
             return;
         }
-        const allGroups = await loadAllGroups(); // 由 db.js 提供
+        const allGroups = await loadAllGroups();
         const selectedGroups = allGroups.filter(g => selectedGroupIds.has(g.id));
         const exportData = { groups: selectedGroups };
         const jsonStr = JSON.stringify(exportData, null, 2);
@@ -2914,6 +3027,7 @@
         showToast(`已导出 ${selectedGroupIds.size} 个分组`, 'success');
     });
 
+    // FIX: 批量删除异常时重置选中状态并退出批量模式，避免 UI 卡死
     btnBatchDelete.addEventListener('click', async () => {
         if (selectedGroupIds.size === 0) {
             showToast('请先选择分组', '');
@@ -2921,13 +3035,14 @@
         }
         if (confirm(`确定删除选中的 ${selectedGroupIds.size} 个分组吗？此操作不可撤销。`)) {
             try {
-                await deleteMultipleGroups(Array.from(selectedGroupIds)); // 由 db.js 提供
+                await deleteMultipleGroups(Array.from(selectedGroupIds));
                 selectedGroupIds.clear();
                 warehouseBatchMode = false;
                 await renderWarehouse();
                 await updateStorageFooter();
                 showToast('已删除选中分组', 'success');
             } catch (e) {
+                // 失败时也要重置状态，防止界面停留在批量模式但数据未变
                 selectedGroupIds.clear();
                 warehouseBatchMode = false;
                 await renderWarehouse();
@@ -2937,7 +3052,7 @@
         }
     });
 
-    // ========== 声明弹窗 ==========
+    // ========== 声明弹窗（简化，无开发者的话） ==========
     function openDisclaimerAsNormal() {
         disclaimerForceTitle.textContent = '免责声明';
         btnReturnDisclaimerForce.classList.remove('hidden-btn');
@@ -2998,7 +3113,7 @@
     // ========== 初始化 ==========
     async function init() {
         try {
-            await openDB(); // openDB 由 db.js 提供
+            await openDB();
             console.log('IndexedDB 初始化成功');
         } catch (e) {
             console.error('IndexedDB 初始化失败，将使用内存模拟（数据不持久）', e);
