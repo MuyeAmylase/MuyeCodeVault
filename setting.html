@@ -1292,7 +1292,7 @@ document.getElementById('exportChatBtn').addEventListener('click', async () => {
     }
 });
 
-// ===== 2. 导入全部数据（通用版：支持新导出的完整数据） =====
+// ===== 导入全部数据（通用版） =====
 document.getElementById('importChatBtn').addEventListener('click', () => {
     document.getElementById('importChatFile').click();
 });
@@ -1303,24 +1303,18 @@ document.getElementById('importChatFile').addEventListener('change', async (e) =
     try {
         const text = await file.text();
         const data = JSON.parse(text);
-
-        // 简单检测：只要是一个对象就尝试导入
         if (!data || typeof data !== 'object') {
             throw new Error('文件格式不正确');
         }
-
         if (!confirm('导入将覆盖现有全部数据，确定继续吗？')) return;
 
-        // 获取当前数据库所有表，并清空
         const db = await MuyeDB.openDB();
         const storeNames = Array.from(db.objectStoreNames);
         for (const name of storeNames) {
             await MuyeDB.clear(name);
         }
 
-        // 遍历导入数据中的每一个表
         for (const [storeName, items] of Object.entries(data)) {
-            // 跳过 exportedAt 这样的元数据
             if (storeName === 'exportedAt') continue;
             if (Array.isArray(items)) {
                 for (const item of items) {
@@ -1328,7 +1322,6 @@ document.getElementById('importChatFile').addEventListener('change', async (e) =
                 }
             }
         }
-
         alert('数据导入成功，即将刷新页面');
         location.reload();
     } catch (e) {
@@ -1430,50 +1423,38 @@ document.getElementById('importChatFile').addEventListener('change', async (e) =
             }
         });
 
-        // ========== 新增：清空无用缓存 ==========
-        document.getElementById('clearUnusedCacheBtn').addEventListener('click', async () => {
-            if (!confirm('将清除以下无用缓存：\n1. 旧版本数据库残留（MuyeChat7403DB、EmoteWarehouseDB）\n2. 当前数据库中无法使用的无效记录\n\n此操作不可恢复，是否继续？')) return;
+// ===== 清空无用缓存（只删除旧数据库，不碰当前数据） =====
+document.getElementById('clearUnusedCacheBtn').addEventListener('click', async () => {
+    if (!confirm('将删除以下旧版数据库残留文件（如果存在）：\n- MuyeChat7403DB\n- EmoteWarehouseDB\n\n这些是旧版本遗留，删除不会影响当前任何数据。是否继续？')) return;
 
-            try {
-                const dbExists = (name) => new Promise(resolve => {
-                    const req = indexedDB.open(name);
-                    req.onsuccess = () => { req.result.close(); resolve(true); };
-                    req.onerror = () => resolve(false);
-                });
-
-                // 删除旧数据库
-                const oldDBs = [];
-                if (await dbExists('MuyeChat7403DB')) oldDBs.push('MuyeChat7403DB');
-                if (await dbExists('EmoteWarehouseDB')) oldDBs.push('EmoteWarehouseDB');
-                if (oldDBs.length > 0) {
-                    await Promise.all(oldDBs.map(name => new Promise((resolve, reject) => {
-                        const req = indexedDB.deleteDatabase(name);
-                        req.onsuccess = resolve;
-                        req.onerror = reject;
-                        req.onblocked = () => reject(new Error('数据库被占用'));
-                    })));
-                }
-
-                // 清理当前数据库中无效记录（示例：songs 表缺少必要字段）
-                let cleanedCount = 0;
-                const songs = await MuyeDB.getAll('songs');
-                for (const song of songs) {
-                    if (!song.title || !song.url) {
-                        await MuyeDB.remove('songs', song.id);
-                        cleanedCount++;
-                    }
-                }
-
-                const message = [];
-                if (oldDBs.length > 0) message.push(`已删除 ${oldDBs.length} 个旧数据库`);
-                if (cleanedCount > 0) message.push(`已清理 ${cleanedCount} 条无效歌曲记录`);
-                if (message.length === 0) message.push('没有发现可清理的无用缓存');
-
-                alert(message.join('\n'));
-            } catch (e) {
-                alert('清理失败：' + e.message);
-            }
+    try {
+        const dbExists = (name) => new Promise(resolve => {
+            const req = indexedDB.open(name);
+            req.onsuccess = () => { req.result.close(); resolve(true); };
+            req.onerror = () => resolve(false);
         });
+
+        const oldDBs = [];
+        if (await dbExists('MuyeChat7403DB')) oldDBs.push('MuyeChat7403DB');
+        if (await dbExists('EmoteWarehouseDB')) oldDBs.push('EmoteWarehouseDB');
+
+        if (oldDBs.length === 0) {
+            alert('未发现旧版本数据库，无需清理。');
+            return;
+        }
+
+        await Promise.all(oldDBs.map(name => new Promise((resolve, reject) => {
+            const req = indexedDB.deleteDatabase(name);
+            req.onsuccess = resolve;
+            req.onerror = reject;
+            req.onblocked = () => reject(new Error('数据库被占用'));
+        })));
+
+        alert(`已清理 ${oldDBs.length} 个旧数据库残留。`);
+    } catch (e) {
+        alert('清理失败：' + e.message + '\n请关闭其他 MuyeChat 页面后重试。');
+    }
+});
 
         // 清空全部数据（已修正为 MuyeStorageDB）
         document.getElementById('clearAllBtn').addEventListener('click', async () => {
