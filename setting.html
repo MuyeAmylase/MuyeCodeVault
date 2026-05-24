@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>MuyeChat</title>
+    <title>MuyeCodeVault</title>
     <style>
         :root {
             --bg-primary: #1a1a1f;
@@ -336,19 +337,19 @@
             transform: rotate(180deg);
         }
 
-.preset-dropdown {
-    position: fixed;       /* 改这里 */
-    top: auto;
-    left: auto;
-    background: var(--bg-card);
-    border: 1px solid var(--border-card);
-    border-radius: var(--radius-sm);
-    box-shadow: var(--shadow-md);
-    z-index: 99999;        /* 加大一点 */
-    display: none;
-    max-height: 200px;
-    overflow-y: auto;
-}
+        .preset-dropdown {
+            position: fixed;
+            top: auto;
+            left: auto;
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-md);
+            z-index: 99999;
+            display: none;
+            max-height: 200px;
+            overflow-y: auto;
+        }
         .preset-dropdown.show {
             display: block;
         }
@@ -383,7 +384,7 @@
         .model-row .btn-secondary {
             white-space: nowrap;
             flex-shrink: 0;
-            width: auto; /* 保持自适应宽度，不与输入框同宽 */
+            width: auto;
         }
 
         /* 切换开关 */
@@ -584,7 +585,7 @@
             <button class="search-action" id="searchActionBtn">搜索</button>
         </div>
 
-        <!-- 设置条目列表（无分割线） -->
+        <!-- 设置条目列表 -->
         <div class="settings-list" id="settingsList">
             <div class="settings-item" data-panel="api">
                 <div class="item-icon">
@@ -738,69 +739,97 @@
             </div>
         </div>
 
-        <!-- 存储管理面板 -->
-<div class="settings-panel" id="panel-storage">
-    <div class="panel-header">
-        <button class="panel-back" id="storageBackBtn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <polyline points="16 4 7 12 16 20" />
-            </svg>
-        </button>
-        <span class="panel-title">存储管理</span>
-    </div>
+        <!-- 存储管理面板（已修改：新增迁移旧数据、清空无用缓存） -->
+        <div class="settings-panel" id="panel-storage">
+            <div class="panel-header">
+                <button class="panel-back" id="storageBackBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="16 4 7 12 16 20" />
+                    </svg>
+                </button>
+                <span class="panel-title">存储管理</span>
+            </div>
 
-    <div class="form-group">
-        <label class="form-label">导出数据</label>
-        <button class="btn-secondary" id="exportChatBtn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; flex-shrink: 0;">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-            导出全部数据
-        </button>
-        <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">导出所有 MuyeChat 设置与数据为 JSON 文件</p>
-    </div>
+            <div class="form-group">
+                <label class="form-label">导出数据</label>
+                <button class="btn-secondary" id="exportChatBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; flex-shrink: 0;">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    导出全部数据
+                </button>
+                <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">导出所有 MuyeChat 设置与数据为 JSON 文件</p>
+            </div>
 
-    <div class="form-group">
-        <label class="form-label">导入数据</label>
-        <input type="file" id="importChatFile" accept=".json" style="display:none;">
-        <button class="btn-secondary" id="importChatBtn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; flex-shrink: 0;">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="17 8 12 3 7 8" />
-                <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
-            选择文件并导入
-        </button>
-        <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">导入将覆盖现有全部数据，请谨慎操作</p>
-    </div>
+            <!-- 新增：迁移旧数据 -->
+            <div class="form-group">
+                <label class="form-label">数据迁移</label>
+                <button class="btn-secondary" id="migrateOldDataBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; flex-shrink: 0;">
+                        <polyline points="17 1 21 5 17 9" />
+                        <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                        <polyline points="7 23 3 19 7 15" />
+                        <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                    </svg>
+                    迁移旧数据
+                </button>
+                <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">将旧版 MuyeChat 与表情包仓库数据合并到当前数据库</p>
+            </div>
 
-    <div class="form-group">
-        <label class="form-label">危险操作</label>
-        <button class="btn-danger" id="clearAllBtn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; flex-shrink: 0;">
-                <polyline points="3 6 5 6 21 6" />
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                <line x1="10" y1="11" x2="10" y2="17" />
-                <line x1="14" y1="11" x2="14" y2="17" />
-            </svg>
-            清空全部 MuyeChat 数据
-        </button>
-    </div>
-</div>
+            <div class="form-group">
+                <label class="form-label">导入数据</label>
+                <input type="file" id="importChatFile" accept=".json" style="display:none;">
+                <button class="btn-secondary" id="importChatBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; flex-shrink: 0;">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    选择文件并导入
+                </button>
+                <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">导入将覆盖现有全部数据，请谨慎操作</p>
+            </div>
 
-    <!-- 预设名称弹窗 -->
-    <div class="modal-overlay" id="presetModal">
-        <div class="modal-dialog">
-            <div class="modal-title">保存为预设</div>
-            <input type="text" class="modal-input" id="presetNameInput" placeholder="输入预设名称...">
-            <div class="modal-actions">
-                <button class="btn-secondary" id="cancelPresetBtn">取消</button>
-                <button class="btn-save" id="confirmPresetBtn">保存</button>
+            <!-- 新增：清空无用缓存 -->
+            <div class="form-group">
+                <label class="form-label">清理冗余</label>
+                <button class="btn-secondary" id="clearUnusedCacheBtn" style="background:#f57c00; border-color:#f57c00; color:#fff;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; flex-shrink: 0;">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                    清空无用缓存
+                </button>
+                <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">删除旧版本数据库残留及无法使用的无效缓存（不影响当前数据）</p>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">危险操作</label>
+                <button class="btn-danger" id="clearAllBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; flex-shrink: 0;">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        <line x1="10" y1="11" x2="10" y2="17" />
+                        <line x1="14" y1="11" x2="14" y2="17" />
+                    </svg>
+                    清空全部 MuyeChat 数据
+                </button>
             </div>
         </div>
-    </div>
+
+        <!-- 预设名称弹窗 -->
+        <div class="modal-overlay" id="presetModal">
+            <div class="modal-dialog">
+                <div class="modal-title">保存为预设</div>
+                <input type="text" class="modal-input" id="presetNameInput" placeholder="输入预设名称...">
+                <div class="modal-actions">
+                    <button class="btn-secondary" id="cancelPresetBtn">取消</button>
+                    <button class="btn-save" id="confirmPresetBtn">保存</button>
+                </div>
+            </div>
+        </div>
 
 <script src="db.js"></script>
 <script>
@@ -975,84 +1004,74 @@
             await MuyeDB.put('settings', { id: 'api_presets', value: presets });
         }
 
-function renderPresetDropdown() {
-    presetDropdown.innerHTML = '';
-    if (presets.length === 0) {
-        const empty = document.createElement('div');
-        empty.className = 'preset-item';
-        empty.textContent = '暂无预设';
-        empty.style.color = 'var(--text-muted)';
-        empty.style.pointerEvents = 'none';
-        presetDropdown.appendChild(empty);
-        return;
-    }
-    presets.forEach(p => {
-        const item = document.createElement('div');
-        item.className = 'preset-item';
-        // 让条目内部变成水平排列，保证不换行
-        item.style.display = 'flex';
-        item.style.alignItems = 'center';
-        
-        // 左侧名称文字
-        const nameSpan = document.createElement('span');
-        nameSpan.textContent = p.name;
-        item.appendChild(nameSpan);
-        
-        // 右侧删除按钮（默认预设不显示）
-        if (p.name !== '默认预设') {
-            const delBtn = document.createElement('button');
-            delBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>`;
-            delBtn.style.cssText = `
-                border: none;
-                background: none;
-                padding: 0;
-                color: #e74c3c;
-                cursor: pointer;
-                margin-left: auto;
-                display: flex;
-                align-items: center;
-                opacity: 0.7;
-            `;
-            delBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                deletePreset(p.name);
+        function renderPresetDropdown() {
+            presetDropdown.innerHTML = '';
+            if (presets.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'preset-item';
+                empty.textContent = '暂无预设';
+                empty.style.color = 'var(--text-muted)';
+                empty.style.pointerEvents = 'none';
+                presetDropdown.appendChild(empty);
+                return;
+            }
+            presets.forEach(p => {
+                const item = document.createElement('div');
+                item.className = 'preset-item';
+                item.style.display = 'flex';
+                item.style.alignItems = 'center';
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = p.name;
+                item.appendChild(nameSpan);
+                
+                if (p.name !== '默认预设') {
+                    const delBtn = document.createElement('button');
+                    delBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>`;
+                    delBtn.style.cssText = `
+                        border: none;
+                        background: none;
+                        padding: 0;
+                        color: #e74c3c;
+                        cursor: pointer;
+                        margin-left: auto;
+                        display: flex;
+                        align-items: center;
+                        opacity: 0.7;
+                    `;
+                    delBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        deletePreset(p.name);
+                    });
+                    item.appendChild(delBtn);
+                }
+                
+                item.addEventListener('click', (e) => {
+                    if (e.target.closest('.delete-preset-btn')) return;
+                    selectPreset(p.name);
+                });
+                
+                presetDropdown.appendChild(item);
             });
-            item.appendChild(delBtn);
         }
-        
-        // 点击条目选择预设（排除删除按钮）
-        item.addEventListener('click', (e) => {
-            if (e.target.closest('.delete-preset-btn')) return;
-            selectPreset(p.name);
-        });
-        
-        presetDropdown.appendChild(item);
-    });
-}
 
-async function deletePreset(name) {
-    if (name === '默认预设') {
-        alert('不能删除默认预设');
-        return;
-    }
-    if (!confirm(`确定删除预设“${name}”？此操作不可恢复。`)) return;
+        async function deletePreset(name) {
+            if (name === '默认预设') {
+                alert('不能删除默认预设');
+                return;
+            }
+            if (!confirm(`确定删除预设“${name}”？此操作不可恢复。`)) return;
 
-    // 从内存数组中移除
-    presets = presets.filter(p => p.name !== name);
-
-    // 如果删除的是当前使用的预设，自动切回默认预设
-    if (currentPresetName === name) {
-        selectPreset('默认预设');
-    }
-
-    // 保存到数据库
-    await savePresets();
-    // 刷新下拉列表
-    renderPresetDropdown();
-}
+            presets = presets.filter(p => p.name !== name);
+            if (currentPresetName === name) {
+                selectPreset('默认预设');
+            }
+            await savePresets();
+            renderPresetDropdown();
+        }
 
         function selectPreset(name) {
             const preset = presets.find(p => p.name === name);
@@ -1064,7 +1083,6 @@ async function deletePreset(name) {
             document.getElementById('apiKey').value = preset.config.apiKey || '';
             document.getElementById('apiModel').value = preset.config.model || '';
             document.getElementById('apiTemperature').value = preset.config.temperature ?? 0.7;
-            // 系统提示词不动
             settingsState.currentPreset = name;
         }
 
@@ -1109,11 +1127,9 @@ async function deletePreset(name) {
             };
             const systemPrompt = document.getElementById('apiSystemPrompt').value;
 
-            // 全局设置：含系统提示词
             settingsState = { ...settingsState, ...apiConfig, systemPrompt };
             await saveSettings(settingsState);
 
-            // 更新当前预设（不含系统提示词）
             const preset = presets.find(p => p.name === currentPresetName);
             if (preset) {
                 preset.config = { ...preset.config, ...apiConfig };
@@ -1156,7 +1172,6 @@ async function deletePreset(name) {
                 return;
             }
 
-            // 系统提示词单独存全局设置
             settingsState.systemPrompt = systemPrompt;
             await saveSettings(settingsState);
 
@@ -1246,6 +1261,7 @@ async function deletePreset(name) {
         });
 
         // ---- 存储管理 ----
+        // 导出数据
         document.getElementById('exportChatBtn').addEventListener('click', async () => {
             try {
                 const allSongs = await MuyeDB.getAll('songs');
@@ -1268,6 +1284,7 @@ async function deletePreset(name) {
             }
         });
 
+        // 导入数据
         document.getElementById('importChatBtn').addEventListener('click', () => {
             document.getElementById('importChatFile').click();
         });
@@ -1299,14 +1316,149 @@ async function deletePreset(name) {
             }
         });
 
+        // ========== 新增：迁移旧数据 ==========
+        document.getElementById('migrateOldDataBtn').addEventListener('click', async () => {
+            const alreadyMigrated = localStorage.getItem('muye_storage_migrated_v1');
+            if (alreadyMigrated === 'true') {
+                alert('旧数据已经迁移完毕，无需重复操作。');
+                return;
+            }
+
+            if (!confirm('即将扫描并迁移旧版数据库（MuyeChat7403DB 和 EmoteWarehouseDB）中的数据，是否继续？')) return;
+
+            let hasData = false;
+
+            try {
+                // 辅助函数
+                const dbExists = (name) => new Promise(resolve => {
+                    const req = indexedDB.open(name);
+                    req.onsuccess = () => { req.result.close(); resolve(true); };
+                    req.onerror = () => resolve(false);
+                });
+
+                const openDB = (name) => new Promise((resolve, reject) => {
+                    const req = indexedDB.open(name);
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => reject(req.error);
+                });
+
+                const getAllFromStore = (db, storeName) => new Promise((resolve, reject) => {
+                    const tx = db.transaction(storeName, 'readonly');
+                    const store = tx.objectStore(storeName);
+                    const req = store.getAll();
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => reject(req.error);
+                });
+
+                // 迁移 MuyeChat7403DB
+                if (await dbExists('MuyeChat7403DB')) {
+                    const oldDB = await openDB('MuyeChat7403DB');
+                    const stores = ['songs', 'settings', 'chats', 'worldbook', 'memory', 'notes'];
+                    for (const storeName of stores) {
+                        if (oldDB.objectStoreNames.contains(storeName)) {
+                            const data = await getAllFromStore(oldDB, storeName);
+                            if (data.length > 0) {
+                                hasData = true;
+                                for (const item of data) {
+                                    await MuyeDB.put(storeName, item).catch(() => {});
+                                }
+                            }
+                        }
+                    }
+                    oldDB.close();
+                }
+
+                // 迁移 EmoteWarehouseDB
+                if (await dbExists('EmoteWarehouseDB')) {
+                    const oldDB = await openDB('EmoteWarehouseDB');
+                    if (oldDB.objectStoreNames.contains('groups')) {
+                        const groups = await getAllFromStore(oldDB, 'groups');
+                        if (groups.length > 0) {
+                            hasData = true;
+                            for (const group of groups) {
+                                await MuyeDB.put('emote_groups', group).catch(() => {});
+                            }
+                        }
+                    }
+                    oldDB.close();
+                }
+
+                if (!hasData) {
+                    alert('未发现可迁移的旧数据。');
+                    return;
+                }
+
+                const shouldDelete = confirm('迁移完成！是否删除旧版数据库以释放空间？\n（删除后不影响当前数据）');
+                if (shouldDelete) {
+                    const toDelete = [];
+                    if (await dbExists('MuyeChat7403DB')) toDelete.push('MuyeChat7403DB');
+                    if (await dbExists('EmoteWarehouseDB')) toDelete.push('EmoteWarehouseDB');
+                    await Promise.all(toDelete.map(name => new Promise((resolve, reject) => {
+                        const req = indexedDB.deleteDatabase(name);
+                        req.onsuccess = resolve;
+                        req.onerror = reject;
+                        req.onblocked = () => reject(new Error('数据库被占用'));
+                    })));
+                }
+
+                localStorage.setItem('muye_storage_migrated_v1', 'true');
+                alert('操作完成。');
+            } catch (e) {
+                alert('迁移失败：' + e.message);
+            }
+        });
+
+        // ========== 新增：清空无用缓存 ==========
+        document.getElementById('clearUnusedCacheBtn').addEventListener('click', async () => {
+            if (!confirm('将清除以下无用缓存：\n1. 旧版本数据库残留（MuyeChat7403DB、EmoteWarehouseDB）\n2. 当前数据库中无法使用的无效记录\n\n此操作不可恢复，是否继续？')) return;
+
+            try {
+                const dbExists = (name) => new Promise(resolve => {
+                    const req = indexedDB.open(name);
+                    req.onsuccess = () => { req.result.close(); resolve(true); };
+                    req.onerror = () => resolve(false);
+                });
+
+                // 删除旧数据库
+                const oldDBs = [];
+                if (await dbExists('MuyeChat7403DB')) oldDBs.push('MuyeChat7403DB');
+                if (await dbExists('EmoteWarehouseDB')) oldDBs.push('EmoteWarehouseDB');
+                if (oldDBs.length > 0) {
+                    await Promise.all(oldDBs.map(name => new Promise((resolve, reject) => {
+                        const req = indexedDB.deleteDatabase(name);
+                        req.onsuccess = resolve;
+                        req.onerror = reject;
+                        req.onblocked = () => reject(new Error('数据库被占用'));
+                    })));
+                }
+
+                // 清理当前数据库中无效记录（示例：songs 表缺少必要字段）
+                let cleanedCount = 0;
+                const songs = await MuyeDB.getAll('songs');
+                for (const song of songs) {
+                    if (!song.title || !song.url) {
+                        await MuyeDB.remove('songs', song.id);
+                        cleanedCount++;
+                    }
+                }
+
+                const message = [];
+                if (oldDBs.length > 0) message.push(`已删除 ${oldDBs.length} 个旧数据库`);
+                if (cleanedCount > 0) message.push(`已清理 ${cleanedCount} 条无效歌曲记录`);
+                if (message.length === 0) message.push('没有发现可清理的无用缓存');
+
+                alert(message.join('\n'));
+            } catch (e) {
+                alert('清理失败：' + e.message);
+            }
+        });
+
+        // 清空全部数据（已修正为 MuyeStorageDB）
         document.getElementById('clearAllBtn').addEventListener('click', async () => {
             if (confirm('确定清空所有 MuyeChat 数据？此操作不可恢复！')) {
-                // 关闭数据库连接
-                if (window.MuyeDB && MuyeDB.close) {
-                    MuyeDB.close();
-                }
-                const req = indexedDB.deleteDatabase('MuyeChat7403DB');
+                const req = indexedDB.deleteDatabase('MuyeStorageDB');
                 req.onsuccess = () => {
+                    localStorage.removeItem('muye_storage_migrated_v1');
                     alert('所有数据已清空');
                     location.reload();
                 };
