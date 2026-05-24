@@ -786,7 +786,6 @@
             request.onsuccess = (e) => resolve(e.target.result);
             request.onerror = (e) => reject(e.target.error);
             request.onblocked = () => {
-                // 如果数据库被其他标签页占用，尝试关闭旧连接后重试
                 dbPromise = null;
                 reject(new Error('数据库被占用，请关闭其他标签页后重试。'));
             };
@@ -794,7 +793,6 @@
         return dbPromise;
     }
 
-    // 通用重试函数：遇到错误时最多重试两次
     async function withRetry(fn, retries = 2) {
         let lastError;
         for (let i = 0; i <= retries; i++) {
@@ -803,7 +801,6 @@
             } catch (err) {
                 lastError = err;
                 if (i < retries) {
-                    // 短暂延迟后重试
                     await new Promise(r => setTimeout(r, 100));
                 }
             }
@@ -1200,8 +1197,15 @@
         selectedGroupId = activeGroupId;
         const group = groups.find(g => g.id === selectedGroupId) || { name: '默认分组' };
         document.getElementById('groupDisplayText').textContent = group.name;
-        document.getElementById('importTxtBtn').style.display = 'inline';
         document.getElementById('entryModal').classList.add('active');
+
+        // 切换按钮为“导入txt”
+        const btn = document.getElementById('importTxtBtn');
+        btn.textContent = '导入txt';
+        btn.id = 'importTxtBtn';
+        btn.onclick = () => {
+            document.getElementById('importFileInput').click();
+        };
     }
 
     function openEditEntry(id) {
@@ -1216,8 +1220,27 @@
         selectedGroupId = entry.groupId || '__default__';
         const group = groups.find(g => g.id === selectedGroupId) || { name: '默认分组' };
         document.getElementById('groupDisplayText').textContent = group.name;
-        document.getElementById('importTxtBtn').style.display = 'none';
         document.getElementById('entryModal').classList.add('active');
+
+        // 切换按钮为“复制”
+        const btn = document.getElementById('importTxtBtn');
+        btn.textContent = '复制';
+        btn.id = 'copyContentBtn';
+        btn.onclick = async () => {
+            const textarea = document.getElementById('entryContent');
+            const text = textarea.value;
+            if (!text.trim()) {
+                alert('正文为空，无法复制');
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(text);
+                alert('正文已复制到剪贴板');
+            } catch {
+                textarea.select();
+                alert('请长按正文区域选择“复制”');
+            }
+        };
     }
 
     function closeEntryModal() {
@@ -1272,11 +1295,7 @@
         return d.innerHTML;
     }
 
-    // ==================== 导入 txt ====================
-    document.getElementById('importTxtBtn').addEventListener('click', () => {
-        document.getElementById('importFileInput').click();
-    });
-
+    // ==================== 导入 txt 文件选择器 ====================
     document.getElementById('importFileInput').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -1340,113 +1359,96 @@
         renderEntries();
     });
 
-    // ==================== 初始化 ====================
-    loadGroups();
+    // ==================== 三点菜单逻辑 ====================
+    const menuBtn = document.getElementById('menuBtn');
+    const dropdownMenu = document.getElementById('dropdownMenu');
 
-// ==================== 三点菜单开关 ====================
-const menuBtn = document.getElementById('menuBtn');
-const dropdownMenu = document.getElementById('dropdownMenu');
+    menuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dropdownMenu.classList.toggle('show');
+    });
 
-menuBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    dropdownMenu.classList.toggle('show');
-});
+    document.addEventListener('click', (e) => {
+        if (!menuBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+            dropdownMenu.classList.remove('show');
+        }
+    });
 
-document.addEventListener('click', (e) => {
-    if (!menuBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+    window.importBackup = async function() {
         dropdownMenu.classList.remove('show');
-    }
-});
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+                if (!data.groups || !data.entries) throw new Error('备份文件格式不正确');
+                if (!confirm('导入将覆盖当前所有数据，确定继续吗？')) return;
+                const allEntries = await dbGetAll('worldbook');
+                for (const entry of allEntries) {
+                    await dbRemove('worldbook', entry.id);
+                }
+                await dbPut('settings', { id: 'worldbook_groups', value: data.groups });
+                for (const entry of data.entries) {
+                    await dbPut('worldbook', entry);
+                }
+                alert('备份导入成功！');
+                groups = [];
+                activeGroupId = null;
+                await loadGroups();
+            } catch (err) {
+                alert('导入失败：' + err.message);
+            }
+        };
+        input.click();
+    };
 
-// ==================== 三个功能函数（调试版） ====================
-window.importBackup = async function() {
-    console.log('导入备份被调用');
-    dropdownMenu.classList.remove('show');
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+    window.exportBackup = async function() {
+        dropdownMenu.classList.remove('show');
         try {
-            const text = await file.text();
-            const data = JSON.parse(text);
-            console.log('读取文件成功', data);
-            if (!data.groups || !data.entries) {
-                throw new Error('备份文件格式不正确');
-            }
-            if (!confirm('导入将覆盖当前所有数据，确定继续吗？')) return;
+            const groupsSetting = await dbGet('settings', 'worldbook_groups');
+            const groupsData = groupsSetting?.value || [];
             const allEntries = await dbGetAll('worldbook');
-            console.log('清空现有词条', allEntries.length);
-            for (const entry of allEntries) {
-                await dbRemove('worldbook', entry.id);
+            const backup = { groups: groupsData, entries: allEntries };
+            const jsonStr = JSON.stringify(backup, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `worldbook_backup_${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (err) {
+            alert('导出失败：' + err.message);
+        }
+    };
+
+    window.clearAllData = async function() {
+        dropdownMenu.classList.remove('show');
+        if (!confirm('确定要清空所有数据吗？此操作不可恢复！')) return;
+        if (!confirm('再次确认：清空所有分组和词条？')) return;
+        try {
+            const allEntries = await dbGetAll('worldbook');
+            for (const e of allEntries) {
+                await dbRemove('worldbook', e.id);
             }
-            await dbPut('settings', { id: 'worldbook_groups', value: data.groups });
-            for (const entry of data.entries) {
-                await dbPut('worldbook', entry);
-            }
-            alert('备份导入成功！');
+            await dbPut('settings', { id: 'worldbook_groups', value: [{ id: '__default__', name: '默认分组' }] });
+            alert('数据已清空');
             groups = [];
             activeGroupId = null;
             await loadGroups();
         } catch (err) {
-            console.error('导入失败：', err);
-            alert('导入失败：' + err.message);
+            alert('清空失败：' + err.message);
         }
     };
-    input.click();
-};
 
-window.exportBackup = async function() {
-    console.log('导出备份被调用');
-    dropdownMenu.classList.remove('show');
-    try {
-        const groupsSetting = await dbGet('settings', 'worldbook_groups');
-        console.log('获取分组设置', groupsSetting);
-        const groupsData = groupsSetting?.value || [];
-        const allEntries = await dbGetAll('worldbook');
-        console.log('获取所有词条', allEntries.length);
-        const backup = { groups: groupsData, entries: allEntries };
-        const jsonStr = JSON.stringify(backup, null, 2);
-        console.log('备份数据大小', jsonStr.length);
-        const blob = new Blob([jsonStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `worldbook_backup_${new Date().toISOString().slice(0,10)}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-        console.log('下载触发完成');
-    } catch (err) {
-        console.error('导出失败：', err);
-        alert('导出失败：' + err.message);
-    }
-};
-
-window.clearAllData = async function() {
-    console.log('清空数据被调用');
-    dropdownMenu.classList.remove('show');
-    if (!confirm('确定要清空所有数据吗？此操作不可恢复！')) return;
-    if (!confirm('再次确认：清空所有分组和词条？')) return;
-    try {
-        const allEntries = await dbGetAll('worldbook');
-        console.log('待删除词条数', allEntries.length);
-        for (const e of allEntries) {
-            await dbRemove('worldbook', e.id);
-        }
-        await dbPut('settings', { id: 'worldbook_groups', value: [{ id: '__default__', name: '默认分组' }] });
-        console.log('清空完成');
-        alert('数据已清空');
-        groups = [];
-        activeGroupId = null;
-        await loadGroups();
-    } catch (err) {
-        console.error('清空失败：', err);
-        alert('清空失败：' + err.message);
-    }
-};
+    // ==================== 初始化 ====================
+    loadGroups();
 </script>
 </body>
 </html>
