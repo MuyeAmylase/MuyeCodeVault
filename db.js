@@ -1,6 +1,4 @@
-// ==================== MuyeStorageDB 统一数据库模块 ====================
-// 数据库名称：MuyeStorageDB
-
+// ==================== MuyeStorageDB 统一数据库模块（修复版） ====================
 (function () {
     'use strict';
 
@@ -9,6 +7,7 @@
 
     let db = null;
 
+    // ★ 这里加了 async
     async function openDB() {
         if (db) return db;
 
@@ -17,7 +16,6 @@
 
             request.onupgradeneeded = function (e) {
                 const database = e.target.result;
-
                 const stores = ['songs', 'settings', 'worldbook', 'emote_groups', 'fonts'];
                 stores.forEach(name => {
                     if (!database.objectStoreNames.contains(name)) {
@@ -48,10 +46,7 @@
     }
 
     function closeDB() {
-        if (db) {
-            db.close();
-            db = null;
-        }
+        if (db) { db.close(); db = null; }
     }
 
     async function getAll(storeName) {
@@ -114,12 +109,7 @@
 
     async function getSettings() {
         const settings = await get('settings', 'global');
-        return settings || {
-            id: 'global',
-            allowCodeVaultAccess: false,
-            codeVaultGroupName: 'AI 记忆',
-            widgetEnabled: false
-        };
+        return settings || { id: 'global', allowCodeVaultAccess: false, codeVaultGroupName: 'AI 记忆', widgetEnabled: false };
     }
 
     async function saveSettings(obj) {
@@ -127,7 +117,9 @@
         return put('settings', obj);
     }
 
-    // 表情包仓库
+    // 全局函数暴露
+    window.openDB = openDB;
+    window.closeDB = closeDB;
     window.loadAllGroups = async () => getAll('emote_groups');
     window.addGroup = async (group) => put('emote_groups', group);
     window.updateGroup = async (group) => put('emote_groups', group);
@@ -149,31 +141,17 @@
     };
     window.formatBytes = (bytes) => {
         if (bytes === 0) return '0 B';
-        const k = 1024;
-        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const k = 1024; const sizes = ['B', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
-
-    // 字体
     window.loadFonts = async () => getAll('fonts');
     window.addFont = async (item) => put('fonts', item);
     window.deleteFont = async (id) => remove('fonts', id);
     window.clearFonts = async () => clear('fonts');
 
-    window.openDB = openDB;
-    window.closeDB = closeDB;
-
     window.MuyeDB = {
-        openDB,
-        closeDB,
-        getAll,
-        get,
-        put,
-        remove,
-        clear,
-        getSettings,
-        saveSettings,
+        openDB, closeDB, getAll, get, put, remove, clear, getSettings, saveSettings,
         loadEmoteGroups: window.loadAllGroups,
         addEmoteGroup: window.addGroup,
         updateEmoteGroup: window.updateGroup,
