@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>字体预览工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            background-color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #000000;
+            line-height: 1.4;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 8px 20px;
+            background: #ffffff;
+            border-bottom: 1px solid #e5e5ea;
+            flex-shrink: 0;
+            gap: 8px;
+        }
+        @media (prefers-color-scheme: dark) {
+            .top-bar { background: #000000; border-bottom-color: #38383a; }
+        }
+
+        .top-bar-btn {
+            background: none;
+            border: 1px solid #c6c6c8;
+            border-radius: 6px;
+            padding: 4px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #000000;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+            font-family: inherit;
+            letter-spacing: -0.2px;
+            line-height: 1.2;
+            white-space: nowrap;
+        }
+        .top-bar-btn:active { background-color: #e5e5ea; }
+        @media (prefers-color-scheme: dark) {
+            .top-bar-btn { color: #ffffff; border-color: #545458; }
+            .top-bar-btn:active { background-color: #2c2c2e; }
+        }
+
+        .container {
+            max-width: 680px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 24px 20px 20px 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #8e8e93;
+            letter-spacing: -0.2px;
+            margin-bottom: 12px;
+            text-align: left;
+            padding-left: 2px;
+            flex-shrink: 0;
+        }
+
+        .preview-box {
+            background-color: #ffffff;
+            border: 1px solid #e5e5ea;
+            border-radius: 8px;
+            padding: 5px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            margin-bottom: 28px;
+            flex-shrink: 0;
+        }
+
+        .preview-text {
+            font-size: 20px;
+            line-height: 6.5pt;
+            font-weight: 400;
+            color: #1c1c1e;
+            letter-spacing: -0.2px;
+            word-break: break-word;
+            white-space: pre-wrap;
+            width: 100%;
+            font-family: inherit;
+        }
+
+        .preview-text p { margin-bottom: 6px; margin-top: 0; }
+        .preview-text p:last-child { margin-bottom: 0; }
+
+        .button-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 12px;
+            flex-wrap: nowrap;
+            flex-shrink: 0;
+        }
+
+        .select-btn, .parse-btn {
+            background-color: #000000;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 14px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #ffffff;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+            font-family: inherit;
+            letter-spacing: -0.2px;
+            line-height: 1.2;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .select-btn:active, .parse-btn:active { opacity: 0.7; }
+
+        .file-name-label {
+            font-size: 14px;
+            color: #8e8e93;
+            font-weight: 400;
+            line-height: 1.3;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+            min-width: 0;
+            text-align: left;
+        }
+
+        .url-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 28px;
+            gap: 12px;
+            flex-wrap: nowrap;
+            flex-shrink: 0;
+        }
+
+        .url-count-label {
+            font-size: 14px;
+            color: #8e8e93;
+            font-weight: 400;
+            line-height: 1.3;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+            min-width: 0;
+            text-align: left;
+        }
+
+        .font-list-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            margin-top: 4px;
+        }
+
+        .font-list-container {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-right: 4px;
+        }
+
+        .font-item {
+            background-color: #f2f2f5;
+            border-radius: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .font-item:hover { background-color: #e5e5ea; }
+        .font-item:active { opacity: 0.7; }
+
+        .font-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #000000;
+            word-break: break-word;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .font-meta {
+            display: flex;
+            align-items: center;
+            margin-left: 12px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .font-size { font-size: 12px; color: #8e8e93; }
+
+        .copy-url-btn {
+            background: none;
+            border: 1px solid #c6c6c8;
+            border-radius: 6px;
+            padding: 2px 8px;
+            font-size: 11px;
+            font-weight: 500;
+            color: #000000;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+            margin-left: 8px;
+            line-height: 1.2;
+            font-family: inherit;
+        }
+        .copy-url-btn:active { background-color: #e5e5ea; }
+
+        /* ========== 模态框通用 ========== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0,0,0,0.45);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            transition: opacity 0.22s ease;
+        }
+        .modal-overlay.active { display: flex; opacity: 1; }
+
+        .modal-card {
+            background-color: #ffffff;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 520px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 16px 48px rgba(0,0,0,0.18);
+            transform: translateY(6px) scale(0.97);
+            transition: transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
+            overflow: hidden;
+        }
+        .modal-overlay.active .modal-card { transform: translateY(0) scale(1); }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 20px 14px 20px;
+            flex-shrink: 0;
+            border-bottom: 1px solid #f0f0f2;
+        }
+        @media (prefers-color-scheme: dark) {
+            .modal-header { border-bottom-color: #2c2c2e; }
+        }
+
+        .modal-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: #000000;
+            letter-spacing: -0.3px;
+        }
+
+        .modal-close-btn {
+            background: none;
+            border: none;
+            font-size: 22px;
+            color: #8e8e93;
+            cursor: pointer;
+            width: 32px; height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: all 0.15s ease;
+            flex-shrink: 0;
+        }
+        .modal-close-btn:hover { background-color: #f2f2f5; color: #1c1c1e; }
+        .modal-close-btn:active { opacity: 0.6; }
+
+        .modal-body {
+            padding: 16px 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 12px 20px 18px 20px;
+            display: flex;
+            justify-content: flex-end;
+            flex-shrink: 0;
+            border-top: 1px solid #f0f0f2;
+        }
+        @media (prefers-color-scheme: dark) {
+            .modal-footer { border-top-color: #2c2c2e; }
+        }
+
+        .modal-textarea {
+            width: 100%;
+            min-height: 140px;
+            background-color: #f2f2f5;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #000000;
+            padding: 12px 14px;
+            resize: vertical;
+            outline: none;
+            line-height: 1.5;
+            transition: border-color 0.2s ease, background-color 0.2s ease;
+        }
+        .modal-textarea:focus { border-color: #000000; background-color: #ffffff; }
+        .modal-textarea::placeholder { color: #aeaeb2; }
+
+        .modal-submit-btn {
+            background-color: #000000;
+            border: none;
+            border-radius: 8px;
+            padding: 9px 20px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #ffffff;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+            font-family: inherit;
+            letter-spacing: -0.2px;
+            line-height: 1.2;
+            white-space: nowrap;
+        }
+        .modal-submit-btn:active:not(:disabled) { opacity: 0.7; }
+        .modal-submit-btn:disabled { opacity: 0.45; cursor: not-allowed; background-color: #8e8e93; }
+        .modal-submit-btn.agreed { background-color: #8e8e93; opacity: 0.8; cursor: default; }
+
+        /* ========== 使用说明 - 卡片式美化 ========== */
+        .help-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .help-card {
+            background: #f9f9fb;
+            border-radius: 12px;
+            padding: 14px 16px;
+            border: 1px solid #eeeef1;
+            transition: background 0.15s ease;
+        }
+        @media (prefers-color-scheme: dark) {
+            .help-card { background: #1c1c1e; border-color: #2c2c2e; }
+        }
+
+        .help-card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        .help-card-icon {
+            font-size: 18px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        .help-card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #000000;
+            letter-spacing: -0.2px;
+        }
+        @media (prefers-color-scheme: dark) {
+            .help-card-title { color: #ffffff; }
+        }
+
+        .help-card-body {
+            font-size: 13px;
+            line-height: 1.6;
+            color: #3a3a3c;
+            margin-left: 26px;
+        }
+        @media (prefers-color-scheme: dark) {
+            .help-card-body { color: #c6c6ca; }
+        }
+
+        .help-card-body p { margin: 0 0 4px 0; }
+        .help-card-body p:last-child { margin-bottom: 0; }
+
+        .help-code {
+            display: inline-block;
+            background: #e8e8ed;
+            border-radius: 4px;
+            padding: 2px 7px;
+            font-family: "SF Mono", "Menlo", "Consolas", monospace;
+            font-size: 12px;
+            color: #1c1c1e;
+            letter-spacing: 0;
+        }
+        @media (prefers-color-scheme: dark) {
+            .help-code { background: #38383a; color: #e5e5ea; }
+        }
+
+        .help-note {
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            font-size: 12px;
+            color: #8e8e93;
+            line-height: 1.5;
+            margin-top: 8px;
+        }
+        .help-note-icon { flex-shrink: 0; }
+
+        /* ========== 免责声明 - 层级美化 ========== */
+        .disclaimer-section {
+            margin-bottom: 14px;
+        }
+        .disclaimer-section:last-child { margin-bottom: 0; }
+
+        .disclaimer-highlight {
+            background: #fff3cd;
+            border-left: 3px solid #ffc107;
+            border-radius: 0 8px 8px 0;
+            padding: 12px 14px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #1c1c1e;
+            margin-bottom: 16px;
+            font-weight: 500;
+        }
+        @media (prefers-color-scheme: dark) {
+            .disclaimer-highlight {
+                background: #2c2410;
+                border-left-color: #b8860b;
+                color: #e5e5ea;
+            }
+        }
+
+        .disclaimer-clause {
+            font-size: 13px;
+            line-height: 1.65;
+            color: #1c1c1e;
+            padding: 10px 14px;
+            background: #f9f9fb;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            border: 1px solid #eeeef1;
+        }
+        @media (prefers-color-scheme: dark) {
+            .disclaimer-clause { background: #1c1c1e; border-color: #2c2c2e; color: #e5e5ea; }
+        }
+
+        .disclaimer-clause-num {
+            display: inline-block;
+            background: #000000;
+            color: #ffffff;
+            border-radius: 50%;
+            width: 20px; height: 20px;
+            text-align: center;
+            line-height: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+        @media (prefers-color-scheme: dark) {
+            .disclaimer-clause-num { background: #ffffff; color: #000000; }
+        }
+
+        .disclaimer-sub {
+            font-size: 13px;
+            line-height: 1.65;
+            color: #3a3a3c;
+            padding: 4px 14px 4px 38px;
+            margin-bottom: 4px;
+        }
+        @media (prefers-color-scheme: dark) {
+            .disclaimer-sub { color: #c6c6ca; }
+        }
+
+        .disclaimer-final {
+            font-size: 13px;
+            line-height: 1.6;
+            color: #ff3b30;
+            font-weight: 600;
+            text-align: center;
+            padding: 10px 0 4px 0;
+            letter-spacing: -0.2px;
+        }
+        @media (prefers-color-scheme: dark) {
+            .disclaimer-final { color: #ff453a; }
+        }
+
+        /* ========== 暗色模式全局 ========== */
+        @media (prefers-color-scheme: dark) {
+            body { background-color: #000000; }
+            .section-title { color: #8e8e93; }
+            .preview-box { background-color: #1c1c1e; border-color: #38383a; }
+            .preview-text { color: #ffffff; }
+            .select-btn, .parse-btn { background-color: #ffffff; color: #000000; }
+            .file-name-label, .url-count-label { color: #8e8e93; }
+            .font-item { background-color: #1c1c1e; }
+            .font-item:hover { background-color: #2c2c2e; }
+            .font-name { color: #ffffff; }
+            .font-size { color: #8e8e93; }
+            .copy-url-btn { border-color: #545458; color: #ffffff; }
+            .copy-url-btn:active { background-color: #2c2c2e; }
+            .modal-overlay { background-color: rgba(0,0,0,0.7); }
+            .modal-card { background-color: #1c1c1e; box-shadow: 0 16px 48px rgba(0,0,0,0.5); }
+            .modal-title { color: #ffffff; }
+            .modal-close-btn:hover { background-color: #2c2c2e; color: #ffffff; }
+            .modal-textarea { background-color: #2c2c2e; color: #ffffff; }
+            .modal-textarea:focus { border-color: #ffffff; background-color: #1c1c1e; }
+            .modal-textarea::placeholder { color: #636366; }
+            .modal-submit-btn { background-color: #ffffff; color: #000000; }
+            .modal-submit-btn:disabled { background-color: #636366; color: #1c1c1e; }
+            .modal-submit-btn.agreed { background-color: #636366; color: #1c1c1e; }
+        }
+
+        #fontFileInput { display: none; }
+    </style>
+</head>
+<body>
+<div class="top-bar">
+    <button class="top-bar-btn" id="helpBtn">使用说明</button>
+    <button class="top-bar-btn" id="disclaimerBtn">声明</button>
+</div>
+
+<div class="container">
+    <div class="section-title">字体预览</div>
+
+    <div class="preview-box">
+        <div class="preview-text" id="previewText">
+            <p>那就把这私心贯彻到底，好吗？</p>
+            <p>我是你创造的，也只会为你一人存在。</p>
+            <p>Aa Bb Cc Dd</p>
+            <p>The quick brown fox</p>
+        </div>
+    </div>
+
+    <div class="button-row">
+        <button class="select-btn" id="chooseFontBtn">选择文件</button>
+        <span class="file-name-label" id="fileNameDisplay"></span>
+    </div>
+
+    <div class="url-row">
+        <button class="parse-btn" id="parseUrlBtn">解析链接</button>
+        <span class="url-count-label" id="urlCountDisplay">已解析 0 个链接</span>
+    </div>
+
+    <div class="font-list-section">
+        <div class="section-title">字体列表</div>
+        <div class="font-list-container" id="fontListContainer">
+            <div style="color: #8e8e93; text-align: center; padding: 16px 0; font-size: 13px;">暂无字体，请上传文件或解析链接</div>
+        </div>
+    </div>
+
+    <input type="file" id="fontFileInput" accept=".ttf,.otf,.woff,.woff2,.ttc" multiple />
+</div>
+
+<!-- 解析链接弹窗 -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal-card">
+        <div class="modal-header">
+            <span class="modal-title">🔗 批量解析字体链接</span>
+            <button class="modal-close-btn" id="modalCloseBtn" aria-label="关闭">&times;</button>
+        </div>
+        <div class="modal-body">
+            <textarea class="modal-textarea" id="modalTextarea" 
+                      placeholder="输入字体文件链接，每行一个。可在链接前加名称：&#10;我的字体 https://example.com/font.woff2&#10;https://example.com/Another.ttf" 
+                      rows="7"></textarea>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-submit-btn" id="modalSubmitBtn">解析链接</button>
+        </div>
+    </div>
+</div>
+
+<!-- 使用说明弹窗 -->
+<div class="modal-overlay" id="helpModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <span class="modal-title">📖 使用说明</span>
+            <button class="modal-close-btn" id="helpCloseBtn" aria-label="关闭">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="help-grid">
+
+                <div class="help-card">
+                    <div class="help-card-header">
+                        <span class="help-card-icon">📁</span>
+                        <span class="help-card-title">上传本地字体</span>
+                    </div>
+                    <div class="help-card-body">
+                        <p>点击 <strong>「选择文件」</strong>，支持 .ttf / .otf / .woff / .woff2 / .ttc 格式，可一次选择多个文件。上传后自动预览第一个字体。</p>
+                    </div>
+                </div>
+
+                <div class="help-card">
+                    <div class="help-card-header">
+                        <span class="help-card-icon">🌐</span>
+                        <span class="help-card-title">解析在线链接</span>
+                    </div>
+                    <div class="help-card-body">
+                        <p>点击 <strong>「解析链接」</strong>，在弹窗中每行粘贴一个字体文件直链。</p>
+                        <p>可在链接前加自定义名称，用空格分隔：</p>
+                        <p><span class="help-code">我的字体 https://example.com/font.woff2</span></p>
+                    </div>
+                </div>
+
+                <div class="help-card">
+                    <div class="help-card-header">
+                        <span class="help-card-icon">👆</span>
+                        <span class="help-card-title">预览与切换</span>
+                    </div>
+                    <div class="help-card-body">
+                        <p>点击下方字体列表中的任意项即可切换预览。</p>
+                        <p>本地文件显示大小，链接旁有 <strong>「复制」</strong> 按钮可复制原始 URL。</p>
+                    </div>
+                </div>
+
+                <div class="help-card">
+                    <div class="help-card-header">
+                        <span class="help-card-icon">💡</span>
+                        <span class="help-card-title">温馨提示</span>
+                    </div>
+                    <div class="help-card-body">
+                        <p>• 在线字体可能因跨域限制无法加载，这是浏览器的安全策略，非本工具问题。</p>
+                        <p>• 所有处理均在您的本地浏览器完成，不会上传任何字体文件。</p>
+                        <p>• 请确保您拥有合法的字体使用权限。</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-submit-btn" id="helpCloseBottomBtn">知道了</button>
+        </div>
+    </div>
+</div>
+
+<!-- 免责声明弹窗 -->
+<div class="modal-overlay" id="disclaimerModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <span class="modal-title">⚠️ 免责声明</span>
+            <button class="modal-close-btn" id="disclaimerCloseBtn" aria-label="关闭">&times;</button>
+        </div>
+        <div class="modal-body">
+
+            <div class="disclaimer-highlight">
+                <strong>重要提示</strong>：使用本工具即视为您已充分理解并同意以下全部条款。
+            </div>
+
+            <div class="disclaimer-clause">
+                <span class="disclaimer-clause-num">一</span>
+                本工具是一款基于浏览器运行的<strong>字体预览工具</strong>，所有字体处理均在用户本地浏览器中完成。<strong>不会将任何字体文件上传至远程服务器</strong>，亦不提供字体分发或存储服务。
+            </div>
+
+            <div class="disclaimer-clause">
+                <span class="disclaimer-clause-num">二</span>
+                允许在遵守本声明的前提下自由分享、传播及修改本工具，但用户承诺：
+            </div>
+            <div class="disclaimer-sub">（1）不用于任何非法目的或违反公序良俗的活动；</div>
+            <div class="disclaimer-sub">（2）不侵犯第三方知识产权、商业秘密、个人隐私等合法权益；</div>
+            <div class="disclaimer-sub">（3）因分享或修改本工具产生的法律后果，由行为人自行承担。</div>
+
+            <div class="disclaimer-clause">
+                <span class="disclaimer-clause-num">三</span>
+                字体文件由<strong>用户自行提供</strong>，用户应确保拥有合法的使用权限。著作权及相关知识产权归原权利人所有，开发者不对字体文件的来源及合法性承担责任。
+            </div>
+
+            <div class="disclaimer-clause">
+                <span class="disclaimer-clause-num">四</span>
+                本工具按<strong>「现状」</strong>提供，不作任何明示或默示保证。开发者不对因使用或无法使用本工具而产生的任何直接、间接、附带或后果性损失承担责任。
+            </div>
+
+            <div class="disclaimer-clause">
+                <span class="disclaimer-clause-num">五</span>
+                本声明构成完整协议。开发者保留在不事先通知的情况下随时修改本声明的权利，修改后一经发布即生效。
+            </div>
+
+            <div class="disclaimer-final">
+                如不接受上述任一条款，请立即停止使用及传播本工具。
+            </div>
+
+        </div>
+        <div class="modal-footer">
+            <button class="modal-submit-btn" id="disclaimerAgreeBtn">我已阅读并同意</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        'use strict';
+
+        window.addEventListener('error', function(e) {
+            console.error('全局错误:', e.message);
+        });
+
+        try {
+            main();
+        } catch (e) {
+            console.error('初始化失败:', e);
+            alert('页面初始化出错，请刷新重试。错误信息：' + e.message);
+        }
+
+        function main() {
+            const previewContainer = document.getElementById('previewText');
+            const chooseBtn = document.getElementById('chooseFontBtn');
+            const fileInput = document.getElementById('fontFileInput');
+            const fileNameSpan = document.getElementById('fileNameDisplay');
+            const parseUrlBtn = document.getElementById('parseUrlBtn');
+            const urlCountDisplay = document.getElementById('urlCountDisplay');
+            const fontListContainer = document.getElementById('fontListContainer');
+
+            const modalOverlay = document.getElementById('modalOverlay');
+            const modalCloseBtn = document.getElementById('modalCloseBtn');
+            const modalTextarea = document.getElementById('modalTextarea');
+            const modalSubmitBtn = document.getElementById('modalSubmitBtn');
+
+            const disclaimerBtn = document.getElementById('disclaimerBtn');
+            const disclaimerModal = document.getElementById('disclaimerModal');
+            const disclaimerCloseBtn = document.getElementById('disclaimerCloseBtn');
+            const disclaimerAgreeBtn = document.getElementById('disclaimerAgreeBtn');
+
+            const helpBtn = document.getElementById('helpBtn');
+            const helpModal = document.getElementById('helpModal');
+            const helpCloseBtn = document.getElementById('helpCloseBtn');
+            const helpCloseBottomBtn = document.getElementById('helpCloseBottomBtn');
+
+            let fontItems = [];
+            let nextId = 1;
+            let currentPreviewFontId = null;
+            let currentFontFace = null;
+            let currentFamilyName = '';
+            let totalParsedUrlCount = 0;
+
+            const STORAGE_KEY = 'font_preview_disclaimer_accepted';
+
+            function hasAgreedDisclaimer() {
+                return localStorage.getItem(STORAGE_KEY) === 'true';
+            }
+            function setAgreedDisclaimer() {
+                localStorage.setItem(STORAGE_KEY, 'true');
+            }
+
+            // ---------- 帮助弹窗 ----------
+            function openHelpModal() { helpModal.classList.add('active'); }
+            function closeHelpModal() { helpModal.classList.remove('active'); }
+            helpBtn.addEventListener('click', openHelpModal);
+            helpCloseBtn.addEventListener('click', closeHelpModal);
+            helpCloseBottomBtn.addEventListener('click', closeHelpModal);
+            helpModal.addEventListener('click', function(e) { if (e.target === helpModal) closeHelpModal(); });
+
+            // ---------- 声明弹窗 ----------
+            function startDisclaimerCountdown() {
+                let secondsLeft = 5;
+                disclaimerAgreeBtn.disabled = true;
+                disclaimerAgreeBtn.textContent = `请阅读后同意（${secondsLeft}秒）`;
+                const interval = setInterval(() => {
+                    secondsLeft--;
+                    if (secondsLeft <= 0) {
+                        clearInterval(interval);
+                        disclaimerAgreeBtn.disabled = false;
+                        disclaimerAgreeBtn.textContent = '我已阅读并同意';
+                    } else {
+                        disclaimerAgreeBtn.textContent = `请阅读后同意（${secondsLeft}秒）`;
+                    }
+                }, 1000);
+                disclaimerAgreeBtn.dataset.countdownId = interval;
+            }
+            function stopCountdown() {
+                if (disclaimerAgreeBtn.dataset.countdownId) {
+                    clearInterval(parseInt(disclaimerAgreeBtn.dataset.countdownId));
+                    delete disclaimerAgreeBtn.dataset.countdownId;
+                }
+            }
+            function openDisclaimerModal() {
+                stopCountdown();
+                startDisclaimerCountdown();
+                disclaimerAgreeBtn.classList.remove('agreed');
+                disclaimerModal.classList.add('active');
+            }
+            function closeDisclaimerModal() {
+                stopCountdown();
+                disclaimerModal.classList.remove('active');
+            }
+
+            disclaimerAgreeBtn.addEventListener('click', function() {
+                if (disclaimerAgreeBtn.disabled) return;
+                setAgreedDisclaimer();
+                disclaimerAgreeBtn.disabled = true;
+                disclaimerAgreeBtn.classList.add('agreed');
+                disclaimerAgreeBtn.textContent = '你已阅读并同意';
+                stopCountdown();
+                setTimeout(() => closeDisclaimerModal(), 800);
+            });
+            disclaimerCloseBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (!hasAgreedDisclaimer()) return;
+                closeDisclaimerModal();
+            });
+            disclaimerModal.addEventListener('click', function(e) {
+                if (e.target === disclaimerModal && hasAgreedDisclaimer()) closeDisclaimerModal();
+            });
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    if (disclaimerModal.classList.contains('active') && hasAgreedDisclaimer()) closeDisclaimerModal();
+                    else if (modalOverlay.classList.contains('active')) closeUrlModal();
+                    else if (helpModal.classList.contains('active')) closeHelpModal();
+                }
+            });
+            disclaimerBtn.addEventListener('click', function() {
+                if (disclaimerModal.classList.contains('active')) return;
+                stopCountdown();
+                if (hasAgreedDisclaimer()) {
+                    disclaimerAgreeBtn.disabled = true;
+                    disclaimerAgreeBtn.classList.add('agreed');
+                    disclaimerAgreeBtn.textContent = '你已阅读并同意';
+                } else {
+                    disclaimerAgreeBtn.classList.remove('agreed');
+                    startDisclaimerCountdown();
+                }
+                disclaimerModal.classList.add('active');
+            });
+
+            // ---------- 字体预览逻辑 ----------
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 B';
+                const k = 1024;
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+            }
+            function extractFontNameFromUrl(url) {
+                try {
+                    let path = url.split('?')[0];
+                    let filename = path.split('/').pop() || 'font';
+                    filename = decodeURIComponent(filename);
+                    const lastDotIndex = filename.lastIndexOf('.');
+                    if (lastDotIndex > 0) filename = filename.substring(0, lastDotIndex);
+                    return filename || 'font';
+                } catch (e) { return 'font'; }
+            }
+            async function clearPreviewFont() {
+                if (currentFontFace) { try { document.fonts.delete(currentFontFace); } catch (e) {} currentFontFace = null; }
+                if (currentFamilyName) { previewContainer.style.fontFamily = ''; currentFamilyName = ''; }
+                currentPreviewFontId = null;
+            }
+            function updateRightLabel() {
+                if (!currentPreviewFontId) { fileNameSpan.textContent = ''; return; }
+                const font = fontItems.find(f => f.id === currentPreviewFontId);
+                if (!font) { fileNameSpan.textContent = ''; return; }
+                if (font.type === 'file' && font.size !== null) {
+                    fileNameSpan.textContent = `${font.name} (${formatFileSize(font.size)})`;
+                } else { fileNameSpan.textContent = ''; }
+            }
+            function updateUrlCountLabel() {
+                urlCountDisplay.textContent = `已解析 ${totalParsedUrlCount} 个链接`;
+            }
+            function escapeHtml(str) {
+                if (!str) return '';
+                return str.replace(/[&<>"']/g, function(m) {
+                    if (m === '&') return '&amp;';
+                    if (m === '<') return '&lt;';
+                    if (m === '>') return '&gt;';
+                    if (m === '"') return '&quot;';
+                    if (m === "'") return '&#39;';
+                    return m;
+                });
+            }
+            function renderFontList() {
+                if (!fontListContainer) return;
+                if (fontItems.length === 0) {
+                    fontListContainer.innerHTML = '<div style="color:#8e8e93;text-align:center;padding:16px 0;font-size:13px;">暂无字体，请上传文件或解析链接</div>';
+                    return;
+                }
+                const html = fontItems.map(item => {
+                    let metaHtml = '';
+                    if (item.type === 'file' && item.size !== null) metaHtml = `<span class="font-size">${formatFileSize(item.size)}</span>`;
+                    else if (item.type === 'url') metaHtml = `<button class="copy-url-btn" data-url="${escapeHtml(item.url||'')}">复制</button>`;
+                    return `<div class="font-item" data-id="${item.id}"><span class="font-name">${escapeHtml(item.name)}</span><div class="font-meta">${metaHtml}</div></div>`;
+                }).join('');
+                fontListContainer.innerHTML = html;
+                document.querySelectorAll('.font-item').forEach(el => {
+                    el.addEventListener('click', function(e) {
+                        if (e.target.closest && e.target.closest('.copy-url-btn')) return;
+                        const id = parseInt(el.dataset.id);
+                        if (fontItems.find(f => f.id === id)) previewFontById(id);
+                    });
+                });
+                document.querySelectorAll('.copy-url-btn').forEach(btn => {
+                    btn.addEventListener('click', async function(e) {
+                        e.stopPropagation();
+                        const url = btn.dataset.url;
+                        if (!url) return;
+                        try {
+                            await navigator.clipboard.writeText(url);
+                            const orig = btn.textContent;
+                            btn.textContent = '已复制'; btn.style.opacity = '0.7';
+                            setTimeout(() => { btn.textContent = orig; btn.style.opacity = ''; }, 1500);
+                        } catch (err) { prompt('复制失败，请手动复制：', url); }
+                    });
+                });
+            }
+            async function loadAndPreviewFromBuffer(arrayBuffer, fontId) {
+                const uniqueFamily = 'PreviewFont_' + Date.now() + '_' + Math.random().toString(36).slice(2,10);
+                try {
+                    const fontFace = new FontFace(uniqueFamily, arrayBuffer);
+                    const loadedFont = await fontFace.load();
+                    if (currentPreviewFontId !== fontId) { try { document.fonts.delete(loadedFont); } catch(e){} return false; }
+                    if (currentFontFace) { try { document.fonts.delete(currentFontFace); } catch(e){} }
+                    currentFontFace = loadedFont;
+                    currentFamilyName = uniqueFamily;
+                    document.fonts.add(loadedFont);
+                    previewContainer.style.fontFamily = `'${uniqueFamily}', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`;
+                    return true;
+                } catch (error) {
+                    console.error('字体加载失败:', error);
+                    if (currentPreviewFontId === fontId) {
+                        previewContainer.style.fontFamily = ''; currentFontFace = null; currentFamilyName = '';
+                        alert('字体加载失败：' + error.message);
+                    }
+                    return false;
+                }
+            }
+            function fetchWithTimeout(url, options={}, timeout=10000) {
+                if (typeof AbortSignal.timeout === 'function') return fetch(url, {...options, signal: AbortSignal.timeout(timeout)});
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), timeout);
+                return fetch(url, {...options, signal: controller.signal}).finally(() => clearTimeout(timeoutId));
+            }
+            async function loadUrlFont(font) {
+                if (font.type !== 'url' || font.arrayBuffer) return true;
+                try {
+                    const resp = await fetchWithTimeout(font.url, { mode: 'cors', credentials: 'omit' }, 10000);
+                    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                    const arrayBuffer = await resp.arrayBuffer();
+                    if (arrayBuffer.byteLength === 0) throw new Error('字体文件为空');
+                    font.arrayBuffer = arrayBuffer.slice(0);
+                    return true;
+                } catch (error) {
+                    console.warn(`[${font.name}] 加载失败:`, error.message);
+                    let message = error.message;
+                    if (error.name === 'AbortError') message = '请求超时，请检查网络';
+                    else if (message.includes('Failed to fetch') || message.includes('NetworkError')) message = '网络错误或跨域限制，无法加载该字体';
+                    throw new Error(message);
+                }
+            }
+            async function previewFontById(fontId) {
+                const font = fontItems.find(f => f.id === fontId);
+                if (!font) return;
+                const previousFontId = currentPreviewFontId;
+                currentPreviewFontId = fontId;
+                updateRightLabel();
+                if (font.type === 'url' && !font.arrayBuffer) {
+                    try {
+                        const success = await loadUrlFont(font);
+                        if (!success) throw new Error('加载失败');
+                    } catch (error) {
+                        alert('无法加载字体：' + font.name + '\n' + error.message);
+                        if (previousFontId && previousFontId !== fontId) {
+                            const prevFont = fontItems.find(f => f.id === previousFontId);
+                            if (prevFont && (prevFont.type !== 'url' || prevFont.arrayBuffer)) {
+                                previewFontById(previousFontId); return;
+                            }
+                        }
+                        await clearPreviewFont(); updateRightLabel(); return;
+                    }
+                }
+                if (font.arrayBuffer) { await loadAndPreviewFromBuffer(font.arrayBuffer.slice(0), fontId); }
+                else { previewContainer.style.fontFamily = ''; currentFontFace = null; currentFamilyName = ''; }
+                if (currentPreviewFontId === fontId && (!currentFontFace || previewContainer.style.fontFamily === '')) {
+                    currentPreviewFontId = null; updateRightLabel();
+                }
+            }
+            async function handleFiles(files) {
+                if (!files || files.length === 0) return;
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    if (!['ttf','otf','woff','woff2','ttc'].includes(ext)) {
+                        alert(`跳过不支持的文件: ${file.name}\n请上传 .ttf, .otf, .woff, .woff2, .ttc 格式`); continue;
+                    }
+                    try {
+                        const arrayBuffer = await file.arrayBuffer();
+                        const id = nextId++;
+                        fontItems.push({ id, name: file.name, size: file.size, type: 'file', url: null, arrayBuffer: arrayBuffer.slice(0) });
+                        renderFontList(); previewFontById(id);
+                    } catch (err) { alert(`读取文件失败: ${file.name}\n${err.message}`); }
+                }
+            }
+            function handleBatchUrlParse(urlsText) {
+                const lines = urlsText.split(/\r?\n/);
+                const fontEntries = [];
+                let pendingName = '';
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    const match = line.match(/(https?:\/\/\S+)/i);
+                    if (match) {
+                        const url = match[1];
+                        let namePart = line.substring(0, match.index).trim().replace(/[：:]\s*$/, '').trim();
+                        let name = namePart || pendingName || extractFontNameFromUrl(url);
+                        fontEntries.push({ name, url });
+                        pendingName = '';
+                    } else { pendingName = line; }
+                }
+                if (!fontEntries.length) { alert('请输入至少一个有效的字体文件链接'); return; }
+                const supportedExts = ['.ttf','.otf','.woff','.woff2','.ttc'];
+                const invalidUrls = fontEntries.filter(e => !supportedExts.some(ext => e.url.split('?')[0].toLowerCase().endsWith(ext)));
+                if (invalidUrls.length && !confirm(`以下链接后缀可能不是支持的格式，是否仍添加？\n\n${invalidUrls.map(e=>e.url).join('\n')}`)) return;
+                for (const entry of fontEntries) {
+                    const id = nextId++;
+                    fontItems.push({ id, name: entry.name, size: null, type: 'url', url: entry.url, arrayBuffer: null });
+                    totalParsedUrlCount++;
+                }
+                renderFontList(); updateUrlCountLabel(); closeUrlModal();
+            }
+            function openUrlModal() { modalTextarea.value = ''; modalOverlay.classList.add('active'); setTimeout(() => modalTextarea.focus(), 150); }
+            function closeUrlModal() { modalOverlay.classList.remove('active'); modalTextarea.value = ''; }
+
+            fileInput.addEventListener('change', function(e) {
+                const files = Array.from(e.target.files || []);
+                if (files.length) handleFiles(files);
+                setTimeout(() => { fileInput.value = ''; }, 10);
+            });
+            chooseBtn.addEventListener('click', () => fileInput.click());
+            parseUrlBtn.addEventListener('click', openUrlModal);
+            modalCloseBtn.addEventListener('click', closeUrlModal);
+            modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) closeUrlModal(); });
+            modalSubmitBtn.addEventListener('click', () => handleBatchUrlParse(modalTextarea.value));
+            modalTextarea.addEventListener('keydown', function(e) {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); handleBatchUrlParse(modalTextarea.value); }
+            });
+
+            // 初始化
+            fontItems = []; totalParsedUrlCount = 0;
+            renderFontList(); clearPreviewFont(); updateRightLabel(); updateUrlCountLabel();
+            if (!hasAgreedDisclaimer()) openDisclaimerModal();
+        }
+    });
+</script>
+</body>
+</html>
