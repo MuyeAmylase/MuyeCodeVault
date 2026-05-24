@@ -1187,6 +1187,9 @@
         charCountDisplay.textContent = `共 ${entryContentTextarea.value.length} 字`;
     });
 
+    // 关键修复：始终使用 importTxtBtn 这个 id，动态切换文本和事件
+    const actionBtn = document.getElementById('importTxtBtn');
+
     function openAddEntry() {
         editingEntryId = null;
         document.getElementById('entryModalTitle').textContent = '新词条';
@@ -1199,11 +1202,9 @@
         document.getElementById('groupDisplayText').textContent = group.name;
         document.getElementById('entryModal').classList.add('active');
 
-        // 切换按钮为“导入txt”
-        const btn = document.getElementById('importTxtBtn');
-        btn.textContent = '导入txt';
-        btn.id = 'importTxtBtn';
-        btn.onclick = () => {
+        // 按钮变为“导入txt”
+        actionBtn.textContent = '导入txt';
+        actionBtn.onclick = () => {
             document.getElementById('importFileInput').click();
         };
     }
@@ -1215,18 +1216,16 @@
         document.getElementById('entryModalTitle').textContent = '编辑词条';
         document.getElementById('entryTitle').value = entry.title;
         document.getElementById('entryContent').value = entry.content;
-        document.getElementById('entryTags').value = (entry.tags||[]).join(', ');
+        document.getElementById('entryTags').value = (entry.tags || []).join(', ');
         charCountDisplay.textContent = `共 ${entry.content.length} 字`;
         selectedGroupId = entry.groupId || '__default__';
         const group = groups.find(g => g.id === selectedGroupId) || { name: '默认分组' };
         document.getElementById('groupDisplayText').textContent = group.name;
         document.getElementById('entryModal').classList.add('active');
 
-        // 切换按钮为“复制”
-        const btn = document.getElementById('importTxtBtn');
-        btn.textContent = '复制';
-        btn.id = 'copyContentBtn';
-        btn.onclick = async () => {
+        // 按钮变为“复制”
+        actionBtn.textContent = '复制';
+        actionBtn.onclick = async () => {
             const textarea = document.getElementById('entryContent');
             const text = textarea.value;
             if (!text.trim()) {
